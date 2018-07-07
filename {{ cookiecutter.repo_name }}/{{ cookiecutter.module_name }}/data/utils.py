@@ -8,7 +8,7 @@ import shutil
 import zipfile
 import gzip
 
-from ..paths import interim_data_path
+from ..paths import interim_data_path, raw_data_path
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,6 @@ hash_function = {
     'sha256': hashlib.sha256,
     'md5': hashlib.md5,
 }
-
 
 def hash_file(fname, algorithm="sha1", block_size=4096):
     '''Compute the hash of an on-disk file
@@ -56,7 +55,7 @@ def fetch_files(force=False, dst_dir=None, **kwargs):
     '''
     url_list = kwargs.get('url_list', None)
     if not url_list:
-        raise Exception(f"url_list is a required keyword argument: {kwargs}")
+        return fetch_file(force=force, dst_dir=dst_dir, **kwargs)
     result_list = []
     for url_dict in url_list:
         name = url_dict.get('name', 'dataset')
@@ -100,17 +99,17 @@ def fetch_file(url,
     if `raw_file` already exists, compute the hash of the on-disk file,
     '''
     if dst_dir is None:
-        dst_dir = pathlib.Path(".")
+        dst_dir = raw_data_path
     if raw_file is None:
         raw_file = url.split("/")[-1]
-    raw_data_path = pathlib.Path(dst_dir)
+    dl_data_path = pathlib.Path(dst_dir)
 
-    if not os.path.exists(raw_data_path):
-        os.makedirs(raw_data_path)
+    if not os.path.exists(dl_data_path):
+        os.makedirs(dl_data_path)
 
-    raw_data_file = raw_data_path / raw_file
+    raw_data_file = dl_data_path / raw_file
 
-    if os.path.exists(raw_data_file):
+    if raw_data_file.exists():
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
         if hash_value is not None:
             if raw_file_hash == hash_value:
@@ -177,7 +176,9 @@ def unpack(filename, dst_dir=None, create_dst=True):
         opener, mode = gzip.open, 'rb'
         outfile, outmode = path[:-3], 'wb'
     else:
-        raise ValueError(f"Could not extract {path} as no appropriate extractor is found")
+        opener, mode = open, 'rb'
+        outfile, outmode = path, 'wb'
+        logger.info("No compression detected. Copying...")
 
     with opener(filename, mode) as f_in:
         if archive:
@@ -188,3 +189,65 @@ def unpack(filename, dst_dir=None, create_dst=True):
             logger.info(f"Decompresing {outfile}")
             with open(pathlib.Path(dst_dir) / outfile, outmode) as f_out:
                 shutil.copyfileobj(f_in, f_out)
+
+def build_dataset_dict(hash_type='sha1', hash_value=None, url=None, name=None):
+    """fetch a URL, return a dataset dictionary entry"""
+    fetch_dict = {'url': url, 'hash_type':hash_type, 'hash_value':hash_value, 'name': name}
+    status, path, hash_value = fetch_files(**fetch_dict)
+    if status:
+        fetch_dict['hash_value'] = hash_value
+        return fetch_dict
+
+    raise Exception(f"fetch of {url} returned status: {status}")
+
+def fetch_and_unpack(dataset_name, do_unpack=True):
+    '''Fetch and process datasets to their usable form
+
+    dataset_name: string
+        Name of dataset. Must be in `datasets.available_datasets`
+    do_unpack: boolean
+        If false, just download, don't process.
+
+'''
+    # This is here to avoid a circular import
+    from .datasets import dataset_raw_files
+    ds = dataset_raw_files
+    if dataset_name not in ds:
+        raise Exception(f"Unknown Dataset: {dataset_name}")
+
+    interim_dataset_path = interim_data_path / dataset_name
+
+    logger.info(f"Checking for {dataset_name}")
+    if ds[dataset_name].get('url_list', None):
+        single_file = False
+        status, results = fetch_files(dst_dir=raw_data_path,
+                                      **ds[dataset_name])
+        if status:
+            logger.info(f"Retrieved Dataset successfully")
+        else:
+            logger.error(f"Failed to retrieve all data files: {results}")
+            raise Exception("Failed to retrieve all data files")
+        if do_unpack:
+            for _, filename, _ in results:
+                unpack(filename, dst_dir=interim_dataset_path)
+    else:
+        single_file = True
+        status, filename, hashval = fetch_file(dst_dir=raw_data_path,
+                                               **ds[dataset_name])
+        hashtype = ds[dataset_name].get('hash_type', None)
+        if status:
+            logger.info(f"Retrieved Dataset: {dataset_name} "
+                        f"({hashtype}: {hashval})")
+        else:
+            logger.error(f"Unpack to {filename} failed (hash: {hashval}). "
+                         f"Status: {status}")
+            raise Exception(f"Failed to download raw data: {filename}")
+        if do_unpack:
+            unpack(filename, dst_dir=interim_dataset_path)
+    if do_unpack:
+        return interim_dataset_path
+    else:
+        if single_file:
+            return filename
+        else:
+            return raw_data_path

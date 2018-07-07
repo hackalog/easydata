@@ -3,29 +3,35 @@ import click
 import logging
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
-from .datasets import fetch_and_unpack, available_datasets
+from .utils import fetch_and_unpack
+from .datasets import available_datasets, load_dataset
+from ..paths import data_path
 
 @click.command()
-@click.argument('project_dir', type=click.Path(exists=True))
-def main(project_dir, datasets=None):
-    """ Runs data processing scripts to turn raw data from (../raw) into
-        cleaned data ready to be analyzed (saved in ../processed).
+@click.argument('action')
+def main(action, datasets=None):
+    """Fetch and/or process the raw data
+
+    Runs data processing scripts to turn raw data from (../raw) into
 
     Raw files are downloaded into `project_dir`/data/raw
     Interim files are generated in `project_dir`/data/interim
 
+    action: {'fetch', 'process'}
+
     """
     logger = logging.getLogger(__name__)
-    logger.info('making final data set from raw data')
+    logger.info(f'Dataset: running {action}')
 
     if datasets is None:
         datasets = available_datasets
 
-    data_dir = Path(project_dir) / 'data'
-
     unpacked_datasets = {}
     for dataset_name in datasets:
-        unpacked_datasets[dataset_name] = fetch_and_unpack(dataset_name, data_dir=data_dir)
+        if action == 'fetch':
+            unpacked_datasets[dataset_name] = fetch_and_unpack(dataset_name, do_unpack=False)
+        elif action == 'process':
+            ds = load_dataset(dataset_name)
 
 
 if __name__ == '__main__':

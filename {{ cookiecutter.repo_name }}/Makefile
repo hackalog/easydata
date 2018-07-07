@@ -1,4 +1,4 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3
+.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3 fetch_data unpack_data
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -8,6 +8,7 @@ PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BUCKET = {{ cookiecutter.s3_bucket }}
 PROFILE = {{ cookiecutter.aws_profile }}
 PROJECT_NAME = {{ cookiecutter.repo_name }}
+MODULE_NAME = {{ cookiecutter.module_name }}
 PYTHON_INTERPRETER = {{ cookiecutter.python_interpreter }}
 VIRTUALENV = {{ cookiecutter.virtualenv }}
 
@@ -21,12 +22,20 @@ ifeq (conda, $(VIRTUALENV))
 	conda env update --name $(PROJECT_NAME) -f environment.yml
 else
 	pip install -U pip setuptools wheel
-endif
 	pip install -r requirements.txt
+endif
 
-## Make Dataset
-data: requirements
-	$(PYTHON_INTERPRETER) {{ cookiecutter.repo_name }}/data/make_dataset.py
+## Perform the complete datset generation pipeline
+data: requirements process_data
+
+## Fetch the raw data
+fetch_data:
+	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset fetch
+
+## Fetch and process the data
+process_data: fetch_data
+	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset process
+
 
 ## Delete all compiled Python files
 clean:
@@ -35,7 +44,7 @@ clean:
 
 ## Lint using flake8
 lint:
-	flake8 {{ cookiecutter.repo_name }}
+	flake8 {{ cookiecutter.module_name }}
 
 ## Upload Data to S3
 sync_data_to_s3:
