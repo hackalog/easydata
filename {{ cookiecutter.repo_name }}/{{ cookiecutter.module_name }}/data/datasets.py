@@ -7,7 +7,7 @@ from functools import partial
 from joblib import Memory
 import sys
 
-from .utils import fetch_and_unpack
+from .utils import fetch_and_unpack, get_dataset_filename
 from ..paths import data_path, raw_data_path, interim_data_path, processed_data_path
 
 _MODULE = sys.modules[__name__]
@@ -15,6 +15,24 @@ _MODULE_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
 logger = logging.getLogger(__name__)
 
 jlmem = Memory(cachedir=str(interim_data_path))
+
+def new_dataset(*, dataset_name):
+
+    dset = Bunch()
+    dset['metadata'] = {}
+    dset['LICENSE'] = None
+    dset['DESCR'] = None
+
+    ds = dataset_raw_files[dataset_name]
+    for fetch_dict in ds.get('url_list', []):
+        name = fetch_dict.get('name', None)
+        if name in ['DESCR', 'LICENSE']:
+            txtfile = get_dataset_filename(fetch_dict)
+            with open(raw_data_path / txtfile, 'r') as fr:
+                dset[name] = fr.read()
+
+    return dset
+
 
 @jlmem.cache
 def load_dataset(dataset_name, return_X_y=False, **kwargs):
@@ -48,11 +66,13 @@ def write_dataset(path=None, filename="datasets.json", indent=4, sort_keys=True)
     ds = dataset_raw_files.copy()
     # copy, adjusting non-serializable items
     for key, entry in ds.items():
-        func = entry['load_function']
-        del(entry['load_function'])
+        func = entry.get('load_function', None)
+        if func is None:
+             func = partial(new_dataset, dataset_name=key)
+        else:
+            del(entry['load_function'])
         entry['load_function_name'] = func.func.__name__
         entry['load_function_options'] = func.keywords
-    print(ds)
     with open(path / filename, 'w') as fw:
         json.dump(ds, fw, indent=indent, sort_keys=sort_keys)
 

@@ -18,6 +18,20 @@ hash_function = {
     'md5': hashlib.md5,
 }
 
+def get_dataset_filename(ds_dict):
+    '''Figure out the downloaded filename for a dataset entry
+
+    if a `file_name` key is present, use this,
+    otherwise, use the last component of the `url`
+    '''
+
+    file_name = ds_dict.get('file_name', None)
+    url = ds_dict.get('url', [])
+    if file_name is None:
+        file_name = url.split("/")[-1]
+    return file_name
+
+
 def hash_file(fname, algorithm="sha1", block_size=4096):
     '''Compute the hash of an on-disk file
 
@@ -64,7 +78,7 @@ def fetch_files(force=False, dst_dir=None, **kwargs):
     return all([r[0] for r in result_list]), result_list
 
 def fetch_file(url,
-               raw_file=None, dst_dir=None,
+               file_name=None, dst_dir=None,
                force=False,
                hash_type="sha1", hash_value=None,
                **kwargs):
@@ -79,13 +93,13 @@ def fetch_file(url,
         checked against this value
     name: (optional)
         Name of this dataset component
-    raw_file:
+    file_name:
         output file name. If not specified, use the last
         component of the URL
     dst_dir:
         directory to place downloaded files
     force: boolean
-        normally, the URL is only downloaded if `raw_file` is
+        normally, the URL is only downloaded if `file_name` is
         not present on the filesystem, or if the existing file has a
         bad hash. If force is True, download is always attempted.
 
@@ -96,32 +110,32 @@ def fetch_file(url,
         (HTTP_Code, downloaded_filename, hash) (if downloaded from URL)
         (True, filename, hash) (if already exists)
         (False, [error])
-    if `raw_file` already exists, compute the hash of the on-disk file,
+    if `file_name` already exists, compute the hash of the on-disk file,
     '''
     if dst_dir is None:
         dst_dir = raw_data_path
-    if raw_file is None:
-        raw_file = url.split("/")[-1]
+    if file_name is None:
+        file_name = url.split("/")[-1]
     dl_data_path = pathlib.Path(dst_dir)
 
     if not os.path.exists(dl_data_path):
         os.makedirs(dl_data_path)
 
-    raw_data_file = dl_data_path / raw_file
+    raw_data_file = dl_data_path / file_name
 
     if raw_data_file.exists():
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
         if hash_value is not None:
             if raw_file_hash == hash_value:
                 if force is False:
-                    logger.info(f"{raw_file} exists and hash is valid")
+                    logger.info(f"{file_name} exists and hash is valid")
                     return True, raw_data_file, raw_file_hash
             else:
-                logger.warning(f"{raw_file} exists but has bad hash {raw_file_hash}."
+                logger.warning(f"{file_name} exists but has bad hash {raw_file_hash}."
                                " Re-downloading")
         else:
             if force is False:
-                logger.info(f"{raw_file} exists, but no hash to check")
+                logger.info(f"{file_name} exists, but no hash to check")
                 return True, raw_data_file, raw_file_hash
 
     # Download the file
@@ -131,7 +145,7 @@ def fetch_file(url,
         raw_file_hash = hash_function[hash_type](results.content).hexdigest()
         if hash_value is not None:
             if raw_file_hash != hash_value:
-                print(f"Invalid hash on downloaded {raw_file}"
+                print(f"Invalid hash on downloaded {file_name}"
                       f" ({hash_type}:{raw_file_hash}) != {hash_type}:{hash_value}")
                 return False, None, raw_file_hash
         logger.info(f"Writing {raw_data_file}")
@@ -190,9 +204,20 @@ def unpack(filename, dst_dir=None, create_dst=True):
             with open(pathlib.Path(dst_dir) / outfile, outmode) as f_out:
                 shutil.copyfileobj(f_in, f_out)
 
-def build_dataset_dict(hash_type='sha1', hash_value=None, url=None, name=None):
-    """fetch a URL, return a dataset dictionary entry"""
-    fetch_dict = {'url': url, 'hash_type':hash_type, 'hash_value':hash_value, 'name': name}
+def build_dataset_dict(hash_type='sha1', hash_value=None, url=None,
+                       name=None, file_name=None):
+    """fetch a URL, return a dataset dictionary entry
+
+    hash_type: {'sha1', 'md5', 'sha256'}
+    hash_value: string or None
+        if None, hash will be computed from downloaded file
+    file_name: string or None
+        Name of downloaded file. If None, will be the last component of the URL
+    url: URL to fetch
+
+    returns: dict
+    """
+    fetch_dict = {'url': url, 'hash_type':hash_type, 'hash_value':hash_value, 'name': name, 'file_name':file_name}
     status, path, hash_value = fetch_files(**fetch_dict)
     if status:
         fetch_dict['hash_value'] = hash_value
