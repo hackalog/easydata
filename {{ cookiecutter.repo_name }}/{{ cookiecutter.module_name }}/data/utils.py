@@ -220,6 +220,9 @@ def unpack(filename, dst_dir=None, create_dst=True):
     elif path.endswith('.tar.bz2') or path.endswith('.tbz'):
         archive = True
         opener, mode = tarfile.open, 'r:bz2'
+    elif path.endswith('.tar'):
+        archive = True
+        opener, mode = tarfile.open, 'r'
     elif path.endswith('.gz'):
         opener, mode = gzip.open, 'rb'
         outfile, outmode = path[:-3], 'wb'
