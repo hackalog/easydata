@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 jlmem = Memory(cachedir=str(interim_data_path))
 
 def new_dataset(*, dataset_name):
+    global dataset_raw_files
 
     dset = Bunch()
     dset['metadata'] = {}
@@ -33,6 +34,18 @@ def new_dataset(*, dataset_name):
 
     return dset
 
+def add_dataset_by_urllist(dataset_name, url_list):
+    """Add a new dataset by specifying a url_list
+
+    url_list is a list of dicts keyed by:
+        * url, hash_type, hash_value, name, file_name
+    """
+    global dataset_raw_files
+
+    dataset_raw_files[dataset_name] = {'url_list': url_list}
+    write_dataset()
+    dataset_raw_files = read_datasets()
+    return dataset_raw_files[dataset_name]
 
 @jlmem.cache
 def load_dataset(dataset_name, return_X_y=False, **kwargs):

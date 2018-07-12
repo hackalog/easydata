@@ -77,6 +77,40 @@ def fetch_files(force=False, dst_dir=None, **kwargs):
         result_list.append(fetch_file(force=force, dst_dir=dst_dir, **url_dict))
     return all([r[0] for r in result_list]), result_list
 
+def fetch_text_file(url, file_name=None, dst_dir=None, force=True, **kwargs):
+    """Fetch a text file (via URL) and return it as a string.
+
+    Arguments
+    ---------
+
+    file_name:
+        output file name. If not specified, use the last
+        component of the URL
+    dst_dir:
+        directory to place downloaded files
+    force: boolean
+        normally, the URL is only downloaded if `file_name` is
+        not present on the filesystem, or if the existing file has a
+        bad hash. If force is True, download is always attempted.
+
+    In addition to these options, any of `fetch_file`'s keywords may
+    also be passed
+
+    Returns
+    -------
+    fetched string, or None if something went wrong with the download
+    """
+    retlist = fetch_file(url, file_name=file_name, dst_dir=dst_dir,
+                         force=force, **kwargs)
+    if retlist[0]:
+        status, filename, hashval = retlist
+        with open(filename, 'r') as txt:
+            return txt.read()
+    else:
+        logger.warning(f'fetch of {url} failed with status: {retlist[0]}')
+        return None
+
+
 def fetch_file(url,
                file_name=None, dst_dir=None,
                force=False,
