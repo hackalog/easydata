@@ -24,6 +24,7 @@ dependencies:
   - scikit-learn
   - joblib
   - nb_conda
+  - pandas
 {% if cookiecutter.python_interpreter == 'python3' -%}
 {{ py3dep()|indent(2, true) }}
 {% else -%}
