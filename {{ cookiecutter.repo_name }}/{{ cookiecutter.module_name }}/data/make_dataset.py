@@ -3,8 +3,7 @@ import click
 import logging
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
-from .utils import fetch_and_unpack
-from .datasets import available_datasets, load_dataset
+from .datasets import available_datasets, load_dataset, fetch_and_unpack
 from ..paths import data_path
 
 @click.command()
