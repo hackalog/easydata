@@ -429,7 +429,7 @@ def load_dataset(dataset_name, return_X_y=False, force=False, **kwargs):
         # no cache. Regenerate
         fetch_and_unpack(dataset_name)
         dset = available_datasets[dataset_name]['load_function'](**kwargs)
-        os.makedirs(cache_file.parent)
+        os.makedirs(cache_file.parent, exist_ok=True)
         with open(cache_file, 'wb') as fo:
             joblib.dump(dset, fo)
 
