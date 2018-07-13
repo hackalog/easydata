@@ -7,6 +7,7 @@ import logging
 import shutil
 import zipfile
 import gzip
+import zlib
 
 from ..paths import interim_data_path, raw_data_path
 
@@ -226,12 +227,18 @@ def unpack(filename, dst_dir=None, create_dst=True):
     elif path.endswith('.gz'):
         opener, mode = gzip.open, 'rb'
         outfile, outmode = path[:-3], 'wb'
+    elif path.endswith('.Z'):
+        logger.warning(".Z files are only supported on systems that ship with gzip. Trying...")
+        os.system(f'gzip -d {path}')
+        opener, mode = open, 'rb'
+        path = path[:-2]
+        outfile, outmode = path, 'wb'
     else:
         opener, mode = open, 'rb'
         outfile, outmode = path, 'wb'
         logger.info("No compression detected. Copying...")
 
-    with opener(filename, mode) as f_in:
+    with opener(path, mode) as f_in:
         if archive:
             logger.info(f"Extracting {filename.name}")
             f_in.extractall(path=dst_dir)
