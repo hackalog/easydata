@@ -438,8 +438,13 @@ def load_dataset(dataset_name, return_X_y=False, force=False, **kwargs):
     else:
         return dset
 
-available_datasets = read_datasets()
-
 #############################################
 # Add project-specific import functions
 #############################################
+
+
+#############################################
+# End project-specific import functions
+#############################################
+
+available_datasets = read_datasets()
