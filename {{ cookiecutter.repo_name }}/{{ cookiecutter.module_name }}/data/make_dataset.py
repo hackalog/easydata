@@ -23,7 +23,7 @@ def main(action, datasets=None):
     logger.info(f'Dataset: running {action}')
 
     if datasets is None:
-        datasets = available_datasets
+        datasets = available_datasets()
 
     unpacked_datasets = {}
     for dataset_name in datasets:
