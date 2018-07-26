@@ -25,6 +25,7 @@ dependencies:
   - joblib
   - nb_conda
   - pandas
+  - requests
 {% if cookiecutter.python_interpreter == 'python3' -%}
 {{ py3dep()|indent(2, true) }}
 {% else -%}

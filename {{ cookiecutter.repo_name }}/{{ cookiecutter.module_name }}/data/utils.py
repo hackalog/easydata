@@ -1,7 +1,5 @@
-from functools import partial
 import gzip
 import hashlib
-import json
 import logging
 import os
 import pathlib
@@ -10,8 +8,10 @@ import sys
 import tarfile
 import zipfile
 import zlib
+import pandas as pd
+import numpy as np
 
-from ..paths import interim_data_path, raw_data_path
+from ..paths import interim_data_path
 
 _MODULE = sys.modules[__name__]
 _MODULE_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
@@ -117,6 +117,56 @@ def list_dir(path, fully_qualified=False, glob_pattern='*'):
     -------
     A list of names, or fully qualified pathlib objects"""
     if fully_qualified:
-        return list(pathlib.Path(path).glob(glob_bpattern))
-    else:
-        return [file.name for file in pathlib.Path(path).glob(glob_pattern)]
+        return list(pathlib.Path(path).glob(glob_pattern))
+
+    return [file.name for file in pathlib.Path(path).glob(glob_pattern)]
+
+def read_space_delimited(filename, skiprows=None, class_labels=True):
+    """Read an space-delimited file
+
+    skiprows: list of rows to skip when reading the file.
+
+    Note: we can't use automatic comment detection, as
+    `#` characters are also used as data labels.
+    class_labels: boolean
+        if true, the last column is treated as the class label
+    """
+    with open(filename, 'r') as fd:
+        df = pd.read_table(fd, skiprows=skiprows, skip_blank_lines=True, comment=None, header=None, sep=' ', dtype=str)
+        # targets are last column. Data is everything else
+        if class_labels is True:
+            target = df.loc[:,df.columns[-1]].values
+            data = df.loc[:,df.columns[:-1]].values
+        else:
+            data = df.values
+            target = np.zeros(data.shape[0])
+        return data, target
+
+def normalize_labels(target):
+    """Map an arbitary target vector to an integer vector
+
+    Returns
+    -------
+    tuple: (mapped_target, label_map)
+
+    where:
+        mapped_target: integer vector of same shape as target
+        label_map: dict mapping mapped_target integers to original labels
+
+    Examples
+    --------
+    >>> target = np.array(['a','b','c','a'])
+    >>> mapped_target, label_map = normalize_labels(target)
+    >>> mapped_target
+    array([0, 1, 2, 0])
+
+    The following should always be true
+
+    >>> all(np.vectorize(label_map.get)(mapped_target) == target)
+    True
+    """
+    label_map = {k:v for k, v in enumerate(np.unique(target))}
+    label_map_inv = {v:k for k, v in label_map.items()}
+    mapped_target = np.vectorize(label_map_inv.get)(target)
+
+    return mapped_target, label_map
