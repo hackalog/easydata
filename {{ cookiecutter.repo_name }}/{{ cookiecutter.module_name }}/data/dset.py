@@ -15,29 +15,73 @@ __all__ = ['Dataset']
 
 class Dataset(Bunch):
     def __init__(self, dataset_name=None, data=None, target=None, metadata=None,
-                 license_txt=None, descr_txt=None,
+                 license_txt=None, descr_txt=None, license_file=None, descr_file=None,
                  **kwargs):
         """
-        use_dataset_list:
-            if a `dataset_name` is specified,
+        Object representing a dataset object.
+        Notionally compatible with scikit-learn's Bunch object
+
+        dataset_name: string (required)
+            key to use for this dataset
+        data:
+            Data: (usually np.array or np.ndarray)
+        target: np.array
+            Either classification target or label to be used. for each of the points
+            in `data`
+        metadata: dict
+            Data about the object. Key fields include `license_txt` and `descr`
+        license_txt: str
+            String to use as the LICENSE for this dataset
+        license_file: filename
+            If `license_txt` is None, license text can be read from this file
+        descr_txt: str
+            String to use as the DESCR (description) for this dataset
+        descr_file: filename
+            If `descr_txt` is None, description text can be read from this file
 
         """
         super().__init__(**kwargs)
 
         if dataset_name is None:
-            raise Exception('dataset_name is required')
+            if metadata is not None and metadata.get("dataset_name", None) is not None:
+                dataset_name = metadata['dataset_name']
+            else:
+                raise Exception('dataset_name is required')
 
         if metadata is not None:
             self['metadata'] = metadata
-            use_cached_metadata = False
         else:
             self['metadata'] = {}
         self['metadata']['dataset_name'] = dataset_name
-        self.LICENSE = license_txt
-        self.DESCR = descr_txt
+        if license_txt is not None:
+            self['metadata']['license_txt'] = license_txt
+        elif license_file is not None:
+            with open(license_file, 'r') as f:
+                license_txt = f.read()
+        if descr_txt is not None:
+            self['metadata']['descr_txt'] = descr_txt
+        elif descr_file is not None:
+            with open(descr_file, 'r') as f:
+                descr_txt = f.read()
         self['data'] = data
         self['target'] = target
 
+    @property
+    def DESCR(self):
+        return self['metadata'].get('descr_txt', None)
+
+    @DESCR.setter
+    def DESCR(self, value):
+        self['metadata']['descr_txt'] = value
+
+    @property
+    def LICENSE(self):
+        return self['metadata'].get('license_txt', None)
+
+    @LICENSE.setter
+    def LICENSE(self, value):
+        self['metadata']['license_txt'] = value
+        
     @property
     def name(self):
         return self['metadata'].get('dataset_name', None)
