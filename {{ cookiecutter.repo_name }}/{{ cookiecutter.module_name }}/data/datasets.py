@@ -227,8 +227,8 @@ def fetch_file(url=None, contents=None,
     elif contents is not None:
         with open(raw_data_file, 'w') as fw:
             fw.write(contents)
-            raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
-            return True, raw_data_file, raw_file_hash
+        raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
+        return True, raw_data_file, raw_file_hash
     else:
         raise Exception('One of `url` or `contents` must be specified')
 
