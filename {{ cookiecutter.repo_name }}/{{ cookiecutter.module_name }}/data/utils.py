@@ -101,7 +101,11 @@ def head_file(filename, n=5):
     """Return the first `n` lines of a file
     """
     with open(filename, 'r') as fd:
-        lines = [next(fd) for _ in range(n)]
+        lines = []
+        for i, line in enumerate(fd):
+            if i > n:
+                break
+            lines.append(line)
     return "".join(lines)
 
 def list_dir(path, fully_qualified=False, glob_pattern='*'):
