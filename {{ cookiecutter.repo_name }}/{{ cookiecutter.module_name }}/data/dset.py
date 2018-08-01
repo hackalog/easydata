@@ -81,7 +81,22 @@ class Dataset(Bunch):
         elif key == 'name':
             self['metadata']['dataset_name'] = value
         else:
-            super().__setattr__(name, value)
+            super().__setattr__(key, value)
+
+    def __str__(self):
+        s = f"<Dataset: {self.name}"
+        if self.get('data', None) is not None:
+            shape = getattr(self.data, 'shape', 'Unknown')
+            s += f", data.shape={shape}"
+        if self.get('target', None) is not None:
+            shape = getattr(self.target, 'shape', 'Unknown')
+            s += f", target.shape={shape}"
+        meta = self.get('metadata', {})
+        if meta:
+            s += f", metadata={list(meta.keys())}"
+
+        s += ">"
+        return s
 
     @property
     def name(self):
