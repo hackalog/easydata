@@ -16,7 +16,7 @@ VIRTUALENV = {{ cookiecutter.virtualenv }}
 # COMMANDS                                                                      #
 #################################################################################
 
-## Install Python Dependencies
+## Install or update Python Dependencies
 requirements: test_environment
 ifeq (conda, $(VIRTUALENV))
 	conda env update --name $(PROJECT_NAME) -f environment.yml
@@ -25,10 +25,10 @@ else
 	pip install -r requirements.txt
 endif
 
-## Perform the complete datset generation pipeline
+## Perform the complete dataset generation pipeline
 data: requirements process_data
 
-## Fetch the raw data
+## Fetch the data
 fetch_data:
 	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset fetch
 
@@ -36,11 +36,14 @@ fetch_data:
 process_data: fetch_data
 	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset process
 
-
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
+
+## Run all Unit Tests
+test:
+	cd {{ cookiecutter.module_name }} && pytest --doctest-modules --verbose --cov
 
 ## Lint using flake8
 lint:
@@ -76,8 +79,13 @@ else
 	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
 endif
 
-## Test python environment is setup correctly
+## Test python environment is set-up correctly
 test_environment:
+ifeq (conda,$(VIRTUALENV))
+ifneq (${CONDA_DEFAULT_ENV}, $(PROJECT_NAME))
+	$(error Must activate `$(PROJECT_NAME)` environment before proceeding)
+endif
+endif
 	$(PYTHON_INTERPRETER) test_environment.py
 
 #################################################################################
