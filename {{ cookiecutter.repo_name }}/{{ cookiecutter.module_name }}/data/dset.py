@@ -53,35 +53,36 @@ class Dataset(Bunch):
         else:
             self['metadata'] = {}
         self['metadata']['dataset_name'] = dataset_name
-        if license_txt is not None:
-            self['metadata']['license_txt'] = license_txt
-        elif license_file is not None:
+        if license_file is not None:
             with open(license_file, 'r') as f:
                 license_txt = f.read()
-        if descr_txt is not None:
-            self['metadata']['descr_txt'] = descr_txt
-        elif descr_file is not None:
+        if license_txt is not None:
+            self['metadata']['license'] = license_txt
+        if descr_file is not None:
             with open(descr_file, 'r') as f:
                 descr_txt = f.read()
+        if descr_txt is not None:
+            self['metadata']['descr'] = descr_txt
         self['data'] = data
         self['target'] = target
 
-    @property
-    def DESCR(self):
-        return self['metadata'].get('descr_txt', None)
+    def __getattribute__(self, key):
+        if key.isupper():
+            try:
+                return self['metadata'][key.lower()]
+            except:
+                raise AttributeError(key)
+        else:
+            return super().__getattribute__(key)
 
-    @DESCR.setter
-    def DESCR(self, value):
-        self['metadata']['descr_txt'] = value
+    def __setattr__(self, key, value):
+        if key.isupper():
+            self['metadata'][key.lower()] = value
+        elif key == 'name':
+            self['metadata']['dataset_name'] = value
+        else:
+            super().__setattr__(name, value)
 
-    @property
-    def LICENSE(self):
-        return self['metadata'].get('license_txt', None)
-
-    @LICENSE.setter
-    def LICENSE(self, value):
-        self['metadata']['license_txt'] = value
-        
     @property
     def name(self):
         return self['metadata'].get('dataset_name', None)

@@ -20,23 +20,25 @@ logger = logging.getLogger(__name__)
 
 jlmem = joblib.Memory(cachedir=str(interim_data_path), verbose=0)
 
-def new_dataset_opts(*, dataset_name):
-    """Return an unpopulated dataset options dictionary.
+def get_default_metadata(*, dataset_name):
+    """Create default metatada for a dataset.
 
-    Fills in LICENSE and DESCR if they are present.
-    Takes metadata from the url_list object if present. Otherwise, if
-    `*.license` or `*.readme` files are present in the module directory,
-    these will be as LICENSE and DESCR respectively.
+    This sets the dataset_name, and fills in `license` and `descr`
+    fields if they are present, either on disk, or in the datasets.json
+
+    Returns
+    -------
+    Dict of metadata key/value pairs
     """
 
-    dset_opts = {}
+    metadata = {}
     optmap = {
-        'DESCR': 'descr_txt',
-        'LICENSE': 'license_txt',
+        'DESCR': 'descr',
+        'LICENSE': 'license',
     }
     filemap = {
-        'license_txt': f'{dataset_name}.license',
-        'desc_txt': f'{dataset_name}.readme'
+        'license': f'{dataset_name}.license',
+        'descr': f'{dataset_name}.readme'
     }
 
     # read metadata from disk if present
@@ -44,7 +46,7 @@ def new_dataset_opts(*, dataset_name):
         metadata_file = _MODULE_DIR / filemap[key]
         if metadata_file.exists():
             with open(metadata_file, 'r') as fd:
-                dset_opts[key] = fd.read()
+                metadata[key] = fd.read()
 
     # Use downloaded metadata if available
     dslist = read_datasets()
@@ -55,15 +57,16 @@ def new_dataset_opts(*, dataset_name):
         if name in ['DESCR', 'LICENSE']:
             txtfile = get_dataset_filename(fetch_dict)
             with open(raw_data_path / txtfile, 'r') as fr:
-                dset_opts[optmap[name]] = fr.read()
-                
-    dset_opts['dataset_name'] = dataset_name
-    return dset_opts
+                metadata[optmap[name]] = fr.read()
 
-def new_dataset(*, dataset_name):
-    dset_opts = new_dataset_opts(dataset_name=dataset_name)
-    return Dataset(**dset_opts)
-    
+    metadata['dataset_name'] = dataset_name
+    return metadata
+
+def new_dataset(metadata=None, *, dataset_name):
+    if metadata is None:
+        metadata = get_default_metadata(dataset_name=dataset_name)
+    return Dataset(metadata=metadata)
+
 
 def get_dataset_filename(ds_dict):
     '''Figure out the downloaded filename for a dataset entry
@@ -400,7 +403,7 @@ def add_dataset_metadata(dataset_name, from_file=None, from_str=None, kind='DESC
         'LICENSE': f'{dataset_name}.license',
     }
     ds_list = read_datasets()
-    
+
     if dataset_name not in ds_list:
         raise Exception(f'No such dataset: {dataset_name}')
 
@@ -501,6 +504,9 @@ def load_dataset(dataset_name, return_X_y=False, map_labels=False, **kwargs):
         dset_opts = generate_synthetic_dataset_opts(dataset_name, func)
     elif action == 'fetch_and_process':
         fetch_and_unpack(dataset_name)
+        metadata = get_default_metadata(dataset_name=dataset_name)
+        supplied_metadata = kwargs.pop('metadata', {})
+        kwargs['metadata'] = {**metadata, **supplied_metadata}
         dset_opts = dataset_list[dataset_name]['load_function'](**kwargs)
     else:
         raise Exception(f"Unknown action: {action} for dataset: {dataset_name}")
