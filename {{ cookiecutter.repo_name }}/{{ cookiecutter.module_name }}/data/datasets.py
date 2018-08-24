@@ -181,8 +181,6 @@ def fetch_file(url=None, contents=None,
         (False, [error])
     if `file_name` already exists, compute the hash of the on-disk file,
     '''
-    if url is None and contents is None:
-        raise Exception('One of `url` or `contents` must be specified')
     if dst_dir is None:
         dst_dir = raw_data_path
     if file_name is None:
@@ -208,6 +206,10 @@ def fetch_file(url=None, contents=None,
             if force is False:
                 logger.info(f"{file_name} exists, but no hash to check")
                 return True, raw_data_file, raw_file_hash
+
+    if url is None and contents is None:
+        raise Exception("One of `url` or `contents` must be specified if `file_name` doesn't yet exist")
+
     if url is not None:
         # Download the file
         try:
@@ -255,6 +257,9 @@ def build_dataset_dict(hash_type='sha1', hash_value=None, url=None,
         fetch_dict = {'url': url, 'hash_type':hash_type, 'hash_value':hash_value, 'name': name, 'file_name':file_name}
     elif from_txt is not None:
         fetch_dict = {'contents': from_txt, 'name':name, 'file_name': file_name, 'hash_type': hash_type}
+    else:
+        fetch_dict = {'name':name, 'file_name': file_name, 'hash_type': hash_type}
+
     status, path, hash_value = fetch_files(**fetch_dict)
     if status:
         fetch_dict['hash_value'] = hash_value
