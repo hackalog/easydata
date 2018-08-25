@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import click
 import logging
+import os
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 from .datasets import available_datasets, load_dataset, fetch_and_unpack
@@ -35,7 +36,7 @@ def main(action, datasets=None):
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(level=logging.INFO, format=log_fmt)
+    logging.basicConfig(level=os.environ.get('LOGLEVEL', 'INFO'), format=log_fmt)
 
     # not used in this stub but often useful for finding various files
     project_dir = Path(__file__).resolve().parents[2]
