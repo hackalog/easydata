@@ -8,9 +8,12 @@ import os
 import pathlib
 import requests
 import sys
+import inspect
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+
 
 from .dset import Dataset
-from .utils import hash_file, unpack, hash_function_map, read_space_delimited, normalize_labels
+from .utils import hash_file, unpack, hash_function_map, read_space_delimited, normalize_labels, partial_call_signature
 from ..paths import data_path, raw_data_path, interim_data_path, processed_data_path
 from .localdata import *
 
@@ -106,8 +109,10 @@ def fetch_files(force=False, dst_dir=None, **kwargs):
         return fetch_file(force=force, dst_dir=dst_dir, **kwargs)
     result_list = []
     for url_dict in url_list:
-        name = url_dict.get('name', 'dataset')
-        logger.info(f"Fetching {name}")
+        name = url_dict.get('name', None)
+        if name is None:
+            name = url_dict.get('url', 'dataset')
+        logger.debug(f"Ready to fetch {name}")
         result_list.append(fetch_file(force=force, dst_dir=dst_dir, **url_dict))
     return all([r[0] for r in result_list]), result_list
 
@@ -197,14 +202,14 @@ def fetch_file(url=None, contents=None,
         if hash_value is not None:
             if raw_file_hash == hash_value:
                 if force is False:
-                    logger.info(f"{file_name} exists and hash is valid")
+                    logger.debug(f"{file_name} already exists and hash is valid")
                     return True, raw_data_file, raw_file_hash
             else:
                 logger.warning(f"{file_name} exists but has bad hash {raw_file_hash}."
                                " Re-downloading")
         else:
             if force is False:
-                logger.info(f"{file_name} exists, but no hash to check")
+                logger.debug(f"{file_name} exists, but no hash to check")
                 return True, raw_data_file, raw_file_hash
 
     if url is None and contents is None:
@@ -221,7 +226,7 @@ def fetch_file(url=None, contents=None,
                     print(f"Invalid hash on downloaded {file_name}"
                           f" ({hash_type}:{raw_file_hash}) != {hash_type}:{hash_value}")
                     return False, None, raw_file_hash
-            logger.info(f"Writing {raw_data_file}")
+            logger.debug(f"Writing {raw_data_file}")
             with open(raw_data_file, "wb") as code:
                 code.write(results.content)
         except requests.exceptions.HTTPError as err:
@@ -284,15 +289,20 @@ def fetch_and_unpack(dataset_name, do_unpack=True):
     if dataset_name not in ds:
         raise Exception(f"Unknown Dataset: {dataset_name}")
 
+    action = ds[dataset_name].get('action', None)
+    if  action != 'fetch_and_process':
+        logger.debug(f"Skipping fetch for dataset:{dataset_name}, action={action}")
+        return None
+
     interim_dataset_path = interim_data_path / dataset_name
 
-    logger.info(f"Checking for {dataset_name}")
+    logger.debug(f"Checking for {dataset_name}")
     if ds[dataset_name].get('url_list', None):
         single_file = False
         status, results = fetch_files(dst_dir=raw_data_path,
                                       **ds[dataset_name])
         if status:
-            logger.info(f"Retrieved Dataset successfully")
+            logger.debug(f"{dataset_name} retrieved successfully")
         else:
             logger.error(f"Failed to retrieve all data files: {results}")
             raise Exception("Failed to retrieve all data files")
@@ -305,7 +315,7 @@ def fetch_and_unpack(dataset_name, do_unpack=True):
                                                **ds[dataset_name])
         hashtype = ds[dataset_name].get('hash_type', None)
         if status:
-            logger.info(f"Retrieved Dataset: {dataset_name} "
+            logger.debug(f"Retrieved Dataset: {dataset_name} "
                         f"({hashtype}: {hashval})")
         else:
             logger.error(f"Unpack to {filename} failed (hash: {hashval}). "
@@ -426,25 +436,28 @@ def add_dataset_metadata(dataset_name, from_file=None, from_str=None, kind='DESC
     with open(_MODULE_DIR / filename_map[kind], 'w') as fw:
         fw.write(meta_txt)
 
-def add_dataset_from_function(dataset_name, function, action='fetch_and_process'):
+def add_dataset_from_function(dataset_name, function, action='fetch_and_process', rescale=None):
     """Add a load function for the given dataset_name
 
     action: {'fetch_and_process', 'generate'}
         if `fetch_and_process`, data will be downloaded and then processed with this function.
         if `generate`, this function will be used to generate the data, and the function
             docstring will be used as the dataset description
+    rescale: None or one of {'minmax', 'standards'}
+        How to rescale the resulting dataset
     """
     ds_list = read_datasets()
     if ds_list.get(dataset_name) is None:
         ds_list[dataset_name] = {}
     ds_list[dataset_name]['load_function'] = partial(function)
     ds_list[dataset_name]['action'] = action
+    ds_list[dataset_name]['rescale'] = rescale
     write_datasets(ds_list)
     ds_list = read_datasets()
 
     return ds_list[dataset_name]
 
-def generate_synthetic_dataset_opts(dataset_name, func, use_docstring=True):
+def generate_synthetic_dataset_opts(dataset_name, func, use_docstring=True, rescale=None):
     """Generate synthetic dataset options dict from a (partial) function
 
     dataset_name: string
@@ -454,6 +467,7 @@ def generate_synthetic_dataset_opts(dataset_name, func, use_docstring=True):
     use_docstring: boolean
         If True, generate DECSR text consisting of the complete function signature
         and docstring of underlying generation function.
+    rescale: None or {'minmax', 'standard'}
 
     Returns
     -------
@@ -470,8 +484,17 @@ def generate_synthetic_dataset_opts(dataset_name, func, use_docstring=True):
     else:
         raise Exception(f"Unexpected number of parameters from {func}. Got {len(tup)}.")
     metadata['dataset_name'] = dataset_name
+    if rescale == 'minmax':
+        scaler = MinMaxScaler()
+        X = scaler.fit_transform(X)
+    elif rescale == 'standard':
+        scaler = StandardScaler()
+        X = scaler.fit_transform(X)
+    elif rescale is not None:
+        raise Exception(f"Unrecognized rescale method: {rescale}")
+
     if use_docstring:
-        fqfunc, invocation =  jfi.format_signature(func.func, *func.args, **func.keywords)
+        fqfunc, invocation =  partial_call_signature(func)
         descr_txt =  f'Synthetic data produced by: {fqfunc}\n\n>>> {invocation}\n\n>>> help({func.func.__name__})\n\n{func.func.__doc__}'
     else:
         descr_txt = None
@@ -485,37 +508,67 @@ def generate_synthetic_dataset_opts(dataset_name, func, use_docstring=True):
     }
     return ds_opts
 
-def load_dataset(dataset_name, return_X_y=False, map_labels=False, **kwargs):
+def load_dataset(dataset_name, return_X_y=False, map_labels=False, force=False,
+                 cache_dir=None, **kwargs):
 
-    '''Loads a scikit-learn style dataset
+    '''Loads a Dataset object by name.
+
+    Dataset will be cached after creation. Subsequent calls with matching call
+    signature will return this cached object.
 
     Parameters
     ----------
     dataset_name:
-        Name of dataset to load. see `available_datasets.keys()` for the current list
+        Name of dataset to load. see `available_datasets()` for the current list
+    force: boolean
+        If True, always regenerate the dataset. If false, a cached result can
+        be returned (if available)
+    cache_dir: path
+        Directory to search for cache files
     map_labels: boolean
-        If true, target will be converted to an integer vector, and a label_map
-        will be added to the metadata mapping back to the original labels)
+        If true, target will be converted to an integer vector, and a `label_map`
+        dictionary will be added to the dataset metadata)
     return_X_y: boolean, default=False
         if True, returns (data, target) instead of a `Dataset` object
     '''
-    dataset_list = read_datasets()
+    if cache_dir is None:
+        cache_dir = interim_data_path
 
+    dataset_list = read_datasets()
     if dataset_name not in dataset_list:
         raise Exception(f'Unknown Dataset: {dataset_name}')
-    action = dataset_list[dataset_name]['action']
-    if action == 'generate':
-        func = partial(dataset_list[dataset_name]['load_function'], **kwargs)
-        dset_opts = generate_synthetic_dataset_opts(dataset_name, func)
-    elif action == 'fetch_and_process':
-        fetch_and_unpack(dataset_name)
-        metadata = get_default_metadata(dataset_name=dataset_name)
-        supplied_metadata = kwargs.pop('metadata', {})
-        kwargs['metadata'] = {**metadata, **supplied_metadata}
-        dset_opts = dataset_list[dataset_name]['load_function'](**kwargs)
-    else:
-        raise Exception(f"Unknown action: {action} for dataset: {dataset_name}")
-    dset = Dataset(**dset_opts)
+
+    cached_meta = {
+        'dataset_name': dataset_name,
+        'map_labels': map_labels,
+        **kwargs
+    }
+    meta_hash = joblib.hash(cached_meta, hash_name='sha1')
+
+    dset = None
+    if force is False:
+        try:
+            dset = Dataset.load(meta_hash, data_path=cache_dir)
+            logger.debug(f"Found cached dataset for {dataset_name}: {meta_hash}")
+        except FileNotFoundError:
+            logger.debug("No Cached Dataset found. Re-creating")
+
+    if dset is None:
+        action = dataset_list[dataset_name]['action']
+        if action == 'generate':
+            func = partial(dataset_list[dataset_name]['load_function'], **kwargs)
+            rescale = dataset_list[dataset_name].get('rescale', None)
+            dset_opts = generate_synthetic_dataset_opts(dataset_name, func, rescale=rescale)
+        elif action == 'fetch_and_process':
+            fetch_and_unpack(dataset_name)
+            metadata = get_default_metadata(dataset_name=dataset_name)
+            supplied_metadata = kwargs.pop('metadata', {})
+            kwargs['metadata'] = {**metadata, **supplied_metadata}
+            dset_opts = dataset_list[dataset_name]['load_function'](**kwargs)
+        else:
+            raise Exception(f"Unknown action: {action} for dataset: {dataset_name}")
+        dset = Dataset(**dset_opts)
+        dset.dump(data_path=cache_dir, file_base=meta_hash)
 
     if map_labels:
         if dset.metadata.get('label_map', None) is not None:

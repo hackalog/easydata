@@ -10,6 +10,8 @@ import zipfile
 import zlib
 import pandas as pd
 import numpy as np
+from functools import partial
+from joblib import func_inspect as jfi
 
 from ..paths import interim_data_path
 
@@ -78,7 +80,7 @@ def unpack(filename, dst_dir=None, create_dst=True):
         outfile, outmode = path[:-3], 'wb'
     elif path.endswith('.Z'):
         logger.warning(".Z files are only supported on systems that ship with gzip. Trying...")
-        os.system(f'gzip -d {path}')
+        os.system(f'gzip -f -d {path}')
         opener, mode = open, 'rb'
         path = path[:-2]
         outfile, outmode = path, 'wb'
@@ -89,7 +91,7 @@ def unpack(filename, dst_dir=None, create_dst=True):
 
     with opener(path, mode) as f_in:
         if archive:
-            logger.info(f"Extracting {filename.name}")
+            logger.debug(f"Extracting {filename.name}")
             f_in.extractall(path=dst_dir)
         else:
             outfile = pathlib.Path(outfile).name
@@ -174,3 +176,14 @@ def normalize_labels(target):
     mapped_target = np.vectorize(label_map_inv.get)(target)
 
     return mapped_target, label_map
+
+def partial_call_signature(func):
+    """Return the fully qualified call signature for a (partial) function
+    """
+    func = partial(func)
+    fa = jfi.getfullargspec(func)
+    default_kw = {}
+    if fa.args:
+        default_kw = dict(zip(fa.args, fa.defaults))
+    fq_keywords = {**default_kw, **fa.kwonlydefaults}
+    return jfi.format_signature(func.func, *func.args, **fq_keywords)
