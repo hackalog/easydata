@@ -8,9 +8,12 @@ import os
 import pathlib
 import requests
 import sys
+import inspect
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+
 
 from .dset import Dataset
-from .utils import hash_file, unpack, hash_function_map, read_space_delimited, normalize_labels
+from .utils import hash_file, unpack, hash_function_map, read_space_delimited, normalize_labels, partial_call_signature
 from ..paths import data_path, raw_data_path, interim_data_path, processed_data_path
 from .localdata import *
 
@@ -106,8 +109,10 @@ def fetch_files(force=False, dst_dir=None, **kwargs):
         return fetch_file(force=force, dst_dir=dst_dir, **kwargs)
     result_list = []
     for url_dict in url_list:
-        name = url_dict.get('name', 'dataset')
-        logger.info(f"Fetching {name}")
+        name = url_dict.get('name', None)
+        if name is None:
+            name = url_dict.get('url', 'dataset')
+        logger.debug(f"Ready to fetch {name}")
         result_list.append(fetch_file(force=force, dst_dir=dst_dir, **url_dict))
     return all([r[0] for r in result_list]), result_list
 
@@ -181,8 +186,6 @@ def fetch_file(url=None, contents=None,
         (False, [error])
     if `file_name` already exists, compute the hash of the on-disk file,
     '''
-    if url is None and contents is None:
-        raise Exception('One of `url` or `contents` must be specified')
     if dst_dir is None:
         dst_dir = raw_data_path
     if file_name is None:
@@ -199,15 +202,19 @@ def fetch_file(url=None, contents=None,
         if hash_value is not None:
             if raw_file_hash == hash_value:
                 if force is False:
-                    logger.info(f"{file_name} exists and hash is valid")
+                    logger.debug(f"{file_name} already exists and hash is valid")
                     return True, raw_data_file, raw_file_hash
             else:
                 logger.warning(f"{file_name} exists but has bad hash {raw_file_hash}."
                                " Re-downloading")
         else:
             if force is False:
-                logger.info(f"{file_name} exists, but no hash to check")
+                logger.debug(f"{file_name} exists, but no hash to check")
                 return True, raw_data_file, raw_file_hash
+
+    if url is None and contents is None:
+        raise Exception("One of `url` or `contents` must be specified if `file_name` doesn't yet exist")
+
     if url is not None:
         # Download the file
         try:
@@ -219,7 +226,7 @@ def fetch_file(url=None, contents=None,
                     print(f"Invalid hash on downloaded {file_name}"
                           f" ({hash_type}:{raw_file_hash}) != {hash_type}:{hash_value}")
                     return False, None, raw_file_hash
-            logger.info(f"Writing {raw_data_file}")
+            logger.debug(f"Writing {raw_data_file}")
             with open(raw_data_file, "wb") as code:
                 code.write(results.content)
         except requests.exceptions.HTTPError as err:
@@ -255,6 +262,9 @@ def build_dataset_dict(hash_type='sha1', hash_value=None, url=None,
         fetch_dict = {'url': url, 'hash_type':hash_type, 'hash_value':hash_value, 'name': name, 'file_name':file_name}
     elif from_txt is not None:
         fetch_dict = {'contents': from_txt, 'name':name, 'file_name': file_name, 'hash_type': hash_type}
+    else:
+        fetch_dict = {'name':name, 'file_name': file_name, 'hash_type': hash_type}
+
     status, path, hash_value = fetch_files(**fetch_dict)
     if status:
         fetch_dict['hash_value'] = hash_value
@@ -279,15 +289,20 @@ def fetch_and_unpack(dataset_name, do_unpack=True):
     if dataset_name not in ds:
         raise Exception(f"Unknown Dataset: {dataset_name}")
 
+    action = ds[dataset_name].get('action', None)
+    if  action != 'fetch_and_process':
+        logger.debug(f"Skipping fetch for dataset:{dataset_name}, action={action}")
+        return None
+
     interim_dataset_path = interim_data_path / dataset_name
 
-    logger.info(f"Checking for {dataset_name}")
+    logger.debug(f"Checking for {dataset_name}")
     if ds[dataset_name].get('url_list', None):
         single_file = False
         status, results = fetch_files(dst_dir=raw_data_path,
                                       **ds[dataset_name])
         if status:
-            logger.info(f"Retrieved Dataset successfully")
+            logger.debug(f"{dataset_name} retrieved successfully")
         else:
             logger.error(f"Failed to retrieve all data files: {results}")
             raise Exception("Failed to retrieve all data files")
@@ -300,7 +315,7 @@ def fetch_and_unpack(dataset_name, do_unpack=True):
                                                **ds[dataset_name])
         hashtype = ds[dataset_name].get('hash_type', None)
         if status:
-            logger.info(f"Retrieved Dataset: {dataset_name} "
+            logger.debug(f"Retrieved Dataset: {dataset_name} "
                         f"({hashtype}: {hashval})")
         else:
             logger.error(f"Unpack to {filename} failed (hash: {hashval}). "
