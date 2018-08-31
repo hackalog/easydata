@@ -1,4 +1,4 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3 fetch_data unpack_data
+.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3 fetch_data unpack_data predict train
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -35,6 +35,14 @@ fetch_data:
 ## Fetch and process the data
 process_data: fetch_data
 	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset process
+
+## train / fit / build models
+train: models/model_list.json
+	$(PYTHON_INTERPRETER) -m src.models.train_model model_list.json
+
+## predict / transform / run experiments
+predict: models/predict_list.json
+	$(PYTHON_INTERPRETER) -m src.models.predict_model predict_list.json
 
 ## Delete all compiled Python files
 clean:
