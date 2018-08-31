@@ -11,20 +11,15 @@ import numpy as np
 import pandas as pd
 
 from ..logging import logger
-from ..paths import model_path, trained_model_path, model_output_path
+from ..paths import model_path, model_output_path
 from ..data import datasets
-from ..utils import save_json
-from .. import quality_measures as qm
-from . import save_model
-from . import available_algorithms
-from . import available_meta_estimators
 from . import run_model
 
 @click.command()
 @click.argument('model_list')
-@click.option('--output_file', '-o', nargs=1, type=str)
+@click.option('--output_file', '-o', nargs=1, type=str, default='predictions.json')
 @click.option('--hash-type', '-H', type=click.Choice(['md5', 'sha1']), default='sha1')
-def main(model_list, output_file='predictions.json', hash_type='sha1'):
+def main(model_list, output_file=None, hash_type='sha1'):
     logger.info(f'Executing models from {model_list}')
 
     os.makedirs(model_output_path, exist_ok=True)
