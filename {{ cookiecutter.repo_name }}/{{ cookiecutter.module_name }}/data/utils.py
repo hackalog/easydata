@@ -1,103 +1,25 @@
-import gzip
-import hashlib
 import logging
 import os
 import pathlib
-import shutil
 import sys
-import tarfile
-import zipfile
-import zlib
 import pandas as pd
 import numpy as np
 from functools import partial
 from joblib import func_inspect as jfi
 
 from ..paths import interim_data_path
+from ..logging import logger
+
+__all__ = [
+    'head_file',
+    'list_dir',
+    'normalize_labels',
+    'partial_call_signature',
+    'read_space_delimited',
+]
 
 _MODULE = sys.modules[__name__]
 _MODULE_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
-logger = logging.getLogger(__name__)
-
-hash_function_map = {
-    'sha1': hashlib.sha1,
-    'sha256': hashlib.sha256,
-    'md5': hashlib.md5,
-}
-
-def hash_file(fname, algorithm="sha1", block_size=4096):
-    '''Compute the hash of an on-disk file
-
-    algorithm: {'md5', sha1', 'sha256'}
-        hash algorithm to use
-    block_size:
-        size of chunks to read when hashing
-
-    Returns:
-        Hashlib object
-    '''
-    hashval = hash_function_map[algorithm]()
-    with open(fname, "rb") as fd:
-        for chunk in iter(lambda: fd.read(block_size), b""):
-            hashval.update(chunk)
-    return hashval
-
-def unpack(filename, dst_dir=None, create_dst=True):
-    '''Unpack a compressed file
-
-    filename: path
-        file to unpack
-    dst_dir: path (default paths.interim_data_path)
-        destination directory for the unpack
-    create_dst: boolean
-        create the destination directory if needed
-    '''
-    if dst_dir is None:
-        dst_dir = interim_data_path
-
-    if create_dst:
-        if not os.path.exists(dst_dir):
-            os.makedirs(dst_dir)
-
-    # in case it is a Path
-    path = str(filename)
-
-    archive = False
-    if path.endswith('.zip'):
-        archive = True
-        opener, mode = zipfile.ZipFile, 'r'
-    elif path.endswith('.tar.gz') or path.endswith('.tgz'):
-        archive = True
-        opener, mode = tarfile.open, 'r:gz'
-    elif path.endswith('.tar.bz2') or path.endswith('.tbz'):
-        archive = True
-        opener, mode = tarfile.open, 'r:bz2'
-    elif path.endswith('.tar'):
-        archive = True
-        opener, mode = tarfile.open, 'r'
-    elif path.endswith('.gz'):
-        opener, mode = gzip.open, 'rb'
-        outfile, outmode = path[:-3], 'wb'
-    elif path.endswith('.Z'):
-        logger.warning(".Z files are only supported on systems that ship with gzip. Trying...")
-        os.system(f'gzip -f -d {path}')
-        opener, mode = open, 'rb'
-        path = path[:-2]
-        outfile, outmode = path, 'wb'
-    else:
-        opener, mode = open, 'rb'
-        outfile, outmode = path, 'wb'
-        logger.info("No compression detected. Copying...")
-
-    with opener(path, mode) as f_in:
-        if archive:
-            logger.debug(f"Extracting {filename.name}")
-            f_in.extractall(path=dst_dir)
-        else:
-            outfile = pathlib.Path(outfile).name
-            logger.info(f"Decompresing {outfile}")
-            with open(pathlib.Path(dst_dir) / outfile, outmode) as f_out:
-                shutil.copyfileobj(f_in, f_out)
 
 def head_file(filename, n=5):
     """Return the first `n` lines of a file
@@ -141,8 +63,8 @@ def read_space_delimited(filename, skiprows=None, class_labels=True):
         df = pd.read_table(fd, skiprows=skiprows, skip_blank_lines=True, comment=None, header=None, sep=' ', dtype=str)
         # targets are last column. Data is everything else
         if class_labels is True:
-            target = df.loc[:,df.columns[-1]].values
-            data = df.loc[:,df.columns[:-1]].values
+            target = df.loc[:, df.columns[-1]].values
+            data = df.loc[:, df.columns[:-1]].values
         else:
             data = df.values
             target = np.zeros(data.shape[0])

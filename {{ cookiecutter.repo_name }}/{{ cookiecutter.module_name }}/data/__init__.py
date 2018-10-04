@@ -1,9 +1,6 @@
-from . import datasets
-from . import utils
-from . import dset
-from . import localdata
-
-from .dset import Dataset
 from .datasets import *
+from .dset import *
+from .fetch import *
+from .localdata import *
+from .utils import *
 
-__all__ = (dset.__all__ + localdata.__all__)

@@ -1,25 +1,39 @@
 from functools import partial
 import importlib
+import sys
 import joblib
 import joblib.func_inspect as jfi
 import json
-import logging
 import os
 import pathlib
-import requests
-import sys
-import inspect
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-
 from .dset import Dataset
-from .utils import hash_file, unpack, hash_function_map, read_space_delimited, normalize_labels, partial_call_signature
-from ..paths import data_path, raw_data_path, interim_data_path, processed_data_path
-from .localdata import *
+from .fetch import unpack
+from .utils import normalize_labels, partial_call_signature
+from ..paths import raw_data_path, interim_data_path
+from .fetch import fetch_files, fetch_file
+from ..logging import logger
+
+__all__ = [
+    'add_dataset_by_urllist',
+    'add_dataset_from_function',
+    'add_dataset_metadata',
+    'available_datasets',
+    'build_dataset_dict',
+    'fetch_and_unpack',
+    'generate_synthetic_dataset_opts',
+    'get_dataset_filename',
+    'get_default_metadata',
+    'load_dataset',
+    'new_dataset',
+    'read_datasets',
+    'unknown_function',
+    'write_datasets',
+]
 
 _MODULE = sys.modules[__name__]
 _MODULE_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
-logger = logging.getLogger(__name__)
 
 jlmem = joblib.Memory(cachedir=str(interim_data_path), verbose=0)
 
@@ -66,180 +80,42 @@ def get_default_metadata(*, dataset_name):
     return metadata
 
 def new_dataset(metadata=None, *, dataset_name):
+    """Default wrapper to create a new dataset
+
+    Parameters
+    ----------
+    metadata: dict or None
+        default metadata dictionary. If None, default metadata is generated
+    """
+    
     if metadata is None:
         metadata = get_default_metadata(dataset_name=dataset_name)
     return Dataset(metadata=metadata)
 
 
 def get_dataset_filename(ds_dict):
-    '''Figure out the downloaded filename for a dataset entry
+    """Figure out the downloaded filename for a dataset entry
 
     if a `file_name` key is present, use this,
     otherwise, use the last component of the `url`
 
     Returns the filename
-    '''
+
+    Examples
+    --------
+    >>> ds_dict = {'url': 'http://example.com/path/to/file.txt'}
+    >>> get_dataset_filename(ds_dict)
+    'file.txt'
+    >>> ds_dict['file_name'] = 'new_filename.blob'
+    >>> get_dataset_filename(ds_dict)
+    'new_filename.blob'
+    """
 
     file_name = ds_dict.get('file_name', None)
     url = ds_dict.get('url', [])
     if file_name is None:
         file_name = url.split("/")[-1]
     return file_name
-
-def fetch_files(force=False, dst_dir=None, **kwargs):
-    '''
-    fetches a list of files via URL
-
-    url_list: list of dicts, each containing:
-        url:
-            url to be downloaded
-        hash_type:
-            Type of hash to compute
-        hash_value: (optional)
-            if specified, the hash of the downloaded file will be
-            checked against this value
-        name: (optional)
-            Name of this dataset component
-        raw_file:
-            output file name. If not specified, use the last
-            component of the URL
-    '''
-    url_list = kwargs.get('url_list', None)
-    if not url_list:
-        return fetch_file(force=force, dst_dir=dst_dir, **kwargs)
-    result_list = []
-    for url_dict in url_list:
-        name = url_dict.get('name', None)
-        if name is None:
-            name = url_dict.get('url', 'dataset')
-        logger.debug(f"Ready to fetch {name}")
-        result_list.append(fetch_file(force=force, dst_dir=dst_dir, **url_dict))
-    return all([r[0] for r in result_list]), result_list
-
-def fetch_text_file(url, file_name=None, dst_dir=None, force=True, **kwargs):
-    """Fetch a text file (via URL) and return it as a string.
-
-    Arguments
-    ---------
-
-    file_name:
-        output file name. If not specified, use the last
-        component of the URL
-    dst_dir:
-        directory to place downloaded files
-    force: boolean
-        normally, the URL is only downloaded if `file_name` is
-        not present on the filesystem, or if the existing file has a
-        bad hash. If force is True, download is always attempted.
-
-    In addition to these options, any of `fetch_file`'s keywords may
-    also be passed
-
-    Returns
-    -------
-    fetched string, or None if something went wrong with the download
-    """
-    retlist = fetch_file(url, file_name=file_name, dst_dir=dst_dir,
-                         force=force, **kwargs)
-    if retlist[0]:
-        status, filename, hashval = retlist
-        with open(filename, 'r') as txt:
-            return txt.read()
-    else:
-        logger.warning(f'fetch of {url} failed with status: {retlist[0]}')
-        return None
-
-def fetch_file(url=None, contents=None,
-               file_name=None, dst_dir=None,
-               force=False,
-               hash_type="sha1", hash_value=None,
-               **kwargs):
-    '''Fetch remote files via URL
-
-    contents:
-        contents of file to be created
-    url:
-        url to be downloaded
-    hash_type:
-        Type of hash to compute
-    hash_value: (optional)
-        if specified, the hash of the downloaded file will be
-        checked against this value
-    name: (optional)
-        Name of this dataset component
-    file_name:
-        output file name. If not specified, use the last
-        component of the URL
-    dst_dir:
-        directory to place downloaded files
-    force: boolean
-        normally, the URL is only downloaded if `file_name` is
-        not present on the filesystem, or if the existing file has a
-        bad hash. If force is True, download is always attempted.
-
-
-    returns one of:
-
-
-        (HTTP_Code, downloaded_filename, hash) (if downloaded from URL)
-        (True, filename, hash) (if already exists)
-        (False, [error])
-    if `file_name` already exists, compute the hash of the on-disk file,
-    '''
-    if dst_dir is None:
-        dst_dir = raw_data_path
-    if file_name is None:
-        file_name = url.split("/")[-1]
-    dl_data_path = pathlib.Path(dst_dir)
-
-    if not os.path.exists(dl_data_path):
-        os.makedirs(dl_data_path)
-
-    raw_data_file = dl_data_path / file_name
-
-    if raw_data_file.exists():
-        raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
-        if hash_value is not None:
-            if raw_file_hash == hash_value:
-                if force is False:
-                    logger.debug(f"{file_name} already exists and hash is valid")
-                    return True, raw_data_file, raw_file_hash
-            else:
-                logger.warning(f"{file_name} exists but has bad hash {raw_file_hash}."
-                               " Re-downloading")
-        else:
-            if force is False:
-                logger.debug(f"{file_name} exists, but no hash to check")
-                return True, raw_data_file, raw_file_hash
-
-    if url is None and contents is None:
-        raise Exception("One of `url` or `contents` must be specified if `file_name` doesn't yet exist")
-
-    if url is not None:
-        # Download the file
-        try:
-            results = requests.get(url)
-            results.raise_for_status()
-            raw_file_hash = hash_function_map[hash_type](results.content).hexdigest()
-            if hash_value is not None:
-                if raw_file_hash != hash_value:
-                    print(f"Invalid hash on downloaded {file_name}"
-                          f" ({hash_type}:{raw_file_hash}) != {hash_type}:{hash_value}")
-                    return False, None, raw_file_hash
-            logger.debug(f"Writing {raw_data_file}")
-            with open(raw_data_file, "wb") as code:
-                code.write(results.content)
-        except requests.exceptions.HTTPError as err:
-            return False, err, None
-    elif contents is not None:
-        with open(raw_data_file, 'w') as fw:
-            fw.write(contents)
-        raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
-        return True, raw_data_file, raw_file_hash
-    else:
-        raise Exception('One of `url` or `contents` must be specified')
-
-    return results.status_code, raw_data_file, raw_file_hash
 
 def build_dataset_dict(hash_type='sha1', hash_value=None, url=None,
                        name=None, file_name=None, from_txt=None):
@@ -265,7 +141,7 @@ def build_dataset_dict(hash_type='sha1', hash_value=None, url=None,
     else:
         fetch_dict = {'name':name, 'file_name': file_name, 'hash_type': hash_type}
 
-    status, path, hash_value = fetch_files(**fetch_dict)
+    status, _, hash_value = fetch_files(**fetch_dict)
     if status:
         fetch_dict['hash_value'] = hash_value
         return fetch_dict
@@ -341,7 +217,7 @@ def read_datasets(path=None, filename="datasets.json"):
         ds = json.load(fr)
 
     # make the functions callable
-    for dset_name, dset_opts in ds.items():
+    for _, dset_opts in ds.items():
         args = dset_opts.get('load_function_args', {})
         kwargs = dset_opts.get('load_function_kwargs', {})
         fail_func = partial(unknown_function, dset_opts['load_function_name'])

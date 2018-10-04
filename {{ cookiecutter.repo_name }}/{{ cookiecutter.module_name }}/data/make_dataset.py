@@ -6,6 +6,7 @@ from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 from .datasets import available_datasets, load_dataset, fetch_and_unpack
 from ..paths import data_path
+from ..logging import logger
 
 @click.command()
 @click.argument('action')
@@ -20,7 +21,6 @@ def main(action, datasets=None):
     action: {'fetch', 'process'}
 
     """
-    logger = logging.getLogger(__name__)
     logger.info(f'Dataset: running {action}')
 
     if datasets is None:
