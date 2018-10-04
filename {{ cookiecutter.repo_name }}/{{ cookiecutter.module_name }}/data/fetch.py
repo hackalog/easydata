@@ -172,7 +172,7 @@ def fetch_file(url=None, contents=None,
     one of:
         (HTTP_Code, downloaded_filename, hash) (if downloaded from URL)
         (True, filename, hash) (if already exists)
-        (False, [error])
+        (False, [error], None)
 
     Examples
     --------
@@ -220,10 +220,9 @@ def fetch_file(url=None, contents=None,
             raw_file_hash = _HASH_FUNCTION_MAP[hash_type](results.content).hexdigest()
             if hash_value is not None:
                 if raw_file_hash != hash_value:
-                    print(f"Invalid hash on downloaded {file_name}"
-                          f" ({hash_type}:{raw_file_hash}) != {hash_type}:{hash_value}")
-                    return False, None, raw_file_hash
-            logger.debug(f"Writing {raw_data_file}")
+                    logger.error(f"Invalid hash on downloaded {file_name}"
+                                 f" {hash_type}:{raw_file_hash} != {hash_type}:{hash_value}")
+                    return False, f"Bad Hash: {hash_type}:{raw_file_hash}", None
             with open(raw_data_file, "wb") as code:
                 code.write(results.content)
         except requests.exceptions.HTTPError as err:
@@ -236,6 +235,8 @@ def fetch_file(url=None, contents=None,
     else:
         raise Exception('One of `url` or `contents` must be specified')
 
+    logger.debug(f'Retrieved {raw_data_file.name} (hash '
+                 f'{hash_type}:{raw_file_hash})')
     return results.status_code, raw_data_file, raw_file_hash
 
 def unpack(filename, dst_dir=None, create_dst=True):

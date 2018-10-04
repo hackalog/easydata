@@ -4,14 +4,16 @@ import os
 import pathlib
 import sys
 from sklearn.datasets.base import Bunch
+from sklearn.base import BaseEstimator
 
-from ..paths import processed_data_path
+from ..paths import processed_data_path, data_path, raw_data_path, interim_data_path
 from ..logging import logger
+from .fetch import fetch_file, unpack
 
 _MODULE = sys.modules[__name__]
 _MODULE_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
 
-__all__ = ['Dataset']
+__all__ = ['Dataset', 'RawDataset']
 
 class Dataset(Bunch):
     def __init__(self, dataset_name=None, data=None, target=None, metadata=None,
@@ -212,3 +214,186 @@ class Dataset(Bunch):
         with open(dataset_fq, 'wb') as fo:
             joblib.dump(self, fo)
         logger.debug(f'Wrote {dataset_filename}')
+
+class RawDataset(BaseEstimator):
+    """Representation of a raw dataset"""
+
+    def __init__(self,
+                 name='raw_dataset',
+                 load_function=None,
+                 dataset_dir=None,
+                 file_list=None):
+        self.name = name
+        self.file_list = file_list
+        self.load_function = load_function
+        self.dataset_dir = dataset_dir
+
+    def add_url(self, url=None, hash_type='sha1', hash_value=None,
+                name=None, file_name=None):
+        """
+        Add a URL to the file list
+
+        hash_type: {'sha1', 'md5', 'sha256'}
+        hash_value: string or None
+            if None, hash will be computed from downloaded file
+        file_name: string or None
+            Name of downloaded file. If None, will be the last component of the URL
+        url: string
+            URL to fetch
+        file_name: string or None
+            Name of downloaded file. If None, will be the last component of the URL
+        name: str
+            text description of this file. 
+        """
+        if not getattr(self, "fitted_", False):
+            raise Exception(f'Must fit() before adding attributes')
+        
+        fetch_dict = {'url': url,
+                      'hash_type':hash_type,
+                      'hash_value':hash_value,
+                      'name': name,
+                      'file_name':file_name}
+        self.file_list.append(fetch_dict)
+
+
+    def fit(self, X=None, y=None):
+        if self.file_list is None:
+            self.file_list = []
+        if self.dataset_dir is None:
+            self.dataset_dir = data_path
+
+        self.fetched_ = False
+        self.fetched_files_ = []
+        self.unpacked_ = False
+        self.processed_ = False
+        self.fitted_ = True
+
+    def fetch(self, fetch_path=None, force=False):
+        """Fetch to raw_data_dir and check hashes
+        """
+        if not hasattr(self, 'fitted_'):
+            raise Exception('must fit before feching')
+
+        if self.fetched_ and force is False:
+            logger.debug(f'Raw Dataset {self.name} is already fetched. Skipping')
+            return
+
+        if fetch_path is None:
+            fetch_path = raw_data_path
+
+        self.fetched_ = False
+        self.fetched_files_ = []
+        for item in self.file_list:
+            status, result, hash_value = fetch_file(**item)
+            if status:
+                item['hash_value'] = hash_value
+                self.fetched_files_.append(result)
+            else:
+                if item.get('url', False):
+                    logger.error(f"fetch of {item['url']} returned: {result}")
+                    break
+        else:
+            self.fetched_ = True
+        
+        return self.fetched_
+
+
+    def unpack(self, unpack_path=None, force=False):
+        """Unpack fetched files to interim dir"""
+        if not hasattr(self, 'fitted_'):
+            raise Exception('must fit and fetch before unpack')
+        if not self.fetched_:
+            raise Exception("Must fetch before unpack")
+
+        if self.unpacked_ and force is False:
+            logger.debug(f'Raw Dataset {self.name} is already unpacked. Skipping')
+            return
+
+        if unpack_path is None:
+            unpack_path = interim_data_path
+        for filename in self.fetched_files_:
+            unpack(filename, dst_dir=unpack_path)
+        self.unpacked_ = True
+        
+
+    def process(self, processed_path=None, force=False):
+        if not hasattr(self, 'fitted_'):
+            raise Exception('must fit/fetch/unpack before process')
+        if not self.unpacked_:
+            raise Exception("Must fetch/unpack before process")
+
+        if self.processed_ and force is False:
+            logger.debug(f'Raw Dataset {self.name} is already processed. Skipping')
+            return
+        if processed_path is None:
+            processed_path = processed_data_path
+
+    def save(self, path=None, filename="datasets.json", indent=4, sort_keys=True):
+        pass
+
+    @classmethod
+    def load(cls, filename="raw_dataset.json", path=None):
+        """Create a RawDataset from a (saved) json file.
+        """
+        if path is None:
+            path = _MODULE_DIR
+        else:
+            path = pathlib.Path(path)
+
+        with open(path / filename, 'r') as fr:
+            ds = json.load(fr)
+
+        load_function = deserialize_partial(**ds)
+
+        return cls(**ds)
+
+def deserialize_partial(func_dict):
+    """Convert a serialized function call into a partial
+
+    Parameters
+    ----------
+    func_dict: dict containing
+        load_function_name: function name
+        load_function_module: module containing function
+        load_function_args: args to pass to function
+        load_function_kwargs: kwargs to pass to function
+    """
+
+    args = func_dict.get("load_function_args", [])
+    kwargs = func_dict.get("load_function_kwargs", {})
+    base_name = func_dict.get("load_function_name", 'unknown_function')
+    fail_func = partial(unknown_function, base_name)
+    func_mod_name = func_dict.get('load_function_module', None)
+    if func_mod_name:
+        func_mod = importlib.import_module(func_mod_name)
+    else:
+        func_mod = _MODULE
+    func_name = getattr(func_mod, base_name, fail_func)
+    func = partial(func_name, *args, **kwargs)
+
+    return func
+
+def serialize_partial(func):
+    """Serialize a function call to a dictionary.
+
+    Parameters
+    ----------
+    func: partial function.
+
+    Returns
+    -------
+    dict containing:
+        load_function_name: function name
+        load_function_module: fully-qualified module name containing function
+        load_function_args: args to pass to function
+        load_function_kwargs: kwargs to pass to function
+    """
+
+    func = partial(func)
+    entry = {}
+    entry['load_function_module'] = ".".join(jfi.get_func_name(func.func)[0])
+    entry['load_function_name'] = jfi.get_func_name(func.func)[1]
+    entry['load_function_args'] = func.args
+    entry['load_function_kwargs'] = func.keywords
+    return entry
+        
