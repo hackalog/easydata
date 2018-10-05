@@ -188,6 +188,7 @@ def fetch_file(url=None, contents=None,
         if url is None:
             raise Exception('One of `file_name` or `url` is required')
         file_name = url.split("/")[-1]
+        logger.debug(f'No file_name specified. Inferring {file_name} from URL')
     dl_data_path = pathlib.Path(dst_dir)
 
     if not os.path.exists(dl_data_path):
@@ -207,7 +208,8 @@ def fetch_file(url=None, contents=None,
                                " Re-downloading")
         else:
             if force is False:
-                logger.debug(f"{file_name} exists, but no hash to check")
+                logger.debug(f"{file_name} exists, but no hash to check. "
+                             f"Setting to {hash_type}:{raw_file_hash}")
                 return True, raw_data_file, raw_file_hash
 
     if url is None and contents is None:
@@ -261,22 +263,29 @@ def unpack(filename, dst_dir=None, create_dst=True):
     path = str(filename)
 
     archive = False
+    verb = "Copying"
     if path.endswith('.zip'):
         archive = True
+        verb = "Unzipping"
         opener, mode = zipfile.ZipFile, 'r'
     elif path.endswith('.tar.gz') or path.endswith('.tgz'):
         archive = True
+        verb = "Untarring and ungzipping"
         opener, mode = tarfile.open, 'r:gz'
     elif path.endswith('.tar.bz2') or path.endswith('.tbz'):
         archive = True
+        verb = "Untarring and unbzipping"
         opener, mode = tarfile.open, 'r:bz2'
     elif path.endswith('.tar'):
         archive = True
+        verb = "Untarring"
         opener, mode = tarfile.open, 'r'
     elif path.endswith('.gz'):
+        verb = "Ungzipping"
         opener, mode = gzip.open, 'rb'
         outfile, outmode = path[:-3], 'wb'
     elif path.endswith('.Z'):
+        verb = "Uncompressing"
         logger.warning(".Z files are only supported on systems that ship with gzip. Trying...")
         os.system(f'gzip -f -d {path}')
         opener, mode = open, 'rb'
