@@ -196,6 +196,11 @@ def fetch_file(url=None, contents=None,
 
     raw_data_file = dl_data_path / file_name
 
+    if contents is not None:
+        logger.debug(f'Creating {raw_data_file.name} from `contents` string')
+        with open(raw_data_file, 'w') as fw:
+            fw.write(contents)
+
     if raw_data_file.exists():
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
         if hash_value is not None:

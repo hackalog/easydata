@@ -245,6 +245,43 @@ class RawDataset(object):
         self.fetched_files_ = []
         self.unpacked_ = False
 
+    def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='DESCR'):
+        """Add metadata to a raw dataset
+
+        filename: create metadata entry from contents of this file
+        contents: create metadata entry from this string
+        metadata_path: (default `raw_data_path`)
+            Where to store metadata 
+        kind: {'DESCR', 'LICENSE'}
+        """
+        if metadata_path is None:
+            metadata_path = raw_data_path
+        else:
+            metadata_path = pathlib.Path(metadata_path)
+        filename_map = {
+            'DESCR': f'{self.name}.readme',
+            'LICENSE': f'{self.name}.license',
+        }
+        if kind not in filename_map:
+            raise Exception(f'Unknown kind: {kind}. Must be one of {filename_map.keys()}')
+
+        if filename is not None:
+            filelist_entry = {
+                'file_name': filename,
+                'name': kind
+                }
+        elif contents is not None:
+            filelist_entry = {
+                'contents': contents,
+                'file_name': filename_map[kind],
+                'name': kind,
+            }
+        else:
+            raise Exception(f'One of `filename` or `contents` is required')
+
+        self.file_list.append(filelist_entry)
+        self.fetched_ = False
+
     def add_url(self, url=None, hash_type='sha1', hash_value=None,
                 name=None, file_name=None):
         """
@@ -269,6 +306,7 @@ class RawDataset(object):
                       'name': name,
                       'file_name':file_name}
         self.file_list.append(fetch_dict)
+        self.fetched_ = False
 
     def fetch(self, fetch_path=None, force=False):
         """Fetch to raw_data_dir and check hashes
@@ -313,12 +351,16 @@ class RawDataset(object):
         self.unpacked_ = True
 
 
-    def process(self, cache_dir=None, force=False, use_docstring=False, **kwargs):
-        """Turns the raw dataset into a fully-processed Dataset object
+    def process(self, cache_dir=None, force=False, use_docstring=False,
+                return_X_y=False, **kwargs):
+        """Turns the raw dataset into a fully-processed Dataset object.
+
+        This generated Dataset object is cached using joblib, so subsequent
+        calls to process with the same file_list and kwargs should be fast.
 
         Parameters
         ----------
-        return_X_y: boolean, default=False
+        return_X_y: boolean
             if True, returns (data, target) instead of a `Dataset` object.
         force: boolean
             If False, use a cached object (if available).
@@ -335,13 +377,16 @@ class RawDataset(object):
         if cache_dir is None:
             cache_dir = interim_data_path
 
+        # If any of these things change, recreate and cache a new Dataset
         cached_meta = {
             'dataset_name': self.name,
+            'file_list': self.file_list,
             **kwargs
         }
         meta_hash = joblib.hash(cached_meta, hash_name='sha1')
 
         dset = None
+        dset_opts = {}
         if force is False:
             try:
                 dset = Dataset.load(meta_hash, data_path=cache_dir)
@@ -354,11 +399,17 @@ class RawDataset(object):
             supplied_metadata = kwargs.pop('metadata', {})
             kwargs['metadata'] = {**metadata, **supplied_metadata}
             dset_opts = self.load_function(**kwargs)
+            dset = Dataset(**dset_opts)
+            dset.dump(data_path=cache_dir, file_base=meta_hash)
+        
+        if return_X_y:
+            return dset.data, dset.target
 
-        return dset_opts
+        return dset
+
 
     def default_metadata(self, use_docstring=False):
-        """Returns default metatada derived from this RawDataset
+        """Returns default metadata derived from this RawDataset
 
         This sets the dataset_name, and fills in `license` and `descr`
         fields if they are present, either on disk, or in the file list
