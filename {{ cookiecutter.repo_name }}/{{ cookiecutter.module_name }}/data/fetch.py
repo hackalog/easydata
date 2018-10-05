@@ -16,6 +16,7 @@ __all__ = [
     'fetch_file',
     'fetch_files',
     'fetch_text_file',
+    'get_dataset_filename',
     'hash_file',
     'unpack'
 ]
@@ -284,14 +285,37 @@ def unpack(filename, dst_dir=None, create_dst=True):
     else:
         opener, mode = open, 'rb'
         outfile, outmode = path, 'wb'
-        logger.info("No compression detected. Copying...")
 
     with opener(path, mode) as f_in:
         if archive:
-            logger.debug(f"Extracting {filename.name}")
             f_in.extractall(path=dst_dir)
+            logger.debug(f"Extracting {filename.name}")
         else:
             outfile = pathlib.Path(outfile).name
-            logger.info(f"Decompresing {outfile}")
+            logger.info(f"{verb} {outfile}")
             with open(pathlib.Path(dst_dir) / outfile, outmode) as f_out:
                 shutil.copyfileobj(f_in, f_out)
+
+def get_dataset_filename(ds_dict):
+    """Figure out the downloaded filename for a dataset entry
+
+    if a `file_name` key is present, use this,
+    otherwise, use the last component of the `url`
+
+    Returns the filename
+
+    Examples
+    --------
+    >>> ds_dict = {'url': 'http://example.com/path/to/file.txt'}
+    >>> get_dataset_filename(ds_dict)
+    'file.txt'
+    >>> ds_dict['file_name'] = 'new_filename.blob'
+    >>> get_dataset_filename(ds_dict)
+    'new_filename.blob'
+    """
+
+    file_name = ds_dict.get('file_name', None)
+    url = ds_dict.get('url', [])
+    if file_name is None:
+        file_name = url.split("/")[-1]
+    return file_name

@@ -9,10 +9,10 @@ import pathlib
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 from .dset import Dataset
-from .fetch import unpack
+from .fetch import unpack, get_dataset_filename
 from .utils import normalize_labels, partial_call_signature
 from ..paths import raw_data_path, interim_data_path
-from .fetch import fetch_files, fetch_file
+from .fetch import fetch_files, fetch_file, get_dataset_filename
 from ..logging import logger
 
 __all__ = [
@@ -23,7 +23,6 @@ __all__ = [
     'build_dataset_dict',
     'fetch_and_unpack',
     'generate_synthetic_dataset_opts',
-    'get_dataset_filename',
     'get_default_metadata',
     'load_dataset',
     'new_dataset',
@@ -87,35 +86,11 @@ def new_dataset(metadata=None, *, dataset_name):
     metadata: dict or None
         default metadata dictionary. If None, default metadata is generated
     """
-    
+
     if metadata is None:
         metadata = get_default_metadata(dataset_name=dataset_name)
     return Dataset(metadata=metadata)
 
-
-def get_dataset_filename(ds_dict):
-    """Figure out the downloaded filename for a dataset entry
-
-    if a `file_name` key is present, use this,
-    otherwise, use the last component of the `url`
-
-    Returns the filename
-
-    Examples
-    --------
-    >>> ds_dict = {'url': 'http://example.com/path/to/file.txt'}
-    >>> get_dataset_filename(ds_dict)
-    'file.txt'
-    >>> ds_dict['file_name'] = 'new_filename.blob'
-    >>> get_dataset_filename(ds_dict)
-    'new_filename.blob'
-    """
-
-    file_name = ds_dict.get('file_name', None)
-    url = ds_dict.get('url', [])
-    if file_name is None:
-        file_name = url.split("/")[-1]
-    return file_name
 
 def build_dataset_dict(hash_type='sha1', hash_value=None, url=None,
                        name=None, file_name=None, from_txt=None):
