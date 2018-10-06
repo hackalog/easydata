@@ -407,7 +407,7 @@ class RawDataset(object):
             dset_opts = self.load_function(**kwargs)
             dset = Dataset(**dset_opts)
             dset.dump(data_path=cache_dir, file_base=meta_hash)
-        
+
         if return_X_y:
             return dset.data, dset.target
 
