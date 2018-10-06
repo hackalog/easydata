@@ -244,6 +244,7 @@ class RawDataset(object):
         self.fetched_ = False
         self.fetched_files_ = []
         self.unpacked_ = False
+        self.unpack_path_ = None
 
     def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='DESCR'):
         """Add metadata to a raw dataset
@@ -251,7 +252,7 @@ class RawDataset(object):
         filename: create metadata entry from contents of this file
         contents: create metadata entry from this string
         metadata_path: (default `raw_data_path`)
-            Where to store metadata 
+            Where to store metadata
         kind: {'DESCR', 'LICENSE'}
         """
         if metadata_path is None:
@@ -342,13 +343,15 @@ class RawDataset(object):
 
         if self.unpacked_ and force is False:
             logger.debug(f'Raw Dataset {self.name} is already unpacked. Skipping')
-            return
+        else:
+            if unpack_path is None:
+                unpack_path = interim_data_path / self.name
+            for filename in self.fetched_files_:
+                unpack(filename, dst_dir=unpack_path)
+            self.unpacked_ = True
+            self.unpack_path_ = unpack_path
 
-        if unpack_path is None:
-            unpack_path = interim_data_path
-        for filename in self.fetched_files_:
-            unpack(filename, dst_dir=unpack_path)
-        self.unpacked_ = True
+        return self.unpack_path_
 
 
     def process(self, cache_dir=None, force=False, use_docstring=False,
