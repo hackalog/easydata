@@ -1,10 +1,13 @@
 import joblib
 import logging
 import os
+import json
 import pathlib
 import sys
+import importlib
 from sklearn.datasets.base import Bunch
 from functools import partial
+from joblib import func_inspect as jfi
 
 from ..paths import processed_data_path, data_path, raw_data_path, interim_data_path
 from ..logging import logger
@@ -456,26 +459,30 @@ class RawDataset(object):
         metadata['dataset_name'] = self.name
         return metadata
 
-    def save(self, path=None, filename="datasets.json", indent=4, sort_keys=True):
-        pass
+    def to_json(self, indent=4, sort_keys=True):
+        """Convert a RawDataset to json"""
+
+        load_function_dict = serialize_partial(self.load_function)
+        json_dict = {
+            'url_list': self.file_list,
+            **load_function_dict
+        }
+        return json.dumps(json_dict)
 
     @classmethod
-    def load(cls, filename="raw_dataset.json", path=None):
-        """Create a RawDataset from a (saved) json file.
+    def from_json(cls, name, dataset_dir=None, *, json_str):
+        """Create a RawDataset from a json string
         """
-        if path is None:
-            path = _MODULE_DIR
-        else:
-            path = pathlib.Path(path)
+        json_dict = json.loads(json_str)
+        file_list = json_dict.get('url_list', [])
+        load_function = deserialize_partial(json_dict)
 
-        with open(path / filename, 'r') as fr:
-            ds = json.load(fr)
+        return cls(name=name,
+                   load_function=load_function,
+                   dataset_dir=dataset_dir,
+                   file_list=file_list)
 
-        load_function = deserialize_partial(**ds)
-
-        return cls(**ds)
-
-def deserialize_partial(func_dict):
+def deserialize_partial(func_dict, delete_keys=False):
     """Convert a serialized function call into a partial
 
     Parameters
@@ -487,11 +494,19 @@ def deserialize_partial(func_dict):
         load_function_kwargs: kwargs to pass to function
     """
 
-    args = func_dict.get("load_function_args", [])
-    kwargs = func_dict.get("load_function_kwargs", {})
-    base_name = func_dict.get("load_function_name", 'unknown_function')
-    fail_func = partial(unknown_function, base_name)
-    func_mod_name = func_dict.get('load_function_module', None)
+    if delete_keys:
+        args = func_dict.pop("load_function_args", [])
+        kwargs = func_dict.pop("load_function_kwargs", {})
+        base_name = func_dict.pop("load_function_name", 'process_dataset_default')
+        func_mod_name = func_dict.pop('load_function_module', None)
+    else:
+        args = func_dict.get("load_function_args", [])
+        kwargs = func_dict.get("load_function_kwargs", {})
+        base_name = func_dict.get("load_function_name", 'process_dataset_default')
+        func_mod_name = func_dict.get('load_function_module', None)
+
+    fail_func = partial(process_dataset_default, dataset_name=base_name)
+
     if func_mod_name:
         func_mod = importlib.import_module(func_mod_name)
     else:
