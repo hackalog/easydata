@@ -1,19 +1,28 @@
 import joblib
 import logging
 import os
+import json
 import pathlib
 import sys
+import importlib
 from sklearn.datasets.base import Bunch
-from sklearn.base import BaseEstimator
+from functools import partial
+from joblib import func_inspect as jfi
 
 from ..paths import processed_data_path, data_path, raw_data_path, interim_data_path
 from ..logging import logger
-from .fetch import fetch_file, unpack
+from .fetch import fetch_file, unpack, get_dataset_filename
+from .utils import partial_call_signature
 
 _MODULE = sys.modules[__name__]
 _MODULE_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
 
 __all__ = ['Dataset', 'RawDataset']
+
+def process_dataset_default(**kwargs):
+    """Placeholder for data processing function"""
+    logger.warning(f"No Processing function defined")
+    return kwargs
 
 class Dataset(Bunch):
     def __init__(self, dataset_name=None, data=None, target=None, metadata=None,
@@ -215,7 +224,7 @@ class Dataset(Bunch):
             joblib.dump(self, fo)
         logger.debug(f'Wrote {dataset_filename}')
 
-class RawDataset(BaseEstimator):
+class RawDataset(object):
     """Representation of a raw dataset"""
 
     def __init__(self,
@@ -223,10 +232,59 @@ class RawDataset(BaseEstimator):
                  load_function=None,
                  dataset_dir=None,
                  file_list=None):
+        if file_list is None:
+            file_list = []
+        if dataset_dir is None:
+            dataset_dir = data_path
+        if load_function is None:
+            load_function = process_dataset_default
         self.name = name
         self.file_list = file_list
         self.load_function = load_function
         self.dataset_dir = dataset_dir
+
+        # sklearn-style attributes. Usually these would be set in fit()
+        self.fetched_ = False
+        self.fetched_files_ = []
+        self.unpacked_ = False
+        self.unpack_path_ = None
+
+    def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='DESCR'):
+        """Add metadata to a raw dataset
+
+        filename: create metadata entry from contents of this file
+        contents: create metadata entry from this string
+        metadata_path: (default `raw_data_path`)
+            Where to store metadata
+        kind: {'DESCR', 'LICENSE'}
+        """
+        if metadata_path is None:
+            metadata_path = raw_data_path
+        else:
+            metadata_path = pathlib.Path(metadata_path)
+        filename_map = {
+            'DESCR': f'{self.name}.readme',
+            'LICENSE': f'{self.name}.license',
+        }
+        if kind not in filename_map:
+            raise Exception(f'Unknown kind: {kind}. Must be one of {filename_map.keys()}')
+
+        if filename is not None:
+            filelist_entry = {
+                'file_name': filename,
+                'name': kind
+                }
+        elif contents is not None:
+            filelist_entry = {
+                'contents': contents,
+                'file_name': filename_map[kind],
+                'name': kind,
+            }
+        else:
+            raise Exception(f'One of `filename` or `contents` is required')
+
+        self.file_list.append(filelist_entry)
+        self.fetched_ = False
 
     def add_url(self, url=None, hash_type='sha1', hash_value=None,
                 name=None, file_name=None):
@@ -243,37 +301,20 @@ class RawDataset(BaseEstimator):
         file_name: string or None
             Name of downloaded file. If None, will be the last component of the URL
         name: str
-            text description of this file. 
+            text description of this file.
         """
-        if not getattr(self, "fitted_", False):
-            raise Exception(f'Must fit() before adding attributes')
-        
+
         fetch_dict = {'url': url,
                       'hash_type':hash_type,
                       'hash_value':hash_value,
                       'name': name,
                       'file_name':file_name}
         self.file_list.append(fetch_dict)
-
-
-    def fit(self, X=None, y=None):
-        if self.file_list is None:
-            self.file_list = []
-        if self.dataset_dir is None:
-            self.dataset_dir = data_path
-
         self.fetched_ = False
-        self.fetched_files_ = []
-        self.unpacked_ = False
-        self.processed_ = False
-        self.fitted_ = True
 
     def fetch(self, fetch_path=None, force=False):
         """Fetch to raw_data_dir and check hashes
         """
-        if not hasattr(self, 'fitted_'):
-            raise Exception('must fit before feching')
-
         if self.fetched_ and force is False:
             logger.debug(f'Raw Dataset {self.name} is already fetched. Skipping')
             return
@@ -294,60 +335,154 @@ class RawDataset(BaseEstimator):
                     break
         else:
             self.fetched_ = True
-        
+
         return self.fetched_
 
 
     def unpack(self, unpack_path=None, force=False):
         """Unpack fetched files to interim dir"""
-        if not hasattr(self, 'fitted_'):
-            raise Exception('must fit and fetch before unpack')
         if not self.fetched_:
             raise Exception("Must fetch before unpack")
 
         if self.unpacked_ and force is False:
             logger.debug(f'Raw Dataset {self.name} is already unpacked. Skipping')
-            return
+        else:
+            if unpack_path is None:
+                unpack_path = interim_data_path / self.name
+            for filename in self.fetched_files_:
+                unpack(filename, dst_dir=unpack_path)
+            self.unpacked_ = True
+            self.unpack_path_ = unpack_path
 
-        if unpack_path is None:
-            unpack_path = interim_data_path
-        for filename in self.fetched_files_:
-            unpack(filename, dst_dir=unpack_path)
-        self.unpacked_ = True
-        
+        return self.unpack_path_
 
-    def process(self, processed_path=None, force=False):
-        if not hasattr(self, 'fitted_'):
-            raise Exception('must fit/fetch/unpack before process')
+
+    def process(self, cache_dir=None, force=False, use_docstring=False,
+                return_X_y=False, **kwargs):
+        """Turns the raw dataset into a fully-processed Dataset object.
+
+        This generated Dataset object is cached using joblib, so subsequent
+        calls to process with the same file_list and kwargs should be fast.
+
+        Parameters
+        ----------
+        return_X_y: boolean
+            if True, returns (data, target) instead of a `Dataset` object.
+        force: boolean
+            If False, use a cached object (if available).
+            If True, regenerate object from scratch.
+        cache_dir: path
+            Location of joblib cache.
+        use_docstring: boolean
+            If True, the docstring of `self.load_function` is used as the Dataset DESCR text.
+        """
+
         if not self.unpacked_:
             raise Exception("Must fetch/unpack before process")
 
-        if self.processed_ and force is False:
-            logger.debug(f'Raw Dataset {self.name} is already processed. Skipping')
-            return
-        if processed_path is None:
-            processed_path = processed_data_path
+        if cache_dir is None:
+            cache_dir = interim_data_path
 
-    def save(self, path=None, filename="datasets.json", indent=4, sort_keys=True):
-        pass
+        # If any of these things change, recreate and cache a new Dataset
+        cached_meta = {
+            'dataset_name': self.name,
+            'file_list': self.file_list,
+            **kwargs
+        }
+        meta_hash = joblib.hash(cached_meta, hash_name='sha1')
+
+        dset = None
+        dset_opts = {}
+        if force is False:
+            try:
+                dset = Dataset.load(meta_hash, data_path=cache_dir)
+                logger.debug(f"Found cached Dataset for {self.name}: {meta_hash}")
+            except FileNotFoundError:
+                logger.debug(f"No cached Dataset found. Re-creating {self.name}")
+
+        if dset is None:
+            metadata = self.default_metadata(use_docstring=use_docstring)
+            supplied_metadata = kwargs.pop('metadata', {})
+            kwargs['metadata'] = {**metadata, **supplied_metadata}
+            dset_opts = self.load_function(**kwargs)
+            dset = Dataset(**dset_opts)
+            dset.dump(data_path=cache_dir, file_base=meta_hash)
+
+        if return_X_y:
+            return dset.data, dset.target
+
+        return dset
+
+
+    def default_metadata(self, use_docstring=False):
+        """Returns default metadata derived from this RawDataset
+
+        This sets the dataset_name, and fills in `license` and `descr`
+        fields if they are present, either on disk, or in the file list
+
+        Parameters
+        ----------
+        use_docstring: boolean
+            If True, the docstring of `self.load_function` is used as the Dataset DESCR text.
+
+        Returns
+        -------
+        Dict of metadata key/value pairs
+        """
+
+        metadata = {}
+        optmap = {
+            'DESCR': 'descr',
+            'LICENSE': 'license',
+        }
+        filemap = {
+            'license': f'{self.name}.license',
+            'descr': f'{self.name}.readme'
+        }
+
+        for fetch_dict in self.file_list:
+            name = fetch_dict.get('name', None)
+            # if metadata is present in the URL list, use it
+            if name in optmap:
+                txtfile = get_dataset_filename(fetch_dict)
+                with open(raw_data_path / txtfile, 'r') as fr:
+                    metadata[optmap[name]] = fr.read()
+        if use_docstring:
+            func = partial(self.load_function)
+            fqfunc, invocation =  partial_call_signature(func)
+            metadata['descr'] =  f'Data processed by: {fqfunc}\n\n>>> ' + \
+              f'{invocation}\n\n>>> help({func.func.__name__})\n\n' + \
+              f'{func.func.__doc__}'
+        else:
+            descr_txt = None
+
+        metadata['dataset_name'] = self.name
+        return metadata
+
+    def to_json(self, indent=4, sort_keys=True):
+        """Convert a RawDataset to json"""
+
+        load_function_dict = serialize_partial(self.load_function)
+        json_dict = {
+            'url_list': self.file_list,
+            **load_function_dict
+        }
+        return json.dumps(json_dict)
 
     @classmethod
-    def load(cls, filename="raw_dataset.json", path=None):
-        """Create a RawDataset from a (saved) json file.
+    def from_json(cls, name, dataset_dir=None, *, json_str):
+        """Create a RawDataset from a json string
         """
-        if path is None:
-            path = _MODULE_DIR
-        else:
-            path = pathlib.Path(path)
+        json_dict = json.loads(json_str)
+        file_list = json_dict.get('url_list', [])
+        load_function = deserialize_partial(json_dict)
 
-        with open(path / filename, 'r') as fr:
-            ds = json.load(fr)
+        return cls(name=name,
+                   load_function=load_function,
+                   dataset_dir=dataset_dir,
+                   file_list=file_list)
 
-        load_function = deserialize_partial(**ds)
-
-        return cls(**ds)
-
-def deserialize_partial(func_dict):
+def deserialize_partial(func_dict, delete_keys=False):
     """Convert a serialized function call into a partial
 
     Parameters
@@ -359,11 +494,19 @@ def deserialize_partial(func_dict):
         load_function_kwargs: kwargs to pass to function
     """
 
-    args = func_dict.get("load_function_args", [])
-    kwargs = func_dict.get("load_function_kwargs", {})
-    base_name = func_dict.get("load_function_name", 'unknown_function')
-    fail_func = partial(unknown_function, base_name)
-    func_mod_name = func_dict.get('load_function_module', None)
+    if delete_keys:
+        args = func_dict.pop("load_function_args", [])
+        kwargs = func_dict.pop("load_function_kwargs", {})
+        base_name = func_dict.pop("load_function_name", 'process_dataset_default')
+        func_mod_name = func_dict.pop('load_function_module', None)
+    else:
+        args = func_dict.get("load_function_args", [])
+        kwargs = func_dict.get("load_function_kwargs", {})
+        base_name = func_dict.get("load_function_name", 'process_dataset_default')
+        func_mod_name = func_dict.get('load_function_module', None)
+
+    fail_func = partial(process_dataset_default, dataset_name=base_name)
+
     if func_mod_name:
         func_mod = importlib.import_module(func_mod_name)
     else:
@@ -396,4 +539,3 @@ def serialize_partial(func):
     entry['load_function_args'] = func.args
     entry['load_function_kwargs'] = func.keywords
     return entry
-        

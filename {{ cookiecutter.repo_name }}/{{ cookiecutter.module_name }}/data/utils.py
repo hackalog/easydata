@@ -107,5 +107,8 @@ def partial_call_signature(func):
     default_kw = {}
     if fa.args:
         default_kw = dict(zip(fa.args, fa.defaults))
-    fq_keywords = {**default_kw, **fa.kwonlydefaults}
+    if getattr(fa, 'kwonlydefaults', None):
+        fq_keywords = {**default_kw, **fa.kwonlydefaults}
+    else:
+        fq_keywords = default_kw
     return jfi.format_signature(func.func, *func.args, **fq_keywords)
