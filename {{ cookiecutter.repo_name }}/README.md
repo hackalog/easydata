@@ -8,8 +8,8 @@ GETTING STARTED
 
 * Create and switch to the  virtual environment:
 ```
-make create_environment
 cd {{cookiecutter.project_name}}
+make create_environment
 conda activate {{cookiecutter.project_name}}
 ```
 * Fetch the raw data and process it into a usable form
