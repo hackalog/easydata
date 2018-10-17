@@ -44,14 +44,6 @@ process_raw:
 transform_data:
 	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.apply_transforms transformer_list.json
 
-## Fetch the data
-fetch_data:
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset fetch
-
-## Fetch and process the data
-process_data: fetch_data
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset process
-
 ## train / fit / build models
 train: models/model_list.json
 	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.models.train_models model_list.json
@@ -122,7 +114,7 @@ create_environment:
 ifeq (conda,$(VIRTUALENV))
 		@echo ">>> Detected conda, creating conda environment."
 	conda env create --name $(PROJECT_NAME) -f environment.yml
-		@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
+		@echo ">>> New conda env created. Activate with: 'conda activate $(PROJECT_NAME)'"
 else
 	@pip install -q virtualenv virtualenvwrapper
 	@echo ">>> Installing virtualenvwrapper if not already intalled.\nMake sure the following lines are in shell startup file\n\
