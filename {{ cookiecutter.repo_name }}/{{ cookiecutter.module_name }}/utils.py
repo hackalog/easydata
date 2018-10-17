@@ -1,4 +1,5 @@
 import time
+import pathlib
 import numpy as np
 import json
 from .logging import logger
@@ -26,9 +27,9 @@ def record_time_interval(section, start_time, line_break=False):
     else:
         units = "s"
     if line_break:
-        logger.info("PROCESS_TIME:{:>36}    {} {}\n".format(section, round(delta, 1), units))
+        logger.debug("PROCESS_TIME:{:>36}    {} {}\n".format(section, round(delta, 1), units))
     else:
-        logger.info("PROCESS_TIME:{:>36}    {} {}".format(section, round(delta, 1), units))
+        logger.debug("PROCESS_TIME:{:>36}    {} {}".format(section, round(delta, 1), units))
     return end_time
 
 def normalize_numpy_dict(d):
@@ -38,6 +39,52 @@ def normalize_numpy_dict(d):
             ret[k] = np.asscalar(v)
     return ret
 
-def save_json(filename, obj):
+def save_json(filename, obj, indent=2, sort_keys=True):
+    """Dump an object to disk in json format
+
+    filename: pathname
+        Filename to dump to
+    obj: object
+        Object to dump
+    indent: integer
+        number of characters to indent
+    sort_keys: boolean
+        Whether to sort keys before writing. Should be True if you ever use revision control
+        on the resulting json file.
+    """
     with open(filename, 'w') as fw:
-        json.dump(obj, fw, indent=2, sort_keys=True)
+        json.dump(obj, fw, indent=indent, sort_keys=sort_keys)
+
+def load_json(filename):
+    """Read a json file from disk"""
+    with open(filename) as fw:
+        obj = json.load(fw)
+    return obj
+
+def head_file(filename, n=5):
+    """Return the first `n` lines of a file
+    """
+    with open(filename, 'r') as fd:
+        lines = []
+        for i, line in enumerate(fd):
+            if i > n:
+                break
+            lines.append(line)
+    return "".join(lines)
+
+def list_dir(path, fully_qualified=False, glob_pattern='*'):
+    """do an ls on a path
+
+    fully_qualified: boolean (default: False)
+        If True, return a list of fully qualified pathlib objects.
+        if False, return just the bare filenames
+    glob_pattern: glob (default: '*')
+        File mattern to match
+
+    Returns
+    -------
+    A list of names, or fully qualified pathlib objects"""
+    if fully_qualified:
+        return list(pathlib.Path(path).glob(glob_pattern))
+
+    return [file.name for file in pathlib.Path(path).glob(glob_pattern)]

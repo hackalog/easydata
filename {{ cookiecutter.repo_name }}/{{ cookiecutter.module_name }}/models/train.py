@@ -1,21 +1,44 @@
 import json
 import joblib
 import pathlib
+import logging
+import time
 
-from ..paths import trained_model_path
-from ..utils import save_json
+from .. import paths
+from ..paths import trained_model_path, model_path
+from ..utils import save_json, load_json, record_time_interval
+from ..data import Dataset, available_datasets
+from .algorithms import available_algorithms
+from ..logging import logger
 
 __all__ = [
     'load_model',
     'save_model',
-    'train_model'
+    'train_model',
 ]
 
-def train_model(**kwargs):
-    """Placeholder for training function"""
-    pass
+def train_model(algorithm_params=None,
+                run_number=0, *, dataset_name, algorithm_name, hash_type,
+                **kwargs):
+    """Train a model using the specified algorithm using the given dataset.
 
-def save_model(metadata=None, model_path=None, hash_type='sha1', *, model_name, model):
+    """
+    metadata = {}
+    ds = Dataset.load(dataset_name)
+    metadata['data_hash'] = joblib.hash(ds.data, hash_name=hash_type)
+    metadata['target_hash'] = joblib.hash(ds.target, hash_name=hash_type)
+    model = available_algorithms(keys_only=False)[algorithm_name]
+    model.set_params(**algorithm_params)
+    start_time = time.time()
+    model.fit(ds.data, y=ds.target)
+    end_time = record_time_interval('train_model', start_time)
+    metadata['start_time'] = start_time
+    metadata['duration'] = end_time - start_time
+    return model, metadata
+
+
+def save_model(metadata=None, model_path=None, hash_type='sha1',
+               *, model_name, model):
     """Save a model to disk
 
     Parameters

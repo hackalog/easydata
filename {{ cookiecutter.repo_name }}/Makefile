@@ -25,8 +25,24 @@ else
 	pip install -r requirements.txt
 endif
 
-## Perform the complete dataset generation pipeline
-data: requirements process_data
+## convert raw datasets into fully processed datasets
+data: raw transform_data
+
+## Fetch, Unpack, and Process raw dataset files
+raw: requirements process_raw
+
+fetch_raw:
+	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset fetch
+
+unpack_raw:
+	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset unpack
+
+process_raw:
+	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset process
+
+## Apply Transformations to produce fully processed Datsets
+transform_data:
+	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.apply_transforms transformer_list.json
 
 ## Fetch the data
 fetch_data:
@@ -38,16 +54,44 @@ process_data: fetch_data
 
 ## train / fit / build models
 train: models/model_list.json
-	$(PYTHON_INTERPRETER) -m src.models.train_model model_list.json
+	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.models.train_models model_list.json
 
 ## predict / transform / run experiments
 predict: models/predict_list.json
-	$(PYTHON_INTERPRETER) -m src.models.predict_model predict_list.json
+	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.models.predict_model predict_list.json
+
+## Convert predictions / transforms / experiments into output data
+summary: reports/analysis_list.json
+	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.analysis.run_analysis analysis_list.json
 
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
+
+clean_cache:
+	rm -rf data/interim/*
+
+clean_datasets:
+	rm -f data/processed/*
+
+clean_models:
+	rm -f models/trained/*
+	rm -f models/trained_models.json
+
+clean_predictions:
+	rm -f models/predictions/*
+	rm -f models/predictions.json
+
+clean_workflow:
+	rm -f models/model_list.json
+	rm -f models/predict_list.json
+	rm -f models/predictions.json
+	rm -f models/trained_models.json
+	rm -f reports/analysis_list.json
+	rm -f reports/summary_list.json
+	rm -f reports/analyses.json
+	rm -f reports/summaries.json
 
 ## Run all Unit Tests
 test:

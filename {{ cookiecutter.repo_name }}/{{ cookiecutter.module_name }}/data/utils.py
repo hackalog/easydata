@@ -1,53 +1,26 @@
-import logging
+import importlib
 import os
 import pathlib
+import random
 import sys
 import pandas as pd
 import numpy as np
 from functools import partial
 from joblib import func_inspect as jfi
 
-from ..paths import interim_data_path
 from ..logging import logger
 
 __all__ = [
-    'head_file',
-    'list_dir',
+    'deserialize_partial',
     'normalize_labels',
     'partial_call_signature',
     'read_space_delimited',
+    'reservoir_sample',
+    'serialize_partial',
 ]
 
 _MODULE = sys.modules[__name__]
 _MODULE_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
-
-def head_file(filename, n=5):
-    """Return the first `n` lines of a file
-    """
-    with open(filename, 'r') as fd:
-        lines = []
-        for i, line in enumerate(fd):
-            if i > n:
-                break
-            lines.append(line)
-    return "".join(lines)
-
-def list_dir(path, fully_qualified=False, glob_pattern='*'):
-    """do an ls on a path
-
-    fully_qualified: boolean (default: False)
-        If True, return a list of fully qualified pathlib objects.
-        if False, return just the bare filenames
-    glob_pattern: glob (default: '*')
-        File mattern to match
-
-    Returns
-    -------
-    A list of names, or fully qualified pathlib objects"""
-    if fully_qualified:
-        return list(pathlib.Path(path).glob(glob_pattern))
-
-    return [file.name for file in pathlib.Path(path).glob(glob_pattern)]
 
 def read_space_delimited(filename, skiprows=None, class_labels=True):
     """Read an space-delimited file
@@ -112,3 +85,91 @@ def partial_call_signature(func):
     else:
         fq_keywords = default_kw
     return jfi.format_signature(func.func, *func.args, **fq_keywords)
+
+def process_dataset_default(**kwargs):
+    """Placeholder for data processing function"""
+    logger.warning(f"Default `load_function` method. No `data` or `target` generated")
+    return kwargs
+
+def deserialize_partial(func_dict, delete_keys=False):
+    """Convert a serialized function call into a partial
+
+    Parameters
+    ----------
+    func_dict: dict containing
+        load_function_name: function name
+        load_function_module: module containing function
+        load_function_args: args to pass to function
+        load_function_kwargs: kwargs to pass to function
+    """
+
+    if delete_keys:
+        args = func_dict.pop("load_function_args", [])
+        kwargs = func_dict.pop("load_function_kwargs", {})
+        base_name = func_dict.pop("load_function_name", 'process_dataset_default')
+        func_mod_name = func_dict.pop('load_function_module', None)
+    else:
+        args = func_dict.get("load_function_args", [])
+        kwargs = func_dict.get("load_function_kwargs", {})
+        base_name = func_dict.get("load_function_name", 'process_dataset_default')
+        func_mod_name = func_dict.get('load_function_module', None)
+
+    fail_func = partial(process_dataset_default, dataset_name=base_name)
+
+    if func_mod_name:
+        func_mod = importlib.import_module(func_mod_name)
+    else:
+        func_mod = _MODULE
+    func_name = getattr(func_mod, base_name, fail_func)
+    func = partial(func_name, *args, **kwargs)
+
+    return func
+
+def serialize_partial(func):
+    """Serialize a function call to a dictionary.
+
+    Parameters
+    ----------
+    func: partial function.
+
+    Returns
+    -------
+    dict containing:
+        load_function_name: function name
+        load_function_module: fully-qualified module name containing function
+        load_function_args: args to pass to function
+        load_function_kwargs: kwargs to pass to function
+    """
+
+    func = partial(func)
+    entry = {}
+    entry['load_function_module'] = ".".join(jfi.get_func_name(func.func)[0])
+    entry['load_function_name'] = jfi.get_func_name(func.func)[1]
+    entry['load_function_args'] = func.args
+    entry['load_function_kwargs'] = func.keywords
+    return entry
+
+def reservoir_sample(filename, n_samples=1, random_seed=None):
+    """Return a random subset of lines from a file
+
+    Parameters
+    ----------
+    filename: path
+        File to be loaded
+    n_samples: int
+        number of lines to return
+    random_seed: int or None
+        If set, use this as the random seed
+    """
+    if random_seed is not None:
+        random.seed(random_seed)
+    sample = []
+    with open(filename) as f:
+        for n, line in enumerate(f):
+            if n < n_samples:
+                sample.append(line.rstrip())
+            else:
+                r = random.randint(0, n_samples)
+                if r < n_samples:
+                    sample[r] = line.rstrip()
+    return sample
