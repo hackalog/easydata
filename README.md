@@ -1,17 +1,17 @@
 # Cookiecutter EasyData
 
-_A logical, reasonably standardized, but flexible project structure for doing and sharing data science work._
+_A flexible template for doing and sharing reproducible data science._
 
-This is an experimental fork of
+EasyData started as an experimental fork of
 [cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/)
-where I try out ideas before proposing them for inclusion upstream
+where we could try out ideas before proposing them as fixes to the upstream branch. It has grown into a template for reproducible data science.
 
 
 ### Requirements to use this cookiecutter template:
 -----------
  - anaconda (or miniconda)
 
- - python3. Technically, I still prompts for a choice between python and python3,
+ - python3.6+ Technically, I still prompts for a choice between python and python3,
    but but I'm aiming to deprecate this, and move all python version support
    to use either conda or pipenv
 
@@ -58,6 +58,10 @@ The directory structure of your new project looks like this:
     * A default Sphinx project; see sphinx-doc.org for details
 * `models`
     * Trained and serialized models, model predictions, or model summaries
+    * `models/trained`
+        * Trained models
+    * `models/output`
+        * predictions and transformations from the trained models
 * `notebooks`
     *  Jupyter notebooks. Naming convention is a number (for ordering),
     the creator's initials, and a short `-` delimited description,
@@ -68,6 +72,10 @@ The directory structure of your new project looks like this:
     * Generated analysis as HTML, PDF, LaTeX, etc.
     * `reports/figures`
         * Generated graphics and figures to be used in reporting
+    * `reports/tables`
+        * Generated data tables to be used in reporting
+    * `reports/summary`
+        * Generated summary information to be used in reporting
 * `requirements.txt`
     * (if using pip+virtualenv) The requirements file for reproducing the
     analysis environment, e.g. generated with `pip freeze > requirements.txt`
@@ -86,26 +94,24 @@ The directory structure of your new project looks like this:
         * `MODULE_NAME/data/make_dataset.py`
             * Run with `python -m MODULE_NAME.data.make_dataset fetch`
             or  `python -m MODULE_NAME.data.make_dataset process`
-    * `MODULE_NAME/features`
-        * Scripts to turn raw data into features for modeling, notably `build_features.py`
+    * `MODULE_NAME/analysis`
+        * Scripts to turn datasets into output products
     * `MODULE_NAME/models`
         * Scripts to train models and then use trained models to make predictions.
         e.g. `predict_model.py`, `train_model.py`
-    * `MODULE_NAME/visualization`
-        * Scripts to create exploratory and results oriented visualizations; e.g.
-        `visualize.py`
 * `tox.ini`
     * tox file with settings for running tox; see tox.testrun.org
 
 ## TODO
 
-* Add pipenv support
+* Add pipenv support, replacing vanilla pip+virtualenv
 * Remove python2 support, (python2 can be supported via a pipenv/conda envinronment
   if absolutely needed)
 
 
-
 ### Installing development requirements
-```
-    make requirements
-```
+The first time:
+```make create_environment```
+
+Subsequent updates:
+```make requirements```
