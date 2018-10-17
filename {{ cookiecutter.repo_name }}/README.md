@@ -37,6 +37,10 @@ Project Organization
     * A default Sphinx project; see sphinx-doc.org for details
 * `models`
     * Trained and serialized models, model predictions, or model summaries
+    * `models/trained`
+        * Trained models
+    * `models/output`
+        * predictions and transformations from the trained models
 * `notebooks`
     *  Jupyter notebooks. Naming convention is a number (for ordering),
     the creator's initials, and a short `-` delimited description,
@@ -47,6 +51,10 @@ Project Organization
     * Generated analysis as HTML, PDF, LaTeX, etc.
     * `reports/figures`
         * Generated graphics and figures to be used in reporting
+    * `reports/tables`
+        * Generated data tables to be used in reporting
+    * `reports/summary`
+        * Generated summary information to be used in reporting
 * `requirements.txt`
     * (if using pip+virtualenv) The requirements file for reproducing the
     analysis environment, e.g. generated with `pip freeze > requirements.txt`
@@ -65,14 +73,11 @@ Project Organization
         * `{{ cookiecutter.module_name }}/data/make_dataset.py`
             * Run with `python -m {{ cookiecutter.module_name }}.data.make_dataset fetch`
             or  `python -m {{ cookiecutter.module_name }}.data.make_dataset process`
-    * `{{ cookiecutter.module_name }}/features`
-        * Scripts to turn raw data into features for modeling, notably `build_features.py`
+    * `{{ cookiecutter.module_name }}/analysis`
+        * Scripts to turn datasets into output products
     * `{{ cookiecutter.module_name }}/models`
         * Scripts to train models and then use trained models to make predictions.
         e.g. `predict_model.py`, `train_model.py`
-    * `{{ cookiecutter.module_name }}/visualization`
-        * Scripts to create exploratory and results oriented visualizations; e.g.
-        `visualize.py`
 * `tox.ini`
     * tox file with settings for running tox; see tox.testrun.org
 
