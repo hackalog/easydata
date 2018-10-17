@@ -12,15 +12,13 @@ dependencies:
   - pip
   - pip:
     - -e .
+    - python-dotenv>=0.5.1
   - setuptools
   - wheel
-  - flake8
   - sphinx
   - click
   - coverage
   - pytest-cov
-  - awscli
-  - python-dotenv>=0.5.1
   - jupyter
   - scikit-learn
   - joblib
