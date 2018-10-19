@@ -7,7 +7,7 @@ import click
 import logging
 from ..logging import logger
 from ..paths import processed_data_path, src_module_dir
-from ..workflow import apply_transforms
+from .transform_data import apply_transforms
 
 @click.command()
 @click.argument('transformer_file')

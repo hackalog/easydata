@@ -1,9 +1,8 @@
 import sys
 import pathlib
 import os
-
 from sklearn.model_selection import train_test_split
-
+from .datasets import Dataset
 from ..logging import logger
 
 __all__ = [
@@ -20,18 +19,27 @@ def available_transformers(keys_only=True):
     tranformer algorithms strings and their corresponding
     function call
 
+    It exists to allow for a description of the mapping for
+    each of the valid strings as a docstring
+
+    The valid algorithm names, and the function they map to, are:
+
+    ============        ====================================
+    string              Transformer Function
+    ============        ====================================
+    train_test_split    train_test_split_xform
+    pivot               pivot
+    index_to_date_time  index_to_date_time
+    ============        ====================================
+
     Parameters
     ----------
     keys_only: boolean
         If True, return only keys. Otherwise, return a dictionary mapping keys to algorithms
-
-    Algorithm Names
-    ---------------
-    The valid algorithm names, and the function they map to, are:
-
-    'train_test_split': split_dataset_test_train
     """
     _TRANSFORMERS = {
+        "index_to_date_time": index_to_date_time,
+        "pivot": pivot,
         "train_test_split": split_dataset_test_train,
     }
 
@@ -82,3 +90,24 @@ def split_dataset_test_train(dset,
     logger.info(f"Writing Transformed Dataset: {new_ds['test'].name}")
     new_ds['test'].dump(force=force, dump_path=dump_path, dump_metadata=dump_metadata, create_dirs=create_dirs)
     return dset
+
+def pivot(dset, **pivot_opts):
+    """Pivot data stored as a Pandas Dataframe
+
+    pivot_opts:
+        keyword arguments passed to pandas.Dataframe.pivot_table
+    """
+    pivoted = dset.data.pivot_table(**pivot_opts)
+    ds_pivot = Dataset(name=f"{dset.name}_pivoted", metadata=dset.metadata, data=pivoted, target=None)
+    ds_pivot.metadata['pivot_opts'] = pivot_opts
+
+    return ds_pivot
+
+def index_to_date_time(dset, suffix='dt'):
+    """Transformer: Extract a datetime index into Date and Time columns"""
+    df = dset.data.copy()
+    df['Time']=df.index.time
+    df['Date']=df.index.date
+    df.reset_index(inplace=True, drop=True)
+    new_ds = Dataset(dataset_name=f"{dset.name}_{suffix}", metadata=dset.metadata, data=df)
+    return new_ds

@@ -6,15 +6,14 @@
 GETTING STARTED
 ---------------
 
+For complete instructions, visit: https://github.com/hackalog/bus_number/wiki/Getting-Started
+
 * Create and switch to the  virtual environment:
 ```
 cd {{cookiecutter.project_name}}
 make create_environment
 conda activate {{cookiecutter.project_name}}
-```
-* Fetch the raw data and process it into a usable form
-```
-make data
+make requirements
 ```
 * Explore the notebooks in the `notebooks` directory
 
@@ -84,4 +83,4 @@ Project Organization
 
 --------
 
-<p><small>Project derived from the the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>, for experimenting with ideas to improve the template  #cookiecutterdatascience</small></p>
+<p><small>This project was built using <a target="_blank" href="https://github.com/hackalog/cookiecutter-easydata">cookiecutter-easydata</a>, an experimental fork of [cookiecutter-data-science](https://github.com/drivendata/cookiecutter-data-science) aimed at making your data science workflow reproducible.</small></p>

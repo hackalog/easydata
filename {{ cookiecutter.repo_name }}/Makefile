@@ -26,10 +26,10 @@ else
 endif
 
 ## convert raw datasets into fully processed datasets
-data: raw transform_data
+data: transform_data
 
 ## Fetch, Unpack, and Process raw dataset files
-raw: requirements process_raw
+raw: process_raw
 
 fetch_raw:
 	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset fetch
@@ -53,7 +53,7 @@ predict: models/predict_list.json
 	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.models.predict_model predict_list.json
 
 ## Convert predictions / transforms / experiments into output data
-summary: reports/analysis_list.json
+analysis: reports/analysis_list.json
 	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.analysis.run_analysis analysis_list.json
 
 ## Delete all compiled Python files
@@ -63,6 +63,9 @@ clean:
 
 clean_cache:
 	rm -rf data/interim/*
+
+clean_raw:
+	rm -f data/raw/*
 
 clean_datasets:
 	rm -f data/processed/*
@@ -76,6 +79,8 @@ clean_predictions:
 	rm -f models/predictions.json
 
 clean_workflow:
+	rm -f src/data/raw_datasets.json
+	rm -f src/data/transformer_list.json
 	rm -f models/model_list.json
 	rm -f models/predict_list.json
 	rm -f models/predictions.json
