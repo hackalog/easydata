@@ -15,10 +15,6 @@ make create_environment
 conda activate {{cookiecutter.project_name}}
 make requirements
 ```
-* Fetch the raw data and process it into a usable form
-```
-make data
-```
 * Explore the notebooks in the `notebooks` directory
 
 Project Organization
