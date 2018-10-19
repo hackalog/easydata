@@ -54,7 +54,7 @@ from .data import (Dataset, RawDataset, available_datasets, available_raw_datase
 from .data.transform_data import (get_transformer_list, add_transformer, del_transformer,
                                   apply_transforms as make_data)
 from .analysis.analysis import (available_scorers, available_analyses, get_analysis_list,
-                                run_analyses as make_summarize,
+                                run_analyses as make_analysis,
                                 add_analysis)
 
 __all__ = [
@@ -80,7 +80,7 @@ __all__ = [
     'make_data',
     'make_predict',
     'make_raw',
-    'make_summarize',
+    'make_analysis',
     'make_train',
     'pop_prediction',
 ]

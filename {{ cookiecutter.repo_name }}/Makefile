@@ -53,7 +53,7 @@ predict: models/predict_list.json
 	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.models.predict_model predict_list.json
 
 ## Convert predictions / transforms / experiments into output data
-summary: reports/analysis_list.json
+analysis: reports/analysis_list.json
 	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.analysis.run_analysis analysis_list.json
 
 ## Delete all compiled Python files

@@ -13,7 +13,7 @@ processed_data_path = data_path / 'processed'
 
 model_path = project_dir / 'models'
 trained_model_path = model_path / 'trained'
-model_output_path = model_path / 'predictions'
+model_output_path = model_path / 'output'
 
 analysis_path = project_dir / 'reports'
 summary_path = analysis_path / 'summary'
