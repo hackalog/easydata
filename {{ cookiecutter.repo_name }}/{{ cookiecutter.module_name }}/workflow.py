@@ -41,37 +41,46 @@ Analyses: make summary
 '''
 from .data.transformers import available_transformers
 from .models import available_algorithms
-from .models.model_list import (get_model_list, add_model, del_model, build_models,
+from .models.model_list import (get_model_list, add_model, del_model,
+                                build_models as make_train,
                                 available_models)
 
 from .models.predict import (add_prediction, get_prediction_list,
-                             pop_prediction, run_predictions, available_predictions)
-from .data import (Dataset, RawDataset, available_datasets, available_raw_datasets, add_raw_dataset)
-from .data.transform_data import get_transformer_list, add_transformer, del_transformer, apply_transforms
-from .analysis.analysis import available_scorers, available_analyses, get_analysis_list, run_analyses, add_analysis
+                             pop_prediction,
+                             run_predictions as make_predict,
+                             available_predictions)
+from .data import (Dataset, RawDataset, available_datasets, available_raw_datasets, add_raw_dataset,
+                   process_raw_datasets as make_raw)
+from .data.transform_data import (get_transformer_list, add_transformer, del_transformer,
+                                  apply_transforms as make_data)
+from .analysis.analysis import (available_scorers, available_analyses, get_analysis_list,
+                                run_analyses as make_summarize,
+                                add_analysis)
 
 __all__ = [
-    'available_datasets',
-    'available_raw_datasets',
-    'add_raw_dataset',
-    'get_transformer_list',
-    'apply_transforms',
-    'add_transformer',
-    'del_transformer',
-    'available_transformers',
-    'available_algorithms',
-    'get_model_list',
-    'add_model',
-    'del_model',
-    'available_models',
-    'add_prediction',
-    'get_prediction_list',
-    'pop_prediction',
-    'run_predictions',
-    'available_predictions',
-    'available_scorers',
-    'available_analyses',
-    'get_analysis_list',
-    'run_analyses',
     'add_analysis',
+    'add_model',
+    'add_prediction',
+    'add_raw_dataset',
+    'add_transformer',
+    'available_algorithms',
+    'available_analyses',
+    'available_datasets',
+    'available_models',
+    'available_predictions',
+    'available_raw_datasets',
+    'available_scorers',
+    'available_transformers',
+    'del_model',
+    'del_transformer',
+    'get_analysis_list',
+    'get_model_list',
+    'get_prediction_list',
+    'get_transformer_list',
+    'make_data',
+    'make_predict',
+    'make_raw',
+    'make_summarize',
+    'make_train',
+    'pop_prediction',
 ]
