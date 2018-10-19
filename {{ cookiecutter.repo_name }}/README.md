@@ -6,11 +6,14 @@
 GETTING STARTED
 ---------------
 
+For complete instructions, visit: https://github.com/hackalog/bus_number/wiki/Getting-Started
+
 * Create and switch to the  virtual environment:
 ```
 cd {{cookiecutter.project_name}}
 make create_environment
 conda activate {{cookiecutter.project_name}}
+make requirements
 ```
 * Fetch the raw data and process it into a usable form
 ```
