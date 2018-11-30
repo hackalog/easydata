@@ -41,7 +41,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
-*,cover
+*.cover
 
 # Translations
 *.mo
@@ -80,6 +80,10 @@ target/
 
 # Mac OS-specific storage files
 .DS_Store
+
+# Vim
+*.swp
+*.swo
 
 # Emacs
 *~

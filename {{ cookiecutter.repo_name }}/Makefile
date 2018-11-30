@@ -21,8 +21,8 @@ requirements: test_environment
 ifeq (conda, $(VIRTUALENV))
 	conda env update --name $(PROJECT_NAME) -f environment.yml
 else
-	pip install -U pip setuptools wheel
-	pip install -r requirements.txt
+	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
+	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
 endif
 
 ## convert raw datasets into fully processed datasets
@@ -121,7 +121,7 @@ ifeq (conda,$(VIRTUALENV))
 	conda env create --name $(PROJECT_NAME) -f environment.yml
 		@echo ">>> New conda env created. Activate with: 'conda activate $(PROJECT_NAME)'"
 else
-	@pip install -q virtualenv virtualenvwrapper
+	$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
 	@echo ">>> Installing virtualenvwrapper if not already intalled.\nMake sure the following lines are in shell startup file\n\
 	export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
 	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)"
