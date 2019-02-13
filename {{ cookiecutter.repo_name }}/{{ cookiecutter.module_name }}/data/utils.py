@@ -88,65 +88,77 @@ def partial_call_signature(func):
 
 def process_dataset_default(**kwargs):
     """Placeholder for data processing function"""
-    logger.warning(f"Default `load_function` method. No `data` or `target` generated")
+    dataset_name = kwargs.get('dataset_name', 'unknown-dataset')
+    logger.warning(f"Default {dataset_name}: Add parse function to generate `data` or `target`")
     return kwargs
 
-def deserialize_partial(func_dict, delete_keys=False):
+def deserialize_partial(func_dict, delete_keys=False,
+                        output_key_base='load_function'):
     """Convert a serialized function call into a partial
+
+    if there is an error, returns a default function (process_dataset_default)
 
     Parameters
     ----------
     func_dict: dict containing
-        load_function_name: function name
-        load_function_module: module containing function
-        load_function_args: args to pass to function
-        load_function_kwargs: kwargs to pass to function
+        {output_key_base}_name: function name
+        {output_key_base}_module: module containing function
+        {output_key_base}_args: args to pass to function
+        {output_key_base}_kwargs: kwargs to pass to function
     """
 
     if delete_keys:
-        args = func_dict.pop("load_function_args", [])
-        kwargs = func_dict.pop("load_function_kwargs", {})
-        base_name = func_dict.pop("load_function_name", 'process_dataset_default')
-        func_mod_name = func_dict.pop('load_function_module', None)
+        args = func_dict.pop(f"{output_key_base}_args", [])
+        kwargs = func_dict.pop(f"{output_key_base}_kwargs", {})
+        base_name = func_dict.pop(f"{output_key_base}_name", 'process_dataset_default')
+        func_mod_name = func_dict.pop(f'{output_key_base}_module', None)
     else:
-        args = func_dict.get("load_function_args", [])
-        kwargs = func_dict.get("load_function_kwargs", {})
-        base_name = func_dict.get("load_function_name", 'process_dataset_default')
-        func_mod_name = func_dict.get('load_function_module', None)
+        args = func_dict.get(f"{output_key_base}_args", [])
+        kwargs = func_dict.get(f"{output_key_base}_kwargs", {})
+        base_name = func_dict.get(f"{output_key_base}_name", 'process_dataset_default')
+        func_mod_name = func_dict.get(f'{output_key_base}_module', None)
 
     fail_func = partial(process_dataset_default, dataset_name=base_name)
 
-    if func_mod_name:
-        func_mod = importlib.import_module(func_mod_name)
-    else:
-        func_mod = _MODULE
-    func_name = getattr(func_mod, base_name, fail_func)
+    try:
+        if func_mod_name:
+            func_mod = importlib.import_module(func_mod_name)
+        else:
+            func_mod = _MODULE
+        func_name = getattr(func_mod, base_name, fail_func)
+    except ModuleNotFoundError as e:
+        logger.error(f"Invalid parse_function: {e}")
+        func_name = fail_func
     func = partial(func_name, *args, **kwargs)
 
     return func
 
-def serialize_partial(func):
+def serialize_partial(func_name, output_key_base='load_function'):
     """Serialize a function call to a dictionary.
 
     Parameters
     ----------
-    func: partial function.
+    func_name: partial function.
+    output_key_base
 
     Returns
     -------
     dict containing:
-        load_function_name: function name
-        load_function_module: fully-qualified module name containing function
-        load_function_args: args to pass to function
-        load_function_kwargs: kwargs to pass to function
+        {output_key_base}_name: function name
+        {output_key_base}_module: fully-qualified module name containing function
+        {output_key_base}_args: args to pass to function
+        {output_key_base}_kwargs: kwargs to pass to function
     """
 
-    func = partial(func)
     entry = {}
-    entry['load_function_module'] = ".".join(jfi.get_func_name(func.func)[0])
-    entry['load_function_name'] = jfi.get_func_name(func.func)[1]
-    entry['load_function_args'] = func.args
-    entry['load_function_kwargs'] = func.keywords
+    if func_name is None:
+        logger.warning(f"serialize_partial: `{output_key_base}` is None. Ignoring.")
+        return entry
+    func = partial(func_name)
+    entry[f'{output_key_base}_module'] = ".".join(jfi.get_func_name(func.func)[0])
+    entry[f'{output_key_base}_name'] = jfi.get_func_name(func.func)[1]
+    entry[f'{output_key_base}_args'] = func.args
+    entry[f'{output_key_base}_kwargs'] = func.keywords
     return entry
 
 def reservoir_sample(filename, n_samples=1, random_seed=None):

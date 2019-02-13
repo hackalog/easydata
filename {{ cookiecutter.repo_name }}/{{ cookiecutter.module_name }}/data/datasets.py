@@ -356,7 +356,7 @@ class DataSource(object):
 
     def __init__(self,
                  name='datasource',
-                 load_function=None,
+                 parse_function=None,
                  dataset_dir=None,
                  file_list=None):
         """Create a DataSource
@@ -364,7 +364,7 @@ class DataSource(object):
         ----------
         name: str
             name of dataset
-        load_function: func (or partial)
+        parse_function: func (or partial)
             Function that will be called to process raw data into usable Dataset
         dataset_dir: path
             default location for raw files
@@ -386,11 +386,11 @@ class DataSource(object):
             file_list = []
         if dataset_dir is None:
             dataset_dir = raw_data_path
-        if load_function is None:
-            load_function = process_dataset_default
+        if parse_function is None:
+            parse_function = process_dataset_default
         self.name = name
         self.file_list = file_list
-        self.load_function = load_function
+        self.parse_function = parse_function
         self.dataset_dir = dataset_dir
 
         # sklearn-style attributes. Usually these would be set in fit()
@@ -421,7 +421,7 @@ class DataSource(object):
 
         if filename is not None:
             filelist_entry = {
-                'file_name': filename,
+                'file_name': str(filename),
                 'name': kind
                 }
         elif contents is not None:
@@ -485,6 +485,46 @@ class DataSource(object):
                       'file_name':file_name}
         self.file_list.append(fetch_dict)
         self.fetched_ = False
+
+    def dataset_opts(self, metadata=None, **kwargs):
+        """Convert raw DataSource files into a Dataset constructor dict
+
+        Parameters
+        ----------
+        metadata: dict or None
+            If None, an empty metadata dictionary will be used.
+        **kwargs: additional parameters to be passed to `extract_func`
+
+        Returns
+        -------
+        Dictionary containing the following keys:
+            dataset_name: (string)
+                `dataset_name` that was passed to the function
+            metadata: (dict)
+                dict containing the input `metadata` key/value pairs, and (optionally)
+                additional information about this raw dataset
+            data: array-style object
+                Often a `numpy.ndarray` or `pandas.DataFrame`
+            target: (optional) vector-style object
+                for supervised learning problems, the target vector associated with `data`
+        """
+        if metadata is None:
+            metadata = {}
+
+        data, target = None, None
+
+        if self.parse_function is None:
+            logger.warning("No `parse_function` defined. `data` and `target` will be None")
+        else:
+            data, target, metadata = self.parse_function(metadata=metadata, **kwargs)
+
+        dset_opts = {
+            'dataset_name': self.name,
+            'metadata': metadata,
+            'data': data,
+            'target': target,
+        }
+        return dset_opts
 
     def fetch(self, fetch_path=None, force=False):
         """Fetch to raw_data_dir and check hashes
@@ -557,7 +597,7 @@ class DataSource(object):
         return_X_y: boolean
             if True, returns (data, target) instead of a `Dataset` object.
         use_docstring: boolean
-            If True, the docstring of `self.load_function` is used as the Dataset DESCR text.
+            If True, the docstring of `self.parse_function` is used as the Dataset DESCR text.
         """
         if not self.unpacked_:
             logger.debug("process() called before unpack()")
@@ -584,8 +624,7 @@ class DataSource(object):
         if dset is None:
             metadata = self.default_metadata(use_docstring=use_docstring)
             supplied_metadata = kwargs.pop('metadata', {})
-            kwargs['metadata'] = {**metadata, **supplied_metadata}
-            dset_opts = self.load_function(**kwargs)
+            dset_opts = self.dataset_opts(metadata={**metadata, **supplied_metadata})
             dset = Dataset(**dset_opts)
             dset.dump(dump_path=cache_path, file_base=meta_hash)
 
@@ -604,7 +643,7 @@ class DataSource(object):
         Parameters
         ----------
         use_docstring: boolean
-            If True, the docstring of `self.load_function` is used as the Dataset DESCR text.
+            If True, the docstring of `self.parse_function` is used as the Dataset DESCR text.
 
         Returns
         -------
@@ -629,7 +668,7 @@ class DataSource(object):
                 with open(raw_data_path / txtfile, 'r') as fr:
                     metadata[optmap[name]] = fr.read()
         if use_docstring:
-            func = partial(self.load_function)
+            func = partial(self.parse_function)
             fqfunc, invocation =  partial_call_signature(func)
             metadata['descr'] =  f'Data processed by: {fqfunc}\n\n>>> ' + \
               f'{invocation}\n\n>>> help({func.func.__name__})\n\n' + \
@@ -664,10 +703,10 @@ class DataSource(object):
 
     def to_dict(self):
         """Convert a DataSource to a serializable dictionary"""
-        load_function_dict = serialize_partial(self.load_function)
+        parse_function_dict = serialize_partial(self.parse_function)
         obj_dict = {
             'url_list': self.file_list,
-            **load_function_dict,
+            **parse_function_dict,
             'name': self.name,
             'dataset_dir': str(self.dataset_dir)
         }
@@ -707,14 +746,14 @@ class DataSource(object):
         dataset_dir: path
             pathname to load and save dataset
         obj_dict: dict
-            Should contain url_list, and load_function_{name|module|args|kwargs} keys,
+            Should contain url_list, and parse_function_{name|module|args|kwargs} keys,
             name, and dataset_dir
         """
         file_list = obj_dict.get('url_list', [])
-        load_function = deserialize_partial(obj_dict)
+        parse_function = deserialize_partial(obj_dict)
         name = obj_dict['name']
         dataset_dir = obj_dict.get('dataset_dir', None)
         return cls(name=name,
-                   load_function=load_function,
+                   parse_function=parse_function,
                    dataset_dir=dataset_dir,
                    file_list=file_list)
