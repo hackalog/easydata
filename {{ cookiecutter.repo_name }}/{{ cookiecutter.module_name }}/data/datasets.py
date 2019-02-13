@@ -7,7 +7,7 @@ from sklearn.datasets.base import Bunch
 from sklearn.model_selection import train_test_split
 from functools import partial
 
-from ..paths import processed_data_path, data_path, raw_data_path, interim_data_path
+from ..paths import processed_data_path, data_path, raw_data_path, interim_data_path, catalog_path
 from ..logging import logger
 from .fetch import fetch_file, unpack, get_dataset_filename
 from .utils import partial_call_signature, serialize_partial, deserialize_partial, process_dataset_default
@@ -15,11 +15,11 @@ from ..utils import load_json, save_json
 
 __all__ = [
     'Dataset',
-    'RawDataset',
-    'add_raw_dataset',
+    'DataSource',
+    'add_datasource',
     'available_datasets',
-    'available_raw_datasets',
-    'process_raw_datasets',
+    'available_datasources',
+    'process_datasources',
 ]
 
 _MODULE = sys.modules[__name__]
@@ -49,46 +49,46 @@ def available_datasets(dataset_path=None, keys_only=True):
     return ds_dict
 
 
-def process_raw_datasets(raw_datasets=None, action='process'):
-    """Fetch, Unpack, and Process raw datasets.
+def process_datasources(datasources=None, action='process'):
+    """Fetch, Unpack, and Process data sources.
 
     Parameters
     ----------
-    raw_datasets: list or None
-        List of raw dataset names to process.
-        if None, loops over all available raw datasets.
+    datasources: list or None
+        List of data source names to process.
+        if None, loops over all available data sources.
     action: {'fetch', 'unpack', 'process'}
-        Action to perform on raw datasets:
+        Action to perform on data sources:
             'fetch': download raw files
             'unpack': unpack raw files
             'process': generate and cache Dataset objects
     """
-    if raw_datasets is None:
-        raw_datasets = available_raw_datasets()
+    if datasources is None:
+        datasources = available_datasources()
 
-    for dataset_name in raw_datasets:
-        raw_ds = RawDataset.from_name(dataset_name)
+    for dataset_name in datasources:
+        dsrc = DataSource.from_name(dataset_name)
         logger.info(f'Running {action} on {dataset_name}')
         if action == 'fetch':
-            raw_ds.fetch()
+            dsrc.fetch()
         elif action == 'unpack':
-            raw_ds.unpack()
+            dsrc.unpack()
         elif action == 'process':
-            ds = raw_ds.process()
+            ds = dsrc.process()
             logger.info(f'{dataset_name}: processed data has shape:{ds.data.shape}')
 
-def add_raw_dataset(rawds):
-    """Add a raw dataset to the list of available raw datasets"""
+def add_datasource(rawds):
+    """Add a data source to the list of available data sources"""
 
-    rawds_list, rds_file_fq = available_raw_datasets(keys_only=False)
+    rawds_list, rds_file_fq = available_datasources(keys_only=False)
     rawds_list[rawds.name] = rawds.to_dict()
     save_json(rds_file_fq, rawds_list)
 
-def available_raw_datasets(raw_dataset_file='raw_datasets.json',
-                           raw_dataset_path=None, keys_only=True):
+def available_datasources(datasource_file='datasources.json',
+                           datasource_path=None, keys_only=True):
     """Returns the list of available datasets.
 
-    Instructions for creating RawDatasets is stored in `raw_datasets.json` by default.
+    Instructions for creating DataSources is stored in `datasources.json` by default.
 
     keys_only: boolean
         if True, return a list of available datasets (default)
@@ -99,23 +99,23 @@ def available_raw_datasets(raw_dataset_file='raw_datasets.json',
     If `keys_only` is True:
         List of available dataset names
     else:
-        Tuple (available_raw_dataset_dict, available_raw_dataset_dict_filename)
+        Tuple (available_datasource_dict, available_datasource_dict_filename)
     """
-    if raw_dataset_path is None:
-        raw_dataset_path = _MODULE_DIR
+    if datasource_path is None:
+        datasource_path = catalog_path
 
-    raw_dataset_file_fq = pathlib.Path(raw_dataset_path) / raw_dataset_file
+    datasource_file_fq = pathlib.Path(datasource_path) / datasource_file
 
-    if not raw_dataset_file_fq.exists():
-        raw_dataset_dict = {}
-        logger.warning(f"No dataset file found: {raw_dataset_file}")
+    if not datasource_file_fq.exists():
+        datasource_dict = {}
+        logger.warning(f"No dataset file found: {datasource_file}")
     else:
-        raw_dataset_dict = load_json(raw_dataset_file_fq)
+        datasource_dict = load_json(datasource_file_fq)
 
     if keys_only:
-        return list(raw_dataset_dict.keys())
+        return list(datasource_dict.keys())
 
-    return raw_dataset_dict, raw_dataset_file_fq
+    return datasource_dict, datasource_file_fq
 
 
 class Dataset(Bunch):
@@ -227,7 +227,7 @@ class Dataset(Bunch):
                  force=False,
                  unpack_path=None,
                  **kwargs):
-        '''Creates Dataset object from a named RawDataset.
+        '''Creates Dataset object from a named DataSource.
 
         Dataset will be cached after creation. Subsequent calls with matching call
         signature will return this cached object.
@@ -235,7 +235,7 @@ class Dataset(Bunch):
         Parameters
         ----------
         dataset_name:
-            Name of dataset to load. see `available_raw_datasets()` for the current list
+            Name of dataset to load. see `available_datasources()` for the current list
             be returned (if available)
         cache_path: path
             Directory to search for Dataset cache files
@@ -246,18 +246,18 @@ class Dataset(Bunch):
         unpack_path: path
             Directory to unpack raw files into
         **kwargs:
-            Remaining keywords arguments are passed directly to RawDataset.process().
+            Remaining keywords arguments are passed directly to DataSource.process().
             See that docstring for details.
 
-        Remaining keywords arguments are passed to the RawDataset's `process()` method
+        Remaining keywords arguments are passed to the DataSource's `process()` method
         '''
-        dataset_list, _ = available_raw_datasets(keys_only=False)
+        dataset_list, _ = available_datasources(keys_only=False)
         if dataset_name not in dataset_list:
             raise Exception(f'Unknown Dataset: {dataset_name}')
-        raw_ds = RawDataset.from_dict(dataset_list[dataset_name])
-        raw_ds.fetch(fetch_path=fetch_path, force=force)
-        raw_ds.unpack(unpack_path=unpack_path, force=force)
-        ds = raw_ds.process(cache_path=cache_path, force=force, **kwargs)
+        dsrc = DataSource.from_dict(dataset_list[dataset_name])
+        dsrc.fetch(fetch_path=fetch_path, force=force)
+        dsrc.unpack(unpack_path=unpack_path, force=force)
+        ds = dsrc.process(cache_path=cache_path, force=force, **kwargs)
 
         return ds
 
@@ -351,15 +351,15 @@ class Dataset(Bunch):
         logger.debug(f'Wrote Dataset: {dataset_filename}')
 
 
-class RawDataset(object):
-    """Representation of a raw dataset"""
+class DataSource(object):
+    """Representation of a data source"""
 
     def __init__(self,
-                 name='raw_dataset',
+                 name='datasource',
                  load_function=None,
                  dataset_dir=None,
                  file_list=None):
-        """Create a RawDataset
+        """Create a DataSource
         Parameters
         ----------
         name: str
@@ -369,7 +369,7 @@ class RawDataset(object):
         dataset_dir: path
             default location for raw files
         file_list: list
-            list of file_dicts associated with this RawDataset.
+            list of file_dicts associated with this DataSource.
             Valid keys for each file_dict include:
                 url: (optional)
                     URL of resource to be fetched
@@ -400,7 +400,7 @@ class RawDataset(object):
         self.unpack_path_ = None
 
     def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='DESCR'):
-        """Add metadata to a raw dataset
+        """Add metadata to a data source
 
         filename: create metadata entry from contents of this file
         contents: create metadata entry from this string
@@ -442,7 +442,7 @@ class RawDataset(object):
         Add a file to the file list.
 
         This file must exist on disk, as there is no method specified for fetching it.
-        This is useful when the raw dataset requires an offline procedure for downloading.
+        This is useful when the data source requires an offline procedure for downloading.
 
         hash_type: {'sha1', 'md5', 'sha256'}
         hash_value: string or None
@@ -490,7 +490,7 @@ class RawDataset(object):
         """Fetch to raw_data_dir and check hashes
         """
         if self.fetched_ and force is False:
-            logger.debug(f'Raw Dataset {self.name} is already fetched. Skipping')
+            logger.debug(f'Data Source {self.name} is already fetched. Skipping')
             return
 
         if fetch_path is None:
@@ -502,8 +502,9 @@ class RawDataset(object):
         self.fetched_files_ = []
         for item in self.file_list:
             status, result, hash_value = fetch_file(**item)
-            if status:
+            if status:  # True (cached) or HTTP Code (successful download)
                 item['hash_value'] = hash_value
+                item['file_name'] = result.name
                 self.fetched_files_.append(result)
             else:
                 if item.get('url', False):
@@ -522,7 +523,7 @@ class RawDataset(object):
             self.fetch()
 
         if self.unpacked_ and force is False:
-            logger.debug(f'Raw Dataset {self.name} is already unpacked. Skipping')
+            logger.debug(f'Data Source {self.name} is already unpacked. Skipping')
         else:
             if unpack_path is None:
                 unpack_path = interim_data_path / self.name
@@ -541,7 +542,7 @@ class RawDataset(object):
                 return_X_y=False,
                 use_docstring=False,
                 **kwargs):
-        """Turns the raw dataset into a fully-processed Dataset object.
+        """Turns the data source into a fully-processed Dataset object.
 
         This generated Dataset object is cached using joblib, so subsequent
         calls to process with the same file_list and kwargs should be fast.
@@ -595,7 +596,7 @@ class RawDataset(object):
 
 
     def default_metadata(self, use_docstring=False):
-        """Returns default metadata derived from this RawDataset
+        """Returns default metadata derived from this DataSource
 
         This sets the dataset_name, and fills in `license` and `descr`
         fields if they are present, either on disk, or in the file list
@@ -662,7 +663,7 @@ class RawDataset(object):
         return hash(self.to_hash())
 
     def to_dict(self):
-        """Convert a RawDataset to a serializable dictionary"""
+        """Convert a DataSource to a serializable dictionary"""
         load_function_dict = serialize_partial(self.load_function)
         obj_dict = {
             'url_list': self.file_list,
@@ -673,33 +674,33 @@ class RawDataset(object):
         return obj_dict
 
     @classmethod
-    def from_name(cls, raw_dataset_name,
-                  raw_dataset_file='raw_datasets.json',
-                  raw_dataset_path=None):
-        """Create a RawDataset from a dictionary key name.
+    def from_name(cls, datasource_name,
+                  datasource_file='datasources.json',
+                  datasource_path=None):
+        """Create a DataSource from a dictionary key name.
 
-        The `raw_dataset_file` is a json file mapping raw_dataset_name
+        The `datasource_file` is a json file mapping datasource_name
         to its dictionary representation.
 
         Parameters
         ----------
-        raw_dataset_name: str
-            Name of raw dataset. Used as the key in the on-disk key_file
+        datasource_name: str
+            Name of data source. Used as the key in the on-disk key_file
         key_file_path:
-            Location of key_file (json dict containing raw dataset defintion)
+            Location of key_file (json dict containing data source defintion)
             if None, use source code module: src/data/{key_file_name}
         key_file_name:
             Name of json file containing key/dict map
 
         """
-        raw_datasets, _ = available_raw_datasets(raw_dataset_file=raw_dataset_file,
-                                                 raw_dataset_path=raw_dataset_path,
+        datasources, _ = available_datasources(datasource_file=datasource_file,
+                                                 datasource_path=datasource_path,
                                                  keys_only=False)
-        return cls.from_dict(raw_datasets[raw_dataset_name])
+        return cls.from_dict(datasources[datasource_name])
 
     @classmethod
     def from_dict(cls, obj_dict):
-        """Create a RawDataset from a dictionary.
+        """Create a DataSource from a dictionary.
 
         name: str
             dataset name

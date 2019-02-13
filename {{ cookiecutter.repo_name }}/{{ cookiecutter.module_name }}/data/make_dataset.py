@@ -4,12 +4,12 @@ import logging
 import os
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
-from .datasets import process_raw_datasets
+from .datasets import process_datasources
 from ..logging import logger
 
 @click.command()
 @click.argument('action')
-def main(action, raw_datasets=None):
+def main(action, datasources=None):
     """Fetch and/or process the raw data
 
     Raw files are downloaded into .paths.raw_data_path
@@ -19,7 +19,7 @@ def main(action, raw_datasets=None):
     action: {'fetch', 'unpack', 'process'}
 
     """
-    process_raw_datasets(raw_datasets=raw_datasets, action=action)
+    process_datasources(datasources=datasources, action=action)
 
 if __name__ == '__main__':
     # not used in this stub but often useful for finding various files
