@@ -17,10 +17,10 @@ VIRTUALENV = {{ cookiecutter.virtualenv }}
 #################################################################################
 
 ## Install or update Python Dependencies
-requirements: test_environment
-ifeq (conda, $(VIRTUALENV))
-	conda env update --name $(PROJECT_NAME) -f environment.yml
-else
+requirements: test_environment environment.lock requirements.lock
+
+requirements.lock: requirements.txt
+ifneq (conda, $(VIRTUALENV))
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
 endif
