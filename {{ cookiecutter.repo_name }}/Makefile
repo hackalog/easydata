@@ -11,6 +11,7 @@ PROJECT_NAME = {{ cookiecutter.repo_name }}
 MODULE_NAME = {{ cookiecutter.module_name }}
 PYTHON_INTERPRETER = {{ cookiecutter.python_interpreter }}
 VIRTUALENV = {{ cookiecutter.virtualenv }}
+CONDA_EXE ?= {{ cookiecutter.conda_path }}
 
 #################################################################################
 # COMMANDS                                                                      #
