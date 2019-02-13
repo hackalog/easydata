@@ -46,6 +46,8 @@ The directory structure of your new project looks like this:
     * top-level makefile. Type `make` for a list of valid commands
 * `README.md`
     * this file
+* `catalog`
+    * Data catalog. This is where data sources and data transformations are saved
 * `data`
     * Data directory. often symlinked to a filesystem with lots of space
     * `data/raw`
