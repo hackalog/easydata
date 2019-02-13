@@ -98,7 +98,7 @@ clean_workflow:
 
 ## Run all Unit Tests
 test:
-	cd {{ cookiecutter.module_name }} && pytest --doctest-modules --verbose --cov
+	echo "I still need to be set up!"
 
 ## Lint using flake8
 lint:
