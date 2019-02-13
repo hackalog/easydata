@@ -103,7 +103,7 @@ def run_analyses(analysis_dir=None, analysis_list='analysis_list.json'):
     else:
         analysis_dir = pathlib.Path(analysis_dir)
 
-    analysis_list = load_json(analysis_path / analysis_list)
+    analysis_list = load_json(analysis_dir / analysis_list)
 
     saved_meta= {}
     for analysis_dict in analysis_list:

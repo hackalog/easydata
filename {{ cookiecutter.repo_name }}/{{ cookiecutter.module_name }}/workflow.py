@@ -2,18 +2,18 @@
 
 Raw Data:
 ---------
-Makefile target: `make process_raw` or `make raw`
+Makefile target: `make process_sources` or `make sources`
 
 This part of the process handles downloading, unpacking, and cacheing
 raw data files, as well as assembling documentation and license
 information. These files are located in `paths.raw_data_path`.
 Cache files and unpacked raw files are saved to `paths.interim_data_path`.
 
-The equivalent workflow command is `process_raw_datasets()`.
+The equivalent workflow command is `process_datasources()`.
 
 Other relevant commands are:
-     available_raw_datasets()
-  `  add_raw_dataset()
+     available_datasources()
+  `  add_datasource()
 
 Process Data:
 -------------
@@ -49,8 +49,9 @@ from .models.predict import (add_prediction, get_prediction_list,
                              pop_prediction,
                              run_predictions as make_predict,
                              available_predictions)
-from .data import (Dataset, RawDataset, available_datasets, available_raw_datasets, add_raw_dataset,
-                   process_raw_datasets as make_raw)
+from .data import (Dataset, DataSource, available_datasets,
+                   available_datasources, add_datasource,
+                   process_datasources as make_sources)
 from .data.transform_data import (get_transformer_list, add_transformer, del_transformer,
                                   apply_transforms as make_data)
 from .analysis.analysis import (available_scorers, available_analyses, get_analysis_list,
@@ -59,16 +60,16 @@ from .analysis.analysis import (available_scorers, available_analyses, get_analy
 
 __all__ = [
     'add_analysis',
+    'add_datasource',
     'add_model',
     'add_prediction',
-    'add_raw_dataset',
     'add_transformer',
     'available_algorithms',
     'available_analyses',
     'available_datasets',
+    'available_datasources',
     'available_models',
     'available_predictions',
-    'available_raw_datasets',
     'available_scorers',
     'available_transformers',
     'del_model',
@@ -77,10 +78,10 @@ __all__ = [
     'get_model_list',
     'get_prediction_list',
     'get_transformer_list',
+    'make_analysis',
     'make_data',
     'make_predict',
-    'make_raw',
-    'make_analysis',
+    'make_sources',
     'make_train',
     'pop_prediction',
 ]

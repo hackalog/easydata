@@ -5,9 +5,9 @@ import sys
 
 from ..logging import logger
 from ..utils import load_json, save_json
-from .datasets import Dataset, RawDataset, available_raw_datasets
+from .datasets import Dataset, DataSource, available_datasets
 from .transformers import available_transformers
-from ..paths import processed_data_path
+from ..paths import processed_data_path, catalog_path
 
 __all__ = [
     'add_transformer',
@@ -40,7 +40,7 @@ def get_transformer_list(transformer_path=None, transformer_file=None, include_f
         Name of json file that contains the transformer pipeline
     """
     if transformer_path is None:
-        transformer_path = _MODULE_DIR
+        transformer_path = catalog_path
     else:
         transformer_path = pathlib.Path(transformer_path)
     if transformer_file is None:
@@ -72,13 +72,13 @@ def del_transformer(index, transformer_path=None, transformer_file=None):
     del(transformer_list[index])
     save_json(transformer_file_fq, transformer_list)
 
-def add_transformer(from_raw=None, raw_dataset_opts=None,
+def add_transformer(from_raw=None, datasource_opts=None,
                     input_dataset=None, suppress_output=False, output_dataset=None,
                     transformations=None,
                     transformer_path=None, transformer_file=None):
     """Create and add a dataset transformation pipeline to the workflow.
 
-    Transformer pipelines apply a sequence of transformer functions to a Dataset (or RawDataset),
+    Transformer pipelines apply a sequence of transformer functions to a Dataset (or DataSource),
     producing a new Dataset.
 
     Parameters
@@ -93,7 +93,7 @@ def add_transformer(from_raw=None, raw_dataset_opts=None,
         starts from a raw dataset with this namew
     output_dataset: string
         Name to use when writing the terminal Dataset object to disk.
-    raw_dataset_opts: dict
+    datasource_opts: dict
         Options to use when generating raw dataset
     suppress_output: boolean
         If True, the terminal dataset object is not written to disk.
@@ -109,8 +109,8 @@ def add_transformer(from_raw=None, raw_dataset_opts=None,
 
     if from_raw is not None and input_dataset is not None:
         raise Exception('Cannot set both `from_raw` and `input_datset`')
-    if from_raw is None and raw_dataset_opts is not None:
-        raise Exception('Must specify `from_raw` when using `raw_dataset_opts`')
+    if from_raw is None and datasource_opts is not None:
+        raise Exception('Must specify `from_raw` when using `datasource_opts`')
 
     transformer_list, transformer_file_fq = get_transformer_list(transformer_path=transformer_path,
                                                                  transformer_file=transformer_file,
@@ -118,7 +118,7 @@ def add_transformer(from_raw=None, raw_dataset_opts=None,
 
     transformer = {}
     if from_raw:
-        transformer['raw_dataset_name'] = from_raw
+        transformer['datasource_name'] = from_raw
         if output_dataset is None and not suppress_output:
             output_dataset = from_raw
     elif input_dataset:
@@ -126,8 +126,8 @@ def add_transformer(from_raw=None, raw_dataset_opts=None,
     else:
         raise Exception("Must specify one of from `from_raw` or `input_dataset`")
 
-    if raw_dataset_opts:
-        transformer['raw_dataset_opts'] = raw_dataset_opts
+    if datasource_opts:
+        transformer['datasource_opts'] = datasource_opts
 
     if transformations:
         transformer['transformations'] = transformations
@@ -149,27 +149,27 @@ def apply_transforms(transformer_path=None, transformer_file='transformer_list.j
         output_dir = pathlib.Path(output_dir)
 
     if transformer_path is None:
-        transformer_path = _MODULE_DIR
+        transformer_path = catalog_path
     else:
         transformer_path = pathlib.Path(transformer_path)
 
     transformer_list = get_transformer_list(transformer_path=transformer_path,
                                             transformer_file=transformer_file)
-    raw_datasets = available_raw_datasets()
+    datasources = available_datasources()
     transformers = available_transformers(keys_only=False)
 
     for tdict in transformer_list:
-        raw_dataset_opts = tdict.get('raw_dataset_opts', {})
-        raw_dataset_name = tdict.get('raw_dataset_name', None)
+        datasource_opts = tdict.get('datasource_opts', {})
+        datasource_name = tdict.get('datasource_name', None)
         output_dataset = tdict.get('output_dataset', None)
         input_dataset = tdict.get('input_dataset', None)
         transformations = tdict.get('transformations', [])
-        if raw_dataset_name is not None:
-            if raw_dataset_name not in raw_datasets:
-                raise Exception(f"Unknown RawDataset: {raw_dataset_name}")
-            logger.debug(f"Creating Dataset from Raw: {raw_dataset_name} with opts {raw_dataset_opts}")
-            rds = RawDataset.from_name(raw_dataset_name)
-            ds = rds.process(**raw_dataset_opts)
+        if datasource_name is not None:
+            if datasource_name not in datasources:
+                raise Exception(f"Unknown DataSource: {datasource_name}")
+            logger.debug(f"Creating Dataset from Raw: {datasource_name} with opts {datasource_opts}")
+            rds = DataSource.from_name(datasource_name)
+            ds = rds.process(**datasource_opts)
         else:
             logger.debug("Loading Dataset: {input_dataset}")
             ds = Dataset.load(input_dataset)
