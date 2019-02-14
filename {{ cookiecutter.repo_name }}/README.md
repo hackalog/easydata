@@ -6,7 +6,7 @@
 GETTING STARTED
 ---------------
 
-For complete instructions, visit: https://github.com/hackalog/bus_number/wiki/Getting-Started
+For complete instructions, visit: https://github.com/hackalog/bus_number/README.md
 
 * Create and switch to the  virtual environment:
 ```
