@@ -6,8 +6,6 @@
   - python>=3.6
 {% endmacro -%}
 name: {{ cookiecutter.repo_name }}
-channels:
-  - conda-forge
 dependencies:
   - pip
   - pip:
