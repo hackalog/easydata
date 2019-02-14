@@ -61,25 +61,33 @@ Atlassian has good [instructions for installing git](https://www.atlassian.com/g
 * make
 * git
 
+Check your installations:
+
+```
+conda --version
+make --version
+git --version
+cookiecutter --version
+```
 
 ## Using a Data Science Template: `cookiecutter`
 
 We use cookiecutter to create a reproducible data science template for starting our data science projects.
 
-1. Obtain the `cookiecutter-easydata` repo:
-```
-git clone https://github.com/hackalog/cookiecutter-easydata.git
-cookiecutter cookiecutter-easydata
-```
 
-Note: You could install from the github repo directly, even from a particular branch. For example, we will want to use the `bus_number` branch of `cookiecutter-easydata`.
+You can install from the github/bitbucket repo directly, even from a particular branch. For example, we will want to use the `bus_number` branch of `cookiecutter-easydata`.
 
 ```
 cookiecutter https://github.com/hackalog/cookiecutter-easydata.git --checkout bus_number
 ```
 
+**Note**: Once you have completed this tutorial, we recommend that you use the standard version of `cookiecutter-easydata` as `bus_number` branch has been customized for this tutorial:
+```
+cookiecutter https://github.com/hackalog/cookiecutter-easydata.git
+```
+
 ### Exercise 2: Start your cookiecutter-based project
-Create a project called `bus_number_tutorial`:
+Create a project called `Bus Number Tutorial`:
 * Use `conda` as your virtualenv manager
 * Use python 3.6 or greater
 
@@ -106,5 +114,4 @@ We will get to `make` in the next section.
 Create and activate your `bus_number_tutorial` conda environment using the above `make` commands.
 
 ### Exercise 4: Pick up this tutorial in your new repo
-* Copy the notebooks from `bus_number` into your new `bus_number_tutorial` repo
-* Run `jupyter notebook` and open [notebooks/10-reproducible-environment.ipynb](notebooks/10-reproducible-environment.ipynb).
+* Run `jupyter notebook` and open `notebooks/10-reproducible-environment.ipynb`.
