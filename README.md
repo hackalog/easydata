@@ -1,19 +1,19 @@
 # Cookiecutter EasyData
 
-_A flexible template for doing and sharing reproducible data science._
+_A flexible toolkit for doing and sharing reproducible data science._
 
 EasyData started as an experimental fork of
 [cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/)
-where we could try out ideas before proposing them as fixes to the upstream branch. It has grown into a template for reproducible data science.
+where we could try out ideas before proposing them as fixes to the upstream branch. It has grown into its own toolkit for implementing a reproducible data science workflow.
 
 
 ### Requirements to use this cookiecutter template:
 -----------
  - anaconda (or miniconda)
 
- - python3.6+ Technically, I still prompts for a choice between python and python3,
-   but but I'm aiming to deprecate this, and move all python version support
-   to use either conda or pipenv
+ - python3.6+ Technically, we still prompt for a choice between python and python3,
+   but we aim to deprecate this, and move all python version control
+   to conda
 
  - [Cookiecutter Python package](http://cookiecutter.readthedocs.org/en/latest/installation.html) >= 1.4.0: This can be installed with pip by or conda depending on how you manage your Python packages:
 
@@ -106,8 +106,7 @@ The directory structure of your new project looks like this:
 
 ## TODO
 
-* Add pipenv support, replacing vanilla pip+virtualenv
-* Remove python2 support, (python2 can be supported via a pipenv/conda envinronment
+* Remove python2 support, (python2 can be supported via a conda envinronment
   if absolutely needed)
 
 
