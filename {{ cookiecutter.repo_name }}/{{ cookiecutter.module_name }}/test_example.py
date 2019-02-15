@@ -15,7 +15,7 @@ def subtraction(n1, n2):
     return n1 + n2
 
 class TestExercises(unittest.TestCase):
-    def test_addition(self):
+    def test_subtraction(self):
         """
         I'm a failing unittest. Fix me.
         """
