@@ -11,7 +11,7 @@ channels:
 dependencies:
   - pip
   - pip:
-    - -e .
+    - -e .  # conda >= 4.4 only
     - python-dotenv>=0.5.1
   - setuptools
   - wheel
