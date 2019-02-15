@@ -124,11 +124,12 @@ environment.lock: environment.yml
 ifeq (conda, $(VIRTUALENV))
 	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f $<
 	$(CONDA_EXE) env export -n $(PROJECT_NAME) -f $@
+	# pip install -e .  # uncomment for conda <= 4.3
 else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
 
-## Set up python interpreter environment
+## Set up virtual environment for this project
 create_environment:
 ifeq (conda,$(VIRTUALENV))
 	@echo ">>> Detected conda, creating conda environment."
@@ -148,6 +149,7 @@ else
 	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
 endif
 
+## Delete the virtual environment for this project
 delete_environment:
 ifeq (conda,$(VIRTUALENV))
 	@echo "Deleting conda environment."
