@@ -6,13 +6,11 @@
 GETTING STARTED
 ---------------
 
-For complete instructions, visit: https://github.com/hackalog/bus_number/wiki/Getting-Started
-
 * Create and switch to the  virtual environment:
 ```
-cd {{cookiecutter.project_name}}
+cd {{cookiecutter.repo_name}}
 make create_environment
-conda activate {{cookiecutter.project_name}}
+conda activate {{cookiecutter.repo_name}}
 make requirements
 ```
 * Explore the notebooks in the `notebooks` directory
