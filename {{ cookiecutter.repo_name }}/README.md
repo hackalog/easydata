@@ -6,8 +6,6 @@
 GETTING STARTED
 ---------------
 
-For complete instructions, visit: https://github.com/hackalog/bus_number/README.md
-
 * Create and switch to the  virtual environment:
 ```
 cd {{cookiecutter.repo_name}}

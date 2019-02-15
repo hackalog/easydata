@@ -6,9 +6,12 @@ EasyData started as an experimental fork of
 [cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/)
 where we could try out ideas before proposing them as fixes to the upstream branch. It has grown into its own toolkit for implementing a reproducible data science workflow.
 
+### Tutorial
+For a tutorial on making use of this framework, visit:
+  https://github.com/hackalog/bus_number/
+
 
 ### Requirements to use this cookiecutter template:
------------
  - anaconda (or miniconda)
 
  - python3.6+ Technically, we still prompt for a choice between python and python3,
