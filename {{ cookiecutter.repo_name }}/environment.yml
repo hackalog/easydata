@@ -12,7 +12,6 @@ dependencies:
     - -e .  # conda >= 4.4 only
     - python-dotenv>=0.5.1
     - nbval
-    - nbdime
   - setuptools
   - wheel
   - sphinx
