@@ -11,6 +11,8 @@ dependencies:
   - pip:
     - -e .  # conda >= 4.4 only
     - python-dotenv>=0.5.1
+    - nbval
+    - nbdime
   - setuptools
   - wheel
   - sphinx
@@ -21,9 +23,6 @@ dependencies:
   - scikit-learn
   - joblib
   - nb_conda
-  - nbdime
-  - nbval
-  - pandas
   - requests
 {% if cookiecutter.python_interpreter == 'python3' -%}
 {{ py3dep()|indent(2, true) }}
