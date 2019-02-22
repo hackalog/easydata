@@ -2,9 +2,9 @@
 
 _A flexible toolkit for doing and sharing reproducible data science._
 
-EasyData started as an experimental fork of
+EasyData started life as an experimental fork of
 [cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/)
-where we could try out ideas before proposing them as fixes to the upstream branch. It has grown into its own toolkit for implementing a reproducible data science workflow.
+where we could try out ideas before proposing them as fixes to the upstream branch. It has grown into its own toolkit for implementing a reproducible data science workflow, and is the basis of our [Bus Number](https://github.com/hackalog/bus_number/) tutorial on **Reproducible Data Science**.
 
 ### Tutorial
 For a tutorial on making use of this framework, visit:
