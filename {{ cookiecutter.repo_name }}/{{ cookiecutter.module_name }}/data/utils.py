@@ -22,25 +22,18 @@ __all__ = [
 _MODULE = sys.modules[__name__]
 _MODULE_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
 
-def read_space_delimited(filename, skiprows=None, class_labels=True, metadata=None):
+def read_space_delimited(filename, skiprows=None, class_labels=True):
     """Read an space-delimited file
 
-    Data is space-delimited. Last column is the (string) label for the data
+    skiprows: list of rows to skip when reading the file.
 
-    Note: we can't use automatic comment detection, as `#` characters are also
-    used as data labels.
-
-    Parameters
-    ----------
-    skiprows: list-like, int or callable, optional
-        list of rows to skip when reading the file. See `pandas.read_csv`
-        entry on `skiprows` for more
+    Note: we can't use automatic comment detection, as
+    `#` characters are also used as data labels.
     class_labels: boolean
-        if true, the last column is treated as the class (target) label
+        if true, the last column is treated as the class label
     """
     with open(filename, 'r') as fd:
-        df = pd.read_csv(fd, skiprows=skiprows, skip_blank_lines=True,
-                           comment=None, header=None, sep=' ', dtype=str)
+        df = pd.read_table(fd, skiprows=skiprows, skip_blank_lines=True, comment=None, header=None, sep=' ', dtype=str)
         # targets are last column. Data is everything else
         if class_labels is True:
             target = df.loc[:, df.columns[-1]].values
@@ -48,7 +41,7 @@ def read_space_delimited(filename, skiprows=None, class_labels=True, metadata=No
         else:
             data = df.values
             target = np.zeros(data.shape[0])
-        return data, target, metadata
+        return data, target
 
 def normalize_labels(target):
     """Map an arbitary target vector to an integer vector
@@ -93,11 +86,11 @@ def partial_call_signature(func):
         fq_keywords = default_kw
     return jfi.format_signature(func.func, *func.args, **fq_keywords)
 
-def process_dataset_default(**kwargs):
+def process_dataset_default(metadata=None, **kwargs):
     """Placeholder for data processing function"""
     dataset_name = kwargs.get('dataset_name', 'unknown-dataset')
     logger.warning(f"Default {dataset_name}: Add parse function to generate `data` or `target`")
-    return kwargs
+    return None, None, metadata
 
 def deserialize_partial(func_dict, delete_keys=False,
                         output_key_base='load_function'):
