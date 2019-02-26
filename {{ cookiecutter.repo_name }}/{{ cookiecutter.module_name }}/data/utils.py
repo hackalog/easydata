@@ -86,11 +86,11 @@ def partial_call_signature(func):
         fq_keywords = default_kw
     return jfi.format_signature(func.func, *func.args, **fq_keywords)
 
-def process_dataset_default(**kwargs):
+def process_dataset_default(metadata=None, **kwargs):
     """Placeholder for data processing function"""
     dataset_name = kwargs.get('dataset_name', 'unknown-dataset')
     logger.warning(f"Default {dataset_name}: Add parse function to generate `data` or `target`")
-    return kwargs
+    return None, None, metadata
 
 def deserialize_partial(func_dict, delete_keys=False,
                         output_key_base='load_function'):
