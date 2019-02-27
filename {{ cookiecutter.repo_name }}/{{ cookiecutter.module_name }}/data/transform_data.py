@@ -72,7 +72,7 @@ def del_transformer(index, transformer_path=None, transformer_file=None):
     del(transformer_list[index])
     save_json(transformer_file_fq, transformer_list)
 
-def add_transformer(from_raw=None, datasource_opts=None,
+def add_transformer(from_datasource=None, datasource_opts=None,
                     input_dataset=None, suppress_output=False, output_dataset=None,
                     transformations=None,
                     transformer_path=None, transformer_file=None):
@@ -87,8 +87,8 @@ def add_transformer(from_raw=None, datasource_opts=None,
         Name of a dataset_dir
         Specifying this option creates a dataset transformation pipeline that begins
         with an existing dataset_dir
-    from_raw: string
-        Name of a raw dataset.
+    from_datasource: string
+        Name of a raw DataSource.
         Specifying this option creates a dataset transformation pipeline that begins
         starts from a raw dataset with this namew
     output_dataset: string
@@ -107,24 +107,24 @@ def add_transformer(from_raw=None, datasource_opts=None,
         Name of json file that contains the transformer pipeline
     """
 
-    if from_raw is not None and input_dataset is not None:
-        raise Exception('Cannot set both `from_raw` and `input_datset`')
-    if from_raw is None and datasource_opts is not None:
-        raise Exception('Must specify `from_raw` when using `datasource_opts`')
+    if from_datasource is not None and input_dataset is not None:
+        raise Exception('Cannot set both `from_datasource` and `input_datset`')
+    if from_datasource is None and datasource_opts is not None:
+        raise Exception('Must specify `from_datasource` when using `datasource_opts`')
 
     transformer_list, transformer_file_fq = get_transformer_list(transformer_path=transformer_path,
                                                                  transformer_file=transformer_file,
                                                                  include_filename=True)
 
     transformer = {}
-    if from_raw:
-        transformer['datasource_name'] = from_raw
+    if from_datasource:
+        transformer['datasource_name'] = from_datasource
         if output_dataset is None and not suppress_output:
-            output_dataset = from_raw
+            output_dataset = from_datasource
     elif input_dataset:
         transformer['input_dataset'] = input_dataset
     else:
-        raise Exception("Must specify one of from `from_raw` or `input_dataset`")
+        raise Exception("Must specify one of from `from_datasource` or `input_dataset`")
 
     if datasource_opts:
         transformer['datasource_opts'] = datasource_opts

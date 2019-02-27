@@ -221,12 +221,12 @@ class Dataset(Bunch):
         return ds
 
     @classmethod
-    def from_raw(cls, dataset_name,
-                 cache_path=None,
-                 fetch_path=None,
-                 force=False,
-                 unpack_path=None,
-                 **kwargs):
+    def from_datasource(cls, dataset_name,
+                        cache_path=None,
+                        fetch_path=None,
+                        force=False,
+                        unpack_path=None,
+                        **kwargs):
         '''Creates Dataset object from a named DataSource.
 
         Dataset will be cached after creation. Subsequent calls with matching call
