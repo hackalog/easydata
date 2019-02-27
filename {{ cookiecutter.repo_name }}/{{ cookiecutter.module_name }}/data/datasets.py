@@ -85,14 +85,14 @@ def add_datasource(rawds):
     rawds_list[rawds.name] = rawds.to_dict()
     save_json(rds_file_fq, rawds_list)
 
-def del_datasource(index):
-    """Delete an entry in the datasource list
+def del_datasource(key):
+    """Delete an entry in the datasource dict
 
-    index: index of entry
+    key: name of data source to delete
     """
     datasource_list, datasource_file_fq = available_datasources(keys_only=False)
 
-    del(datasource_list[index])
+    del(datasource_list[key])
     save_json(datasource_file_fq, datasource_list)
     
 def available_datasources(datasource_file='datasources.json',
