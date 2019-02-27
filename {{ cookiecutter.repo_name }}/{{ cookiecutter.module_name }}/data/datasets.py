@@ -467,13 +467,15 @@ class DataSource(object):
         if source_file is None:
             raise Exception("`source_file` is required")
         source_file = pathlib.Path(source_file)
+        if file_name:
+            file_name = str(file_name)
         if not source_file.exists():
             logger.warning(f"{source_file} not found on disk")
-        fetch_dict = {'hash_type':hash_type,
-                      'hash_value':hash_value,
+        fetch_dict = {'hash_type': hash_type,
+                      'hash_value': hash_value,
                       'name': name,
                       'source_file': str(source_file),
-                      'file_name':str(file_name)}
+                      'file_name': file_name}
         self.file_list.append(fetch_dict)
         self.fetched_ = False
 
