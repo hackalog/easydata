@@ -98,7 +98,7 @@ def add_transformer(from_datasource=None, datasource_opts=None,
     suppress_output: boolean
         If True, the terminal dataset object is not written to disk.
         This is useful when one of the intervening tranformers handles the writing; e.g. train/test split.
-    transformeations: list of tuples
+    transformations: list of tuples
         Squence of transformer functions to apply. tuples consist of:
         (transformer_name, transformer_opts)
     transformer_path: path. (default: MODULE_DIR)
