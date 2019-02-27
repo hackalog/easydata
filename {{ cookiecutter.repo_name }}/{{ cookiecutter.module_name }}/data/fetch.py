@@ -140,10 +140,12 @@ def fetch_text_file(url, file_name=None, dst_dir=None, force=True, **kwargs):
 
 def fetch_file(url=None, contents=None,
                file_name=None, dst_dir=None,
-               force=False,
+               force=False, source_file=None,
                hash_type="sha1", hash_value=None,
                **kwargs):
-    '''Fetch remote files via URL
+    '''Fetch raw file entries.
+
+    Files can be specified by `url`, `source_file` name, or via `contents` (string)
 
     if `file_name` already exists, compute the hash of the on-disk file
 
@@ -167,6 +169,8 @@ def fetch_file(url=None, contents=None,
         normally, the URL is only downloaded if `file_name` is
         not present on the filesystem, or if the existing file has a
         bad hash. If force is True, download is always attempted.
+    source_file: path
+        Path to source file. Will be copied to `raw_data_path`
 
     Returns
     -------
@@ -185,10 +189,14 @@ def fetch_file(url=None, contents=None,
     if dst_dir is None:
         dst_dir = raw_data_path
     if file_name is None:
-        if url is None:
-            raise Exception('One of `file_name` or `url` is required')
-        file_name = url.split("/")[-1]
-        logger.debug(f'No file_name specified. Inferring {file_name} from URL')
+        if url:
+            file_name = url.split("/")[-1]
+            logger.debug(f"`file_name` not specified. Inferring from URL: {file_name}")
+        elif source_file:
+            file_name = source_file.name
+            logger.debug(f"`file_name` not specified. Inferring from `source_file`: {file_name}")
+        else:
+            raise Exception('One of `file_name`, `url`, or `source_file` is required')
     dl_data_path = pathlib.Path(dst_dir)
 
     if not os.path.exists(dl_data_path):
@@ -217,8 +225,8 @@ def fetch_file(url=None, contents=None,
                              f"Setting to {hash_type}:{raw_file_hash}")
                 return True, raw_data_file, raw_file_hash
 
-    if url is None and contents is None:
-        raise Exception(f"Cannot proceed: {file_name} not found on disk, and no fetch information (`url` or `contents`) specified.")
+    if url is None and contents is None and source_file is None:
+        raise Exception(f"Cannot proceed: {file_name} not found on disk, and no fetch information (`url` or `source_file`, or `contents`) specified.")
 
     if url is not None:
         # Download the file
@@ -240,6 +248,10 @@ def fetch_file(url=None, contents=None,
             fw.write(contents)
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
         return True, raw_data_file, raw_file_hash
+    elif source_file is not None:
+        shutil.copyfile(source_file, raw_data_file)
+        raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
+        logger.debug("Copying {source_file.name} to raw_data_path")
     else:
         raise Exception('One of `url` or `contents` must be specified')
 
