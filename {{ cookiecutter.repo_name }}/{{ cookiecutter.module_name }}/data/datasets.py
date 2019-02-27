@@ -17,6 +17,7 @@ __all__ = [
     'Dataset',
     'DataSource',
     'add_datasource',
+    'del_datasource',
     'available_datasets',
     'available_datasources',
     'process_datasources',
@@ -84,6 +85,16 @@ def add_datasource(rawds):
     rawds_list[rawds.name] = rawds.to_dict()
     save_json(rds_file_fq, rawds_list)
 
+def del_datasource(index):
+    """Delete an entry in the datasource list
+
+    index: index of entry
+    """
+    datasource_list, datasource_file_fq = available_datasources(keys_only=False)
+
+    del(datasource_list[index])
+    save_json(datasource_file_fq, datasource_list)
+    
 def available_datasources(datasource_file='datasources.json',
                            datasource_path=None, keys_only=True):
     """Returns the list of available datasets.
