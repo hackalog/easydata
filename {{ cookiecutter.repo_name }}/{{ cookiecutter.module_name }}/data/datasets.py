@@ -236,7 +236,6 @@ class Dataset(Bunch):
         ----------
         dataset_name:
             Name of dataset to load. see `available_datasources()` for the current list
-            be returned (if available)
         cache_path: path
             Directory to search for Dataset cache files
         fetch_path: path
@@ -436,8 +435,8 @@ class DataSource(object):
         self.file_list.append(filelist_entry)
         self.fetched_ = False
 
-    def add_file(self, hash_type='sha1', hash_value=None,
-                 name=None, *, file_name):
+    def add_file(self, source_file=None, *, hash_type='sha1', hash_value=None,
+                 name=None, file_name=None):
         """
         Add a file to the file list.
 
@@ -448,21 +447,26 @@ class DataSource(object):
         hash_value: string or None
             if None, hash will be computed from specified file
         file_name: string
-            Name of downloaded file.
+            Name of destination file.
         name: str
             text description of this file.
+        source_file: path
+            file to be copied
         """
-        fq_file = pathlib.Path(self.dataset_dir) / file_name
-        if not fq_file.exists():
-            logger.warning(f"{file_name} not found on disk")
+        if source_file is None:
+            raise Exception("`source_file` is required")
+        source_file = pathlib.Path(source_file)
+        if not source_file.exists():
+            logger.warning(f"{source_file} not found on disk")
         fetch_dict = {'hash_type':hash_type,
                       'hash_value':hash_value,
                       'name': name,
-                      'file_name':file_name}
+                      'source_file': str(source_file),
+                      'file_name':str(file_name)}
         self.file_list.append(fetch_dict)
         self.fetched_ = False
 
-    def add_url(self, url=None, hash_type='sha1', hash_value=None,
+    def add_url(self, url=None, *, hash_type='sha1', hash_value=None,
                 name=None, file_name=None):
         """
         Add a URL to the file list
@@ -477,6 +481,8 @@ class DataSource(object):
         name: str
             text description of this file.
         """
+        if url is None:
+            raise Exception("`url` is required")
 
         fetch_dict = {'url': url,
                       'hash_type':hash_type,
