@@ -1,7 +1,7 @@
 '''Methods for joining up parts of a Reproducible Data Science workflow
 
-Raw Data:
----------
+Data Sources
+------------
 Makefile target: `make process_sources` or `make sources`
 
 This part of the process handles downloading, unpacking, and cacheing
@@ -15,8 +15,8 @@ Other relevant commands are:
      available_datasources()
   `  add_datasource()
 
-Process Data:
--------------
+Process Data
+------------
 Makefile target: `make transform_data` or `make data`
 
 Datasets are one of two fundamental data types in a reproducible data
@@ -50,7 +50,7 @@ from .models.predict import (add_prediction, get_prediction_list,
                              run_predictions as make_predict,
                              available_predictions)
 from .data import (Dataset, DataSource, available_datasets,
-                   available_datasources, add_datasource,
+                   available_datasources, add_datasource, del_datasource,
                    process_datasources as make_sources)
 from .data.transform_data import (get_transformer_list, add_transformer, del_transformer,
                                   apply_transforms as make_data)
@@ -72,6 +72,7 @@ __all__ = [
     'available_predictions',
     'available_scorers',
     'available_transformers',
+    'del_datasource',
     'del_model',
     'del_transformer',
     'get_analysis_list',
