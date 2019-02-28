@@ -218,7 +218,7 @@ def fetch_file(url=None, contents=None,
                     return True, raw_data_file, raw_file_hash
             else:
                 logger.warning(f"{file_name} exists but has bad hash {raw_file_hash}."
-                               " Re-downloading")
+                               " Re-fetching")
         else:
             if force is False:
                 logger.debug(f"{file_name} exists, but no hash to check. "
@@ -251,6 +251,7 @@ def fetch_file(url=None, contents=None,
     elif source_file is not None:
         shutil.copyfile(source_file, raw_data_file)
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
+        source_file = pathlib.Path(source_file)
         logger.debug(f"Copying {source_file.name} to raw_data_path")
         return True, raw_data_file, raw_file_hash
     else:
