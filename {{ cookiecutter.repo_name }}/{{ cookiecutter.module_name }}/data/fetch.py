@@ -252,6 +252,7 @@ def fetch_file(url=None, contents=None,
         shutil.copyfile(source_file, raw_data_file)
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
         logger.debug("Copying {source_file.name} to raw_data_path")
+        return True, raw_data_file, raw_file_hash
     else:
         raise Exception('One of `url` or `contents` must be specified')
 
