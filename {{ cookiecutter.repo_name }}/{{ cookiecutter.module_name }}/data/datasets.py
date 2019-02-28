@@ -572,6 +572,7 @@ class DataSource(object):
         else:
             self.fetched_ = True
 
+        self.unpacked_ = False
         return self.fetched_
 
 

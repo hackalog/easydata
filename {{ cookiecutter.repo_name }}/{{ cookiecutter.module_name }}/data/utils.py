@@ -22,18 +22,25 @@ __all__ = [
 _MODULE = sys.modules[__name__]
 _MODULE_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
 
-def read_space_delimited(filename, skiprows=None, class_labels=True):
+def read_space_delimited(filename, skiprows=None, class_labels=True, metadata=None):
     """Read an space-delimited file
 
-    skiprows: list of rows to skip when reading the file.
+    Data is space-delimited. Last column is the (string) label for the data
 
-    Note: we can't use automatic comment detection, as
-    `#` characters are also used as data labels.
+    Note: we can't use automatic comment detection, as `#` characters are also
+    used as data labels.
+
+    Parameters
+    ----------
+    skiprows: list-like, int or callable, optional
+        list of rows to skip when reading the file. See `pandas.read_csv`
+        entry on `skiprows` for more
     class_labels: boolean
-        if true, the last column is treated as the class label
+        if true, the last column is treated as the class (target) label
     """
     with open(filename, 'r') as fd:
-        df = pd.read_table(fd, skiprows=skiprows, skip_blank_lines=True, comment=None, header=None, sep=' ', dtype=str)
+        df = pd.read_csv(fd, skiprows=skiprows, skip_blank_lines=True,
+                           comment=None, header=None, sep=' ', dtype=str)
         # targets are last column. Data is everything else
         if class_labels is True:
             target = df.loc[:, df.columns[-1]].values
@@ -41,7 +48,7 @@ def read_space_delimited(filename, skiprows=None, class_labels=True):
         else:
             data = df.values
             target = np.zeros(data.shape[0])
-        return data, target
+        return data, target, metadata
 
 def normalize_labels(target):
     """Map an arbitary target vector to an integer vector
