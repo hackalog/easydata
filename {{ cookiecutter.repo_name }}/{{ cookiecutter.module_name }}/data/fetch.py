@@ -193,7 +193,7 @@ def fetch_file(url=None, contents=None,
             file_name = url.split("/")[-1]
             logger.debug(f"`file_name` not specified. Inferring from URL: {file_name}")
         elif source_file:
-            file_name = source_file.name
+            file_name = str(pathlib.Path(source_file).name)
             logger.debug(f"`file_name` not specified. Inferring from `source_file`: {file_name}")
         else:
             raise Exception('One of `file_name`, `url`, or `source_file` is required')
