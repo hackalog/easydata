@@ -5,7 +5,7 @@ import sys
 
 from ..logging import logger
 from ..utils import load_json, save_json
-from .datasets import Dataset, DataSource, available_datasets
+from .datasets import Dataset, DataSource, available_datasources
 from .transformers import available_transformers
 from ..paths import processed_data_path, catalog_path
 
