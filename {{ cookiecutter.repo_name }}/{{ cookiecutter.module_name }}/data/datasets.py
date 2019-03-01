@@ -94,7 +94,7 @@ def del_datasource(key):
 
     del(datasource_list[key])
     save_json(datasource_file_fq, datasource_list)
-    
+
 def available_datasources(datasource_file='datasources.json',
                            datasource_path=None, keys_only=True):
     """Returns the list of available datasets.
@@ -447,7 +447,7 @@ class DataSource(object):
         self.fetched_ = False
 
     def add_file(self, source_file=None, *, hash_type='sha1', hash_value=None,
-                 name=None, file_name=None):
+                 name=None, file_name=None, force=False):
         """
         Add a file to the file list.
 
@@ -463,6 +463,8 @@ class DataSource(object):
             text description of this file.
         source_file: path
             file to be copied
+        force: boolean
+            If True, permit multiple copies of the same source file
         """
         if source_file is None:
             raise Exception("`source_file` is required")
@@ -471,11 +473,22 @@ class DataSource(object):
             file_name = str(file_name)
         if not source_file.exists():
             logger.warning(f"{source_file} not found on disk")
+
+        if hash_value is None:
+            logger.debug(f"Hash unspecified. Computing {hash_type} hash of {source_file.name}")
+            hash_value = hash_file(source_file, algorithm=hash_type).hexdigest()
+
         fetch_dict = {'hash_type': hash_type,
                       'hash_value': hash_value,
                       'name': name,
                       'source_file': str(source_file),
                       'file_name': file_name}
+        existing_files = [f['source_file'] for f in self.file_list]
+        existing_hashes = [f['hash_value'] for f in self.file_list if f['hash_value']]
+        if str(source_file) in existing_files and not force:
+            raise Exception(f"source file: {source_file} already in file list. Use `force=True` to add anyway.")
+        if hash_value in existing_hashes and not force:
+            raise Exception(f"file with hash {hash_value} already in file list. Use `force=True` to add anyway.")
         self.file_list.append(fetch_dict)
         self.fetched_ = False
 
