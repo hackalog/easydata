@@ -43,7 +43,7 @@ process_sources:
 
 ## Apply Transformations to produce fully processed Datsets
 transform_data:
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.apply_transforms transformer_list.json
+	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.apply_transforms
 
 ## train / fit / build models
 train: models/model_list.json
