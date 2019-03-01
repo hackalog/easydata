@@ -6,11 +6,11 @@ import click
 
 import logging
 from ..logging import logger
-from ..paths import processed_data_path, src_module_dir
+from ..paths import processed_data_path, catalog_path
 from .transform_data import apply_transforms
 
 @click.command()
-@click.argument('transformer_file')
+@click.argument('transformer_file', default='transformer_list.json')
 @click.option('--output_dir', '-o', nargs=1, type=str)
 @click.option('--input_dir', '-i', nargs=1, type=str)
 @click.option('--hash-type', '-H', type=click.Choice(['md5', 'sha1']), default='sha1')
@@ -22,7 +22,7 @@ def main(transformer_file, output_dir=None, input_dir=None, *, hash_type):
     else:
         output_dir = Path(output_dir)
     if input_dir is None:
-        input_dir = src_module_dir / 'data'
+        input_dir = catalog_path
     else:
         input_dir = Path(input_dir)
 
