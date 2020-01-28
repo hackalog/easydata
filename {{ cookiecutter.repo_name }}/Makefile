@@ -10,13 +10,10 @@ include Makefile.include
 #################################################################################
 
 ## Install or update Python Dependencies
-requirements: test_environment environment.lock requirements.lock
+update_environment: test_environment environment.lock.yml
 
-requirements.lock: requirements.txt
-ifneq (conda, $(VIRTUALENV))
-	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
-	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
-endif
+requirements: update_environment
+	@echo "WARNING: `make requirements` is deprecated. Use `make update_environment`"
 
 ## convert raw datasets into fully processed datasets
 data: transform_data
@@ -96,7 +93,7 @@ test:
 lint:
 	flake8 $(MODULE_NAME)
 
-environment.lock: environment.yml
+environment.lock.yml: environment.yml
 ifeq (conda, $(VIRTUALENV))
 	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f $<
 	$(CONDA_EXE) env export -n $(PROJECT_NAME) -f $@
@@ -109,20 +106,16 @@ endif
 create_environment:
 ifeq (conda,$(VIRTUALENV))
 	@echo ">>> Detected conda, creating conda environment."
-ifneq ("X$(wildcard ./environment.lock)","X")
-	$(CONDA_EXE) env create --name $(PROJECT_NAME) -f environment.lock
+ifneq ("X$(wildcard ./environment.lock.yml)","X")
+	$(CONDA_EXE) env create --name $(PROJECT_NAME) -f environment.lock.yml
 else
 	@echo ">>> Creating lockfile from $(CONDA_EXE) environment specification."
 	$(CONDA_EXE) env create --name $(PROJECT_NAME) -f environment.yml
-	$(CONDA_EXE) env export --name $(PROJECT_NAME) -f environment.lock
+	$(CONDA_EXE) env export --name $(PROJECT_NAME) -f environment.lock.yml
 endif
 	@echo ">>> New conda env created. Activate with: 'conda activate $(PROJECT_NAME)'"
 else
-	$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
-	@echo ">>> Installing virtualenvwrapper if not already intalled.\nMake sure the following lines are in shell startup file\n\
-	export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
-	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)"
-	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
+	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
 
 ## Delete the virtual environment for this project
@@ -130,6 +123,8 @@ delete_environment:
 ifeq (conda,$(VIRTUALENV))
 	@echo "Deleting conda environment."
 	$(CONDA_EXE) env remove -n $(PROJECT_NAME)
+else
+	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
 
 
@@ -139,6 +134,8 @@ ifeq (conda,$(VIRTUALENV))
 ifneq (${CONDA_DEFAULT_ENV}, $(PROJECT_NAME))
 	$(error Must activate `$(PROJECT_NAME)` environment before proceeding)
 endif
+else
+	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
 	$(PYTHON_INTERPRETER) test_environment.py
 
