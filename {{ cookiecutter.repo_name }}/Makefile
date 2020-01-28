@@ -1,17 +1,9 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3 fetch_data unpack_data predict train test_environment
-
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
+include Makefile.include
 
-PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-BUCKET = {{ cookiecutter.s3_bucket }}
-PROFILE = {{ cookiecutter.aws_profile }}
-PROJECT_NAME = {{ cookiecutter.repo_name }}
-MODULE_NAME = {{ cookiecutter.module_name }}
-PYTHON_INTERPRETER = {{ cookiecutter.python_interpreter }}
-VIRTUALENV = {{ cookiecutter.virtualenv }}
-CONDA_EXE ?= {{ cookiecutter.conda_path }}
+.PHONY: $(PHONY_TARGETS)
 
 #################################################################################
 # COMMANDS                                                                      #
@@ -33,29 +25,29 @@ data: transform_data
 sources: process_sources
 
 fetch_sources:
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset fetch
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset fetch
 
 unpack_sources:
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset unpack
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset unpack
 
 process_sources:
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset process
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset process
 
 ## Apply Transformations to produce fully processed Datsets
 transform_data:
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.apply_transforms
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.apply_transforms
 
 ## train / fit / build models
 train: models/model_list.json
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.models.train_models model_list.json
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.train_models model_list.json
 
 ## predict / transform / run experiments
 predict: models/predict_list.json
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.models.predict_model predict_list.json
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.predict_model predict_list.json
 
 ## Convert predictions / transforms / experiments into output data
 analysis: reports/analysis_list.json
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.analysis.run_analysis analysis_list.json
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).analysis.run_analysis analysis_list.json
 
 ## Delete all compiled Python files
 clean:
@@ -98,27 +90,11 @@ clean_workflow:
 
 ## Run all Unit Tests
 test:
-	cd {{ cookiecutter.module_name }} && pytest --doctest-modules --verbose --cov
+	cd $(MODULE_NAME) && pytest --doctest-modules --verbose --cov
 
 ## Lint using flake8
 lint:
-	flake8 {{ cookiecutter.module_name }}
-
-## Upload Data to S3
-sync_data_to_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync data/ s3://$(BUCKET)/data/
-else
-	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
-endif
-
-## Download Data from S3
-sync_data_from_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync s3://$(BUCKET)/data/ data/
-else
-	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
-endif
+	flake8 $(MODULE_NAME)
 
 environment.lock: environment.yml
 ifeq (conda, $(VIRTUALENV))
