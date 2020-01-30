@@ -1,78 +1,99 @@
-#################################################################################
+#
 # GLOBALS                                                                       #
-#################################################################################
+#
 include Makefile.include
 
-.PHONY: $(PHONY_TARGETS)
+#
+# Deprecated
+#
 
-#################################################################################
-# COMMANDS                                                                      #
-#################################################################################
-
-## Install or update Python Dependencies
-update_environment: test_environment environment.lock.yml
-
+.PHONY: requirements
 requirements: update_environment
 	@echo "WARNING: `make requirements` is deprecated. Use `make update_environment`"
 
+#
+# COMMANDS                                                                      #
+#
+
+.PHONY: data
 ## convert raw datasets into fully processed datasets
 data: transform_data
 
+.PHONY: sources
 ## Fetch, Unpack, and Process raw DataSources
 sources: process_sources
 
-fetch_sources:
+.PHONY: fetch_sources
+fetch_sources: .make.fetch_sources $(RAW_DATASOURCES)
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset fetch
+	touch .make.fetch_sources
 
-unpack_sources:
+.PHONY: unpack_sources
+unpack_sources: .make.unpack_sources
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset unpack
+	touch .make.fetch_sources
 
-process_sources:
+.PHONY: process_sources
+process_sources: .make.process_sources
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset process
+	touch .make.process_sources
 
+.PHONY: transform_data
 ## Apply Transformations to produce fully processed Datsets
-transform_data:
+transform_data: .make.transform_data
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.apply_transforms
+	touch .make.transform_data
 
+.PHONY: train
 ## train / fit / build models
 train: models/model_list.json
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.train_models model_list.json
 
+.PHONY: predict
 ## predict / transform / run experiments
 predict: models/predict_list.json
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.predict_model predict_list.json
 
+.PHONY: analysis
 ## Convert predictions / transforms / experiments into output data
 analysis: reports/analysis_list.json
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).analysis.run_analysis analysis_list.json
 
+.PHONY: clean
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
+	rm -f .make.*
 
+.PHONY: clean_interim
 ## Delete all interim (DataSource) files
 clean_interim:
 	rm -rf data/interim/*
 
+.PHONY: clean_raw
 ## Delete the raw downloads directory
 clean_raw:
 	rm -f data/raw/*
 
+.PHONY: clean_processed
 ## Delete all processed datasets
 clean_processed:
 	rm -f data/processed/*
 
+.PHONY: clean_models
 ## Delete all trained models
 clean_models:
 	rm -f models/trained/*
 	rm -f models/trained_models.json
 
+.PHONY: clean_predictions
 ## Delete all predictions
 clean_predictions:
 	rm -f models/predictions/*
 	rm -f models/predictions.json
 
+.PHONY: clean_workflow
 clean_workflow:
 	rm -f catalog/datasources.json
 	rm -f catalog/transformer_list.json
@@ -85,15 +106,21 @@ clean_workflow:
 	rm -f reports/analyses.json
 	rm -f reports/summaries.json
 
+.PHONY: test
 ## Run all Unit Tests
 test:
 	cd $(MODULE_NAME) && pytest --doctest-modules --verbose --cov
 
+.PHONY: lint
 ## Lint using flake8
 lint:
 	flake8 $(MODULE_NAME)
 
-environment.lock.yml: environment.yml
+#
+# Environment Management
+#
+
+environment.$(ARCH).lock.yml: environment.yml
 ifeq (conda, $(VIRTUALENV))
 	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f $<
 	$(CONDA_EXE) env export -n $(PROJECT_NAME) -f $@
@@ -102,22 +129,24 @@ else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
 
+.PHONY: create_environment
 ## Set up virtual environment for this project
 create_environment:
 ifeq (conda,$(VIRTUALENV))
 	@echo ">>> Detected conda, creating conda environment."
-ifneq ("X$(wildcard ./environment.lock.yml)","X")
-	$(CONDA_EXE) env create --name $(PROJECT_NAME) -f environment.lock.yml
+ifneq ("X$(wildcard ./environment.$(ARCH).lock.yml)","X")
+	$(CONDA_EXE) env create --name $(PROJECT_NAME) -f environment.$(ARCH).lock.yml
 else
 	@echo ">>> Creating lockfile from $(CONDA_EXE) environment specification."
 	$(CONDA_EXE) env create --name $(PROJECT_NAME) -f environment.yml
-	$(CONDA_EXE) env export --name $(PROJECT_NAME) -f environment.lock.yml
+	$(CONDA_EXE) env export --name $(PROJECT_NAME) -f environment.$(ARCH).lock.yml
 endif
 	@echo ">>> New conda env created. Activate with: 'conda activate $(PROJECT_NAME)'"
 else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
 
+.PHONY: delete_environment
 ## Delete the virtual environment for this project
 delete_environment:
 ifeq (conda,$(VIRTUALENV))
@@ -127,7 +156,11 @@ else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
 
+.PHONY: update_environment
+## Install or update Python Dependencies
+update_environment: test_environment environment.$(ARCH).lock.yml
 
+.PHONY: test_environment
 ## Test python environment is set-up correctly
 test_environment:
 ifeq (conda,$(VIRTUALENV))
