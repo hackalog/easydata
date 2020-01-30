@@ -131,17 +131,13 @@ endif
 
 .PHONY: create_environment
 ## Set up virtual environment for this project
-create_environment:
+create_environment: environment.$(ARCH).lock.yml
 ifeq (conda,$(VIRTUALENV))
-	@echo ">>> Detected conda, creating conda environment."
-ifneq ("X$(wildcard ./environment.$(ARCH).lock.yml)","X")
-	$(CONDA_EXE) env create --name $(PROJECT_NAME) -f environment.$(ARCH).lock.yml
-else
-	@echo ">>> Creating lockfile from $(CONDA_EXE) environment specification."
-	$(CONDA_EXE) env create --name $(PROJECT_NAME) -f environment.yml
-	$(CONDA_EXE) env export --name $(PROJECT_NAME) -f environment.$(ARCH).lock.yml
+	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f environment.$(ARCH).lock.yml
 endif
-	@echo ">>> New conda env created. Activate with: 'conda activate $(PROJECT_NAME)'"
+	@echo "New conda env created. Activate with:"
+	@echo ">>> conda activate $(PROJECT_NAME)"
+	@echo ">>> make update_environment"
 else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
