@@ -1,6 +1,6 @@
 # Cookiecutter EasyData
 
-_A flexible toolkit for doing and sharing reproducible data science._
+_A flexible (but opinionated) toolkit for doing and sharing reproducible data science._
 
 EasyData started life as an experimental fork of
 [cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/)
