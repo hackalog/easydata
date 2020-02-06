@@ -14,9 +14,7 @@ For a tutorial on making use of this framework, visit:
 ### Requirements to use this cookiecutter template:
  - anaconda (or miniconda)
 
- - python3.6+ Technically, we still prompt for a choice between python and python3,
-   but we aim to deprecate this, and move all python version control
-   to conda
+ - python3.6+ (we use f-strings. So should you)
 
  - [Cookiecutter Python package](http://cookiecutter.readthedocs.org/en/latest/installation.html) >= 1.4.0: This can be installed with pip by or conda depending on how you manage your Python packages:
 
@@ -50,7 +48,8 @@ The directory structure of your new project looks like this:
 * `README.md`
     * this file
 * `catalog`
-    * Data catalog. This is where data sources and data transformations are saved
+  * Data catalog. This is where config information such as data sources
+    and data transformations are saved
 * `data`
     * Data directory. often symlinked to a filesystem with lots of space
     * `data/raw`
@@ -81,9 +80,6 @@ The directory structure of your new project looks like this:
         * Generated data tables to be used in reporting
     * `reports/summary`
         * Generated summary information to be used in reporting
-* `requirements.txt`
-    * (if using pip+virtualenv) The requirements file for reproducing the
-    analysis environment, e.g. generated with `pip freeze > requirements.txt`
 * `environment.yml`
     * (if using conda) The YAML file for reproducing the analysis environment
 * `setup.py`
@@ -107,15 +103,14 @@ The directory structure of your new project looks like this:
 * `tox.ini`
     * tox file with settings for running tox; see tox.testrun.org
 
-## TODO
-
-* Remove python2 support, (python2 can be supported via a conda envinronment
-  if absolutely needed)
-
 
 ### Installing development requirements
 The first time:
 ```make create_environment```
 
 Subsequent updates:
-```make requirements```
+```make update_environment```
+
+In case you need to delete the environment later:
+```conda deactivate
+make delete_environment```

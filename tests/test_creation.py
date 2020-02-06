@@ -42,7 +42,7 @@ def test_license(default_baked_project):
 
 
 def test_requirements(default_baked_project):
-    reqs_path = default_baked_project / 'requirements.txt'
+    reqs_path = default_baked_project / 'environment.yml'
 
     assert reqs_path.exists()
     assert no_curlies(reqs_path)
@@ -57,6 +57,7 @@ def test_makefile(default_baked_project):
 
 def test_folders(default_baked_project):
     expected_dirs = [
+        'catalog',
         'data',
         'data/external',
         'data/interim',

@@ -1,89 +1,105 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3 fetch_data unpack_data predict train test_environment
-
-#################################################################################
+#
 # GLOBALS                                                                       #
-#################################################################################
+#
+include Makefile.include
 
-PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-BUCKET = {{ cookiecutter.s3_bucket }}
-PROFILE = {{ cookiecutter.aws_profile }}
-PROJECT_NAME = {{ cookiecutter.repo_name }}
-MODULE_NAME = {{ cookiecutter.module_name }}
-PYTHON_INTERPRETER = {{ cookiecutter.python_interpreter }}
-VIRTUALENV = {{ cookiecutter.virtualenv }}
-CONDA_EXE ?= {{ cookiecutter.conda_path }}
+#
+# Manage Environment
+#
 
-#################################################################################
+include Makefile.envs
+
+#
+# Deprecated
+#
+
+.PHONY: requirements
+requirements: update_environment
+	@echo "WARNING: `make requirements` is deprecated. Use `make update_environment`"
+
+#
 # COMMANDS                                                                      #
-#################################################################################
+#
 
-## Install or update Python Dependencies
-requirements: test_environment environment.lock requirements.lock
-
-requirements.lock: requirements.txt
-ifneq (conda, $(VIRTUALENV))
-	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
-	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
-endif
-
+.PHONY: data
 ## convert raw datasets into fully processed datasets
 data: transform_data
 
+.PHONY: sources
 ## Fetch, Unpack, and Process raw DataSources
 sources: process_sources
 
-fetch_sources:
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset fetch
+.PHONY: fetch_sources
+fetch_sources: .make.fetch_sources $(RAW_DATASOURCES)
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset fetch
+	touch .make.fetch_sources
 
-unpack_sources:
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset unpack
+.PHONY: unpack_sources
+unpack_sources: .make.unpack_sources
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset unpack
+	touch .make.fetch_sources
 
-process_sources:
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.make_dataset process
+.PHONY: process_sources
+process_sources: .make.process_sources
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset process
+	touch .make.process_sources
 
+.PHONY: transform_data
 ## Apply Transformations to produce fully processed Datsets
-transform_data:
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.data.apply_transforms
+transform_data: .make.transform_data
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.apply_transforms
+	touch .make.transform_data
 
+.PHONY: train
 ## train / fit / build models
 train: models/model_list.json
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.models.train_models model_list.json
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.train_models model_list.json
 
+.PHONY: predict
 ## predict / transform / run experiments
 predict: models/predict_list.json
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.models.predict_model predict_list.json
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.predict_model predict_list.json
 
+.PHONY: analysis
 ## Convert predictions / transforms / experiments into output data
 analysis: reports/analysis_list.json
-	$(PYTHON_INTERPRETER) -m {{ cookiecutter.module_name }}.analysis.run_analysis analysis_list.json
+	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).analysis.run_analysis analysis_list.json
 
+.PHONY: clean
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
+	rm -f .make.*
 
+.PHONY: clean_interim
 ## Delete all interim (DataSource) files
 clean_interim:
 	rm -rf data/interim/*
 
+.PHONY: clean_raw
 ## Delete the raw downloads directory
 clean_raw:
 	rm -f data/raw/*
 
+.PHONY: clean_processed
 ## Delete all processed datasets
 clean_processed:
 	rm -f data/processed/*
 
+.PHONY: clean_models
 ## Delete all trained models
 clean_models:
 	rm -f models/trained/*
 	rm -f models/trained_models.json
 
+.PHONY: clean_predictions
 ## Delete all predictions
 clean_predictions:
 	rm -f models/predictions/*
 	rm -f models/predictions.json
 
+.PHONY: clean_workflow
 clean_workflow:
 	rm -f catalog/datasources.json
 	rm -f catalog/transformer_list.json
@@ -96,75 +112,16 @@ clean_workflow:
 	rm -f reports/analyses.json
 	rm -f reports/summaries.json
 
+.PHONY: test
 ## Run all Unit Tests
 test:
-	cd {{ cookiecutter.module_name }} && pytest --doctest-modules --verbose --cov
+	cd $(MODULE_NAME) && pytest --doctest-modules --verbose --cov
 
+.PHONY: lint
 ## Lint using flake8
 lint:
-	flake8 {{ cookiecutter.module_name }}
+	flake8 $(MODULE_NAME)
 
-## Upload Data to S3
-sync_data_to_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync data/ s3://$(BUCKET)/data/
-else
-	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
-endif
-
-## Download Data from S3
-sync_data_from_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync s3://$(BUCKET)/data/ data/
-else
-	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
-endif
-
-environment.lock: environment.yml
-ifeq (conda, $(VIRTUALENV))
-	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f $<
-	$(CONDA_EXE) env export -n $(PROJECT_NAME) -f $@
-	# pip install -e .  # uncomment for conda <= 4.3
-else
-	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
-endif
-
-## Set up virtual environment for this project
-create_environment:
-ifeq (conda,$(VIRTUALENV))
-	@echo ">>> Detected conda, creating conda environment."
-ifneq ("X$(wildcard ./environment.lock)","X")
-	$(CONDA_EXE) env create --name $(PROJECT_NAME) -f environment.lock
-else
-	@echo ">>> Creating lockfile from $(CONDA_EXE) environment specification."
-	$(CONDA_EXE) env create --name $(PROJECT_NAME) -f environment.yml
-	$(CONDA_EXE) env export --name $(PROJECT_NAME) -f environment.lock
-endif
-	@echo ">>> New conda env created. Activate with: 'conda activate $(PROJECT_NAME)'"
-else
-	$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
-	@echo ">>> Installing virtualenvwrapper if not already intalled.\nMake sure the following lines are in shell startup file\n\
-	export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
-	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)"
-	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
-endif
-
-## Delete the virtual environment for this project
-delete_environment:
-ifeq (conda,$(VIRTUALENV))
-	@echo "Deleting conda environment."
-	$(CONDA_EXE) env remove -n $(PROJECT_NAME)
-endif
-
-
-## Test python environment is set-up correctly
-test_environment:
-ifeq (conda,$(VIRTUALENV))
-ifneq (${CONDA_DEFAULT_ENV}, $(PROJECT_NAME))
-	$(error Must activate `$(PROJECT_NAME)` environment before proceeding)
-endif
-endif
-	$(PYTHON_INTERPRETER) test_environment.py
 
 #################################################################################
 # PROJECT RULES                                                                 #
