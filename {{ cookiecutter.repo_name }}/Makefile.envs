@@ -1,0 +1,52 @@
+#
+# Environment Management Makefile
+#
+
+include Makefile.include
+
+environment.$(ARCH).lock.yml: environment.yml
+ifeq (conda, $(VIRTUALENV))
+	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f $<
+	$(CONDA_EXE) env export -n $(PROJECT_NAME) -f $@
+	# pip install -e .  # uncomment for conda <= 4.3
+else
+	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
+endif
+
+.PHONY: create_environment
+## Set up virtual environment for this project
+create_environment: environment.$(ARCH).lock.yml
+ifeq (conda,$(VIRTUALENV))
+	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f environment.$(ARCH).lock.yml
+	@echo "New conda env created. Activate with:"
+	@echo ">>> conda activate $(PROJECT_NAME)"
+	@echo ">>> make update_environment"
+else
+	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
+endif
+
+.PHONY: delete_environment
+## Delete the virtual environment for this project
+delete_environment:
+ifeq (conda,$(VIRTUALENV))
+	@echo "Deleting conda environment."
+	$(CONDA_EXE) env remove -n $(PROJECT_NAME)
+else
+	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
+endif
+
+.PHONY: update_environment
+## Install or update Python Dependencies
+update_environment: test_environment environment.$(ARCH).lock.yml
+
+.PHONY: test_environment
+## Test python environment is set-up correctly
+test_environment:
+ifeq (conda,$(VIRTUALENV))
+ifneq (${CONDA_DEFAULT_ENV}, $(PROJECT_NAME))
+	$(error Must activate `$(PROJECT_NAME)` environment before proceeding)
+endif
+else
+	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
+endif
+	$(PYTHON_INTERPRETER) test_environment.py
