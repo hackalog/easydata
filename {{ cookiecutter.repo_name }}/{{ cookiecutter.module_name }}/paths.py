@@ -59,7 +59,7 @@ class Paths:
     }
 
     _dict = {}
-    
+
     def __init__(self):
         paths_file = catalog_path / 'paths.json'
         if not paths_file.exists():
@@ -68,7 +68,7 @@ class Paths:
         ondisk = self._read(paths_file)
         merged = {**self._defaults, **ondisk}
         self._dict = {k:str(v) for k,v in merged.items()}
-        
+
     def __setattr__(self, key, value):
         if hasattr(self, key):
             super().__setattr__(key, value)
@@ -84,7 +84,7 @@ class Paths:
 
     def __repr__(self):
         return json.dumps(self._dict, sort_keys=True, indent=2)
-    
+
     def __getattr__(self, key):
         try:
             return pathlib.Path(self._dict[key])
