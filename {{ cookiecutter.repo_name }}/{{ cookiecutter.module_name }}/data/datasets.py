@@ -3,7 +3,7 @@ import pathlib
 import sys
 
 import joblib
-from sklearn.datasets.base import Bunch
+from sklearn.utils import Bunch
 from sklearn.model_selection import train_test_split
 from functools import partial
 
