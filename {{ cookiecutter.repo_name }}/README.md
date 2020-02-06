@@ -11,7 +11,6 @@ GETTING STARTED
 cd {{cookiecutter.repo_name}}
 make create_environment
 conda activate {{cookiecutter.repo_name}}
-make requirements
 ```
 * Explore the notebooks in the `notebooks` directory
 
@@ -22,6 +21,9 @@ Project Organization
     * top-level makefile. Type `make` for a list of valid commands
 * `README.md`
     * this file
+* `catalog`
+  * Data catalog. This is where config information such as data sources
+    and data transformations are saved
 * `data`
     * Data directory. often symlinked to a filesystem with lots of space
     * `data/raw`
@@ -52,9 +54,6 @@ Project Organization
         * Generated data tables to be used in reporting
     * `reports/summary`
         * Generated summary information to be used in reporting
-* `requirements.txt`
-    * (if using pip+virtualenv) The requirements file for reproducing the
-    analysis environment, e.g. generated with `pip freeze > requirements.txt`
 * `environment.yml`
     * (if using conda) The YAML file for reproducing the analysis environment
 * `setup.py`
@@ -81,4 +80,4 @@ Project Organization
 
 --------
 
-<p><small>This project was built using <a target="_blank" href="https://github.com/hackalog/cookiecutter-easydata">cookiecutter-easydata</a>, an experimental fork of [cookiecutter-data-science](https://github.com/drivendata/cookiecutter-data-science) aimed at making your data science workflow reproducible.</small></p>
+<p><small>This project was built using <a target="_blank" href="https://github.com/hackalog/cookiecutter-easydata">cookiecutter-easydata</a>, an opinionated fork of [cookiecutter-data-science](https://github.com/drivendata/cookiecutter-data-science) aimed at making your data science workflow reproducible.</small></p>

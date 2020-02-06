@@ -1,9 +1,9 @@
-{% macro py2dep() -%}
-  - python=2.7
-  - pathlib2
-{% endmacro -%}
-{% macro py3dep() -%}
-  - python>=3.6
+{% macro pyver() -%}
+{% if cookiecutter.python_version == 'latest' -%}
+  - python=3
+{% else -%}
+  - python={{ cookiecutter.python_version }}
+{% endif -%}
 {% endmacro -%}
 name: {{ cookiecutter.repo_name }}
 dependencies:
@@ -25,8 +25,5 @@ dependencies:
   - nb_conda
   - pandas
   - requests
-{% if cookiecutter.python_interpreter == 'python3' -%}
-{{ py3dep()|indent(2, true) }}
-{% else -%}
-{{ py2dep()|indent(2, true) }}
-{% endif -%}
+  - pathlib
+{{ pyver()|indent(2, true) }}
