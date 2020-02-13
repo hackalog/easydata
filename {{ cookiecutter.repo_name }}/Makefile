@@ -15,7 +15,7 @@ include Makefile.envs
 
 .PHONY: requirements
 requirements: update_environment
-	@echo "WARNING: `make requirements` is deprecated. Use `make update_environment`"
+	@echo "WARNING: 'make requirements' is deprecated. Use 'make update_environment'"
 
 #
 # COMMANDS                                                                      #
