@@ -35,23 +35,31 @@ data: transform_data
 sources: process_sources
 
 .PHONY: fetch_sources
-fetch_sources: .make.fetch_sources $(RAW_DATASOURCES)
+fetch_sources: .make.fetch_sources
+
+.make.fetch_sources:
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset fetch
 	touch .make.fetch_sources
 
 .PHONY: unpack_sources
 unpack_sources: .make.unpack_sources
+
+.make.unpack_sources: .make.fetch_sources
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset unpack
 	touch .make.fetch_sources
 
 .PHONY: process_sources
 process_sources: .make.process_sources
+
+.make.process_sources: .make.unpack_sources
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset process
 	touch .make.process_sources
 
 .PHONY: transform_data
 ## Apply Transformations to produce fully processed Datsets
 transform_data: .make.transform_data
+
+.make.transform_data: .make.process_sources
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.apply_transforms
 	touch .make.transform_data
 
