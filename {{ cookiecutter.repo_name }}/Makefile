@@ -14,8 +14,13 @@ include Makefile.envs
 #
 
 .PHONY: requirements
+
 requirements: update_environment
 	@echo "WARNING: 'make requirements' is deprecated. Use 'make update_environment'"
+
+.PHONY: unfinished
+unfinished:
+	@echo "WARNING: this target is unfinished and may be removed or changed dramatically in future releases"
 
 #
 # COMMANDS                                                                      #
@@ -52,17 +57,17 @@ transform_data: .make.transform_data
 
 .PHONY: train
 ## train / fit / build models
-train: models/model_list.json
+train: unfinished models/model_list.json
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.train_models model_list.json
 
 .PHONY: predict
 ## predict / transform / run experiments
-predict: models/predict_list.json
+predict: unfinished models/predict_list.json
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.predict_model predict_list.json
 
 .PHONY: analysis
 ## Convert predictions / transforms / experiments into output data
-analysis: reports/analysis_list.json
+analysis: unfinished reports/analysis_list.json
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).analysis.run_analysis analysis_list.json
 
 .PHONY: clean
