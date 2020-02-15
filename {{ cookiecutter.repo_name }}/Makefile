@@ -14,8 +14,13 @@ include Makefile.envs
 #
 
 .PHONY: requirements
+
 requirements: update_environment
-	@echo "WARNING: `make requirements` is deprecated. Use `make update_environment`"
+	@echo "WARNING: 'make requirements' is deprecated. Use 'make update_environment'"
+
+.PHONY: unfinished
+unfinished:
+	@echo "WARNING: this target is unfinished and may be removed or changed dramatically in future releases"
 
 #
 # COMMANDS                                                                      #
@@ -30,39 +35,47 @@ data: transform_data
 sources: process_sources
 
 .PHONY: fetch_sources
-fetch_sources: .make.fetch_sources $(RAW_DATASOURCES)
+fetch_sources: .make.fetch_sources
+
+.make.fetch_sources:
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset fetch
 	touch .make.fetch_sources
 
 .PHONY: unpack_sources
 unpack_sources: .make.unpack_sources
+
+.make.unpack_sources: .make.fetch_sources
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset unpack
 	touch .make.fetch_sources
 
 .PHONY: process_sources
 process_sources: .make.process_sources
+
+.make.process_sources: .make.unpack_sources
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset process
 	touch .make.process_sources
 
 .PHONY: transform_data
 ## Apply Transformations to produce fully processed Datsets
 transform_data: .make.transform_data
+
+.make.transform_data: .make.process_sources
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.apply_transforms
 	touch .make.transform_data
 
 .PHONY: train
 ## train / fit / build models
-train: models/model_list.json
+train: unfinished models/model_list.json
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.train_models model_list.json
 
 .PHONY: predict
 ## predict / transform / run experiments
-predict: models/predict_list.json
+predict: unfinished models/predict_list.json
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.predict_model predict_list.json
 
 .PHONY: analysis
 ## Convert predictions / transforms / experiments into output data
-analysis: reports/analysis_list.json
+analysis: unfinished reports/analysis_list.json
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).analysis.run_analysis analysis_list.json
 
 .PHONY: clean

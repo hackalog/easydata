@@ -9,7 +9,7 @@ from functools import partial
 
 from ..paths import processed_data_path, data_path, raw_data_path, interim_data_path, catalog_path
 from ..logging import logger
-from .fetch import fetch_file, unpack, get_dataset_filename
+from .fetch import fetch_file,  get_dataset_filename, hash_file, unpack
 from .utils import partial_call_signature, serialize_partial, deserialize_partial, process_dataset_default
 from ..utils import load_json, save_json
 
