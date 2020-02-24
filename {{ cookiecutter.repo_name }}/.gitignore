@@ -88,3 +88,6 @@ target/
 # Emacs
 *~
 .*~
+
+# Makefile Machinery
+.make.*
