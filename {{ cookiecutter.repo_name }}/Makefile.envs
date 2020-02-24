@@ -20,7 +20,9 @@ ifeq (conda,$(VIRTUALENV))
 	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f environment.$(ARCH).lock.yml
 	@echo "New conda env created. Activate with:"
 	@echo ">>> conda activate $(PROJECT_NAME)"
-	@echo ">>> make update_environment"
+ifneq ("X$(wildcard .post-create-environment.txt)","X")
+	@cat .post-create-environment.txt
+endif
 else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
@@ -31,6 +33,9 @@ delete_environment:
 ifeq (conda,$(VIRTUALENV))
 	@echo "Deleting conda environment."
 	$(CONDA_EXE) env remove -n $(PROJECT_NAME)
+ifneq ("X$(wildcard .post-delete-environment.txt)","X")
+	@cat .post-delete-environment.txt
+endif
 else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
@@ -38,6 +43,9 @@ endif
 .PHONY: update_environment
 ## Install or update Python Dependencies
 update_environment: test_environment environment.$(ARCH).lock.yml
+ifneq ("X$(wildcard .post-update-environment.txt)","X")
+	@cat .post-update-environment.txt
+endif
 
 .PHONY: test_environment
 ## Test python environment is set-up correctly
