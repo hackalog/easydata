@@ -20,6 +20,11 @@ ifeq (conda,$(VIRTUALENV))
 	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f environment.$(ARCH).lock.yml
 	@echo "New conda env created. Activate with:"
 	@echo ">>> conda activate $(PROJECT_NAME)"
+	@echo
+	@echo "Now would be a good time to initialize a git repo; i.e."
+	@echo ">>> git init"
+	@echo ">>> git add ."
+	@echo ">>> git commit -m 'initial import'"
 ifneq ("X$(wildcard .post-create-environment.txt)","X")
 	@cat .post-create-environment.txt
 endif
