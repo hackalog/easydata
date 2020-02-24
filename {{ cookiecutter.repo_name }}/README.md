@@ -1,5 +1,6 @@
 {{cookiecutter.project_name}}
 ==============================
+_Author: {{ cookiecutter.author_name }}_
 
 {{cookiecutter.description}}
 
