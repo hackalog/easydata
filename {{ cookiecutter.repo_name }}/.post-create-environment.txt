@@ -1,0 +1,8 @@
+
+NOTE: By default, raw data is installed and unpacked in the `data` directory
+If you are working with big data (or have a small disk partition), it is
+HIGHLY recommended that you move this directory elsewhere; i.e. either
+move it and leave a symlink behind, or modify the `raw_data_path`, `interim_data_path`,
+and/or `processed_data_path` paths in {{ cookiecutter.module_name }}/paths.py accordingly
+
+You have been warned.
