@@ -106,11 +106,21 @@ The directory structure of your new project looks like this:
 
 ### Installing development requirements
 The first time:
-```make create_environment```
+```
+make create_environment
+git init
+git add .
+git commit -m "initial import"
+git branch easydata   # tag for future easydata upgrades
+```
 
 Subsequent updates:
-```make update_environment```
+```
+make update_environment
+```
 
 In case you need to delete the environment later:
-```conda deactivate
-make delete_environment```
+```
+conda deactivate
+make delete_environment
+```
