@@ -8,6 +8,7 @@ from cookiecutter.config import get_user_config
 
 logger = logging.getLogger(__name__)
 
+
 def copy_cookiecutter_resume(template_name='cookiecutter-easydata'):
     """Make a copy of the cookiecutter replay file in the generated project.
 
@@ -17,7 +18,6 @@ def copy_cookiecutter_resume(template_name='cookiecutter-easydata'):
     >>> cookiecutter --config_file path/to/cookiecutter-easydata.yaml cookiecutter-easydata
 
     """
-
     config_obj = get_user_config()
     config_dir = pathlib.Path(config_obj['replay_dir'])
 
