@@ -15,6 +15,7 @@ dependencies:
     - nbdime
   - setuptools
   - wheel
+  - git>=2.5  # for git worktree template updating
   - sphinx
   - click
   - coverage
