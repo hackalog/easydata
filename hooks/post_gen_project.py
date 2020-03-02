@@ -9,7 +9,7 @@ from cookiecutter.config import get_user_config
 logger = logging.getLogger(__name__)
 
 
-def copy_cookiecutter_resume(template_name='.cookiecutter-easydata'):
+def copy_cookiecutter_resume(template_name='cookiecutter-easydata'):
     """Make a copy of the cookiecutter replay file in the generated project.
 
     By default, cookiecutter creates a replay directory in a user's ~/.cookiecutter
@@ -22,8 +22,7 @@ def copy_cookiecutter_resume(template_name='.cookiecutter-easydata'):
     config_dir = pathlib.Path(config_obj['replay_dir'])
 
     src_path = config_dir / f'{template_name}.json'
-    yml_path = f'{template_name}.yml'  # relative to root of generated project
-    json_path = f'{template_name}.json'
+    yml_path = f'.{template_name}.yml'  # relative to root of generated project
 
     logger.debug(f"Reading cookiecutter replay data from {src_path}")
     with open(src_path) as f:
@@ -35,12 +34,9 @@ def copy_cookiecutter_resume(template_name='.cookiecutter-easydata'):
     yaml.default_flow_style=False
     yaml.width=4096
     yaml.indent(offset=4)
-    logger.debug(f"Dumping cookiecutter replay (YAML) info to {dst_path}")
+    logger.debug(f"Dumping cookiecutter replay (YAML) info to {yml_path}")
     with open(yml_path, 'w') as fw:
         yaml.dump({'default_context': yaml_opts}, fw)
-    logger.debug(f"Dumping cookiecutter replay (JSON) info to {dst_path}")
-    with open(json_path, 'w') as fw:
-        json.dump(cookiecutter_opts.get('cookiecutter', {}), fw, sort_keys=True, indent=4)
 
 if __name__ == '__main__':
     copy_cookiecutter_resume()
