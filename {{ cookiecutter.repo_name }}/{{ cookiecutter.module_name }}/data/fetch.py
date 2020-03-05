@@ -82,6 +82,8 @@ def fetch_files(force=False, dst_dir=None, **kwargs):
             checked against this value
         name: (optional)
             Name of this dataset component
+        fetch_action: {'copy', 'message', 'url'}
+            Method used to obtain file
         raw_file:
             output file name. If not specified, use the last
             component of the URL
@@ -142,15 +144,33 @@ def fetch_file(url=None, contents=None,
                file_name=None, dst_dir=None,
                force=False, source_file=None,
                hash_type="sha1", hash_value=None,
+               fetch_action=None, message=None,
                **kwargs):
-    '''Fetch raw file entries.
+    '''Fetch the raw files needed by a DataSource.
 
-    Files can be specified by `url`, `source_file` name, or via `contents` (string)
+    A DataSource is usually constructed from one or more raw files.
+    This function handles the process of obtaining the raw files.
 
-    if `file_name` already exists, compute the hash of the on-disk file
+    Raw files are always specified relative to paths['raw_data_path']
+
+    If `file_name` does not exist, this will attempt to fetch or create
+    the file based on the contents of `fetch_action`:
+    * message:
+        Display `message` to the user and fail. Used when manual intervention
+        is required, such as when a licence agreement must be completed.
+    * copy:
+        Copies the file from somewhere in the filesystem (`source_file`).
+        WARNING: This approach rarely leads to a reproducible data workflow
+    * url:
+        Fetches the source file from `url`
+    * create:
+        File will be created from the contents of `contents`
+
+    If `file_name` already exists, compute the hash of the on-disk file
+    and check
 
     contents:
-        contents of file to be created
+        contents of file to be created (if fetch_action == 'create')
     url:
         url to be downloaded
     hash_type:
@@ -160,17 +180,23 @@ def fetch_file(url=None, contents=None,
         checked against this value
     name: (optional)
         Name of this dataset component
+    message: string
+        Text to be displayed to user (if fetch_action == 'message')
+    fetch_action: {'copy', 'message', 'url', 'create'}
+        Method used to obtain file
     file_name:
         output file name. If not specified, use the last
         component of the URL
     dst_dir:
-        directory to place downloaded files
+        Can be used to override the default raw file location
+        (paths['raw_data_path'])
     force: boolean
         normally, the URL is only downloaded if `file_name` is
         not present on the filesystem, or if the existing file has a
         bad hash. If force is True, download is always attempted.
     source_file: path
-        Path to source file. Will be copied to `paths['raw_data_path']`
+        Path to source file. (if fetch_action == 'copy')
+        Will be copied to `paths['raw_data_path']`
 
     Returns
     -------
@@ -178,6 +204,7 @@ def fetch_file(url=None, contents=None,
         (HTTP_Code, downloaded_filename, hash) (if downloaded from URL)
         (True, filename, hash) (if already exists)
         (False, [error], None)
+        (False, `message`, None) (if fetch_action == 'message')
 
     Examples
     --------
@@ -186,8 +213,7 @@ def fetch_file(url=None, contents=None,
       ...
     Exception: One of `file_name`, `url`, or `source_file` is required
     '''
-    if dst_dir is None:
-        dst_dir = paths['raw_data_path']
+
     if file_name is None:
         if url:
             file_name = url.split("/")[-1]
@@ -197,14 +223,24 @@ def fetch_file(url=None, contents=None,
             logger.debug(f"`file_name` not specified. Inferring from `source_file`: {file_name}")
         else:
             raise Exception('One of `file_name`, `url`, or `source_file` is required')
+
+    if dst_dir is None:
+        dst_dir = paths['raw_data_path']
     dl_data_path = pathlib.Path(dst_dir)
 
-    if not os.path.exists(dl_data_path):
+    if not dl_data_path.exists():
         os.makedirs(dl_data_path)
 
     raw_data_file = dl_data_path / file_name
 
-    if contents is not None:
+    if fetch_action == 'message':
+        if message is None:
+            raise Exception("`message` must be nonempty when fetch_action == message")
+        print(message)
+        return False, message, None
+    elif contents is not None or fetch_action == 'create':
+        if contents is None:
+            raise Exception("`contents` must be nonempty if fetch_action == 'create'")
         logger.debug(f'Creating {raw_data_file.name} from `contents` string')
         with open(raw_data_file, 'w') as fw:
             fw.write(contents)
@@ -225,8 +261,8 @@ def fetch_file(url=None, contents=None,
                              f"Setting to {hash_type}:{raw_file_hash}")
                 return True, raw_data_file, raw_file_hash
 
-    if url is None and contents is None and source_file is None:
-        raise Exception(f"Cannot proceed: {file_name} not found on disk, and no fetch information (`url` or `source_file`, or `contents`) specified.")
+    if url is None and contents is None and source_file is None and message is None::
+        raise Exception(f"Cannot proceed: {file_name} not found on disk, and no fetch information (`url` or `source_file`, `contents` or `message`) specified.")
 
     if url is not None:
         # Download the file
