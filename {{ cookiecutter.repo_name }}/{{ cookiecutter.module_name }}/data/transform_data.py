@@ -1,9 +1,8 @@
-import logging
 import os
 import pathlib
 import sys
 
-from ..logging import logger
+from ..log import logger
 from ..utils import load_json, save_json
 from .datasets import Dataset, DataSource, available_datasources
 from .transformers import available_transformers

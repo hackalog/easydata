@@ -1,7 +1,6 @@
 import json
 import joblib
 import pathlib
-import logging
 import time
 
 from .. import paths
@@ -9,7 +8,7 @@ from ..paths import trained_model_path, model_path
 from ..utils import save_json, load_json, record_time_interval
 from ..data import Dataset, available_datasets
 from .algorithms import available_algorithms
-from ..logging import logger
+from ..log import logger
 
 __all__ = [
     'load_model',

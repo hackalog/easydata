@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 
-from ..logging import logger
+from ..log import logger
 from ..utils import save_json
 from ..paths import model_path, trained_model_path
 from .model_list import build_models

@@ -4,8 +4,7 @@ from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 import click
 
-import logging
-from ..logging import logger
+from ..log import logger
 from ..paths import processed_data_path, catalog_path
 from .transform_data import apply_transforms
 

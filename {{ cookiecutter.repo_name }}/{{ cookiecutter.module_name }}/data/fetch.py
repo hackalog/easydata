@@ -9,7 +9,7 @@ import zlib
 import requests
 
 from ..paths import raw_data_path, interim_data_path
-from ..logging import logger
+from ..log import logger
 
 __all__ = [
     'available_hashes',

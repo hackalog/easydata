@@ -5,7 +5,7 @@ from dotenv import find_dotenv, load_dotenv
 from ..utils import save_json, load_json
 import click
 
-from ..logging import logger
+from ..log import logger
 from ..paths import model_path, model_output_path
 from .predict import run_predictions
 

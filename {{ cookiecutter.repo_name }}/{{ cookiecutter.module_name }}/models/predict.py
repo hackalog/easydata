@@ -5,7 +5,7 @@ import pathlib
 import time
 
 from ..data import Dataset
-from ..logging import logger
+from ..log import logger
 from ..paths import model_path, model_output_path
 from ..utils import record_time_interval, save_json
 from .train import load_model

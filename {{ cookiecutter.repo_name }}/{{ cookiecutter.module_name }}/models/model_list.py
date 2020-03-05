@@ -1,10 +1,9 @@
-import logging
 import pathlib
 from ..utils import load_json, save_json
 from ..paths import model_path, trained_model_path
 from ..data import available_datasets
 from .algorithms import available_algorithms
-from ..logging import logger
+from ..log import logger
 from .train import train_model, save_model, load_model
 
 __all__ =[

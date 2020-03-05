@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 
-from ..logging import logger
+from ..log import logger
 from ..utils import load_json, save_json
 from ..paths import reports_path, analysis_path
 from .analysis import run_analyses   #, save_df_summary

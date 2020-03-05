@@ -1,7 +1,7 @@
 import pathlib
 import pandas as pd
 
-from ..logging import logger
+from ..log import logger
 from ..data import Dataset
 from ..paths import model_output_path, trained_model_path, analysis_path, summary_path
 from ..models.predict import available_predictions
