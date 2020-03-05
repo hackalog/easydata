@@ -46,7 +46,7 @@ unpack_sources: .make.unpack_sources
 
 .make.unpack_sources: .make.fetch_sources
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.make_dataset unpack
-	touch .make.fetch_sources
+	touch .make.unpack_sources
 
 .PHONY: process_sources
 process_sources: .make.process_sources
