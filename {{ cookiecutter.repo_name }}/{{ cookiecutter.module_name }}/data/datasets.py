@@ -445,6 +445,48 @@ class DataSource(object):
         self.file_list.append(filelist_entry)
         self.fetched_ = False
 
+    def add_manual_download(self, message=None, *,
+                            hash_type='sha1', hash_value=None,
+                            name=None, file_name=None, force=False):
+        """Add a manual download step to the file list.
+
+        Some datasets must be downloaded manually (usually ones that
+        require opting-in to a specific set of terms and conditions).
+        This method displays a message indicating how the user can manually
+        download the file, and from where.
+
+        message: string
+            Message to be displayed to the user. This message indicates
+            how to download the indicated dataset.
+        hash_type: {'sha1', 'md5', 'sha256'}
+        hash_value: string. required
+            Hash, computed via the algorithm specified in `hash_type`
+        file_name: string, required
+            Name of destination file. relative to paths['raw_data_dir']
+        name: str
+            text description of this file.
+        force: boolean
+            If True, permit multiple copies of the same source file
+        """
+        if hash_value is None:
+            raise Exception("You must specify a `hash_type` and `hash_value` "
+                            "for a manual download")
+        if file_name is None:
+            raise Exception("You must specify a file_name for a manual download")
+
+        fetch_dict = {
+            'fetch_action': 'message',
+            'hash_type': hash_type,
+            'hash_value': hash_value,
+            'name': name,
+            'file_name': file_name,
+            'message': message,
+        }
+
+        self.file_list.append(fetch_dict)
+        self.fetched_ = False
+
+
     def add_file(self, source_file=None, *, hash_type='sha1', hash_value=None,
                  name=None, file_name=None, force=False):
         """
@@ -457,7 +499,7 @@ class DataSource(object):
         hash_value: string or None
             if None, hash will be computed from specified file
         file_name: string
-            Name of destination file.
+            Name of destination file. relative to paths['raw_data_dir']
         name: str
             text description of this file.
         source_file: path
@@ -477,11 +519,14 @@ class DataSource(object):
             logger.debug(f"Hash unspecified. Computing {hash_type} hash of {source_file.name}")
             hash_value = hash_file(source_file, algorithm=hash_type).hexdigest()
 
-        fetch_dict = {'hash_type': hash_type,
-                      'hash_value': hash_value,
-                      'name': name,
-                      'source_file': str(source_file),
-                      'file_name': file_name}
+        fetch_dict = {
+            'fetch_action': 'copy',
+            'hash_type': hash_type,
+            'hash_value': hash_value,
+            'name': name,
+            'source_file': str(source_file),
+            'file_name': file_name
+        }
         existing_files = [f['source_file'] for f in self.file_list]
         existing_hashes = [f['hash_value'] for f in self.file_list if f['hash_value']]
         if str(source_file) in existing_files and not force:
@@ -509,11 +554,14 @@ class DataSource(object):
         if url is None:
             raise Exception("`url` is required")
 
-        fetch_dict = {'url': url,
-                      'hash_type':hash_type,
-                      'hash_value':hash_value,
-                      'name': name,
-                      'file_name':file_name}
+        fetch_dict = {
+            'fetch_action': 'url',
+            'url': url,
+            'hash_type':hash_type,
+            'hash_value':hash_value,
+            'name': name,
+            'file_name':file_name
+        }
         self.file_list.append(fetch_dict)
         self.fetched_ = False
 
