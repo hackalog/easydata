@@ -6,9 +6,8 @@ from ..utils import save_json, load_json
 import click
 
 from ..log import logger
-from ..paths import model_path, model_output_path
+from .. import paths
 from .predict import run_predictions
-
 
 @click.command()
 @click.argument('model_list')
@@ -17,12 +16,12 @@ from .predict import run_predictions
 def main(model_list, *, output_file, hash_type):
     logger.debug(f'Executing models from {model_list}')
 
-    os.makedirs(model_output_path, exist_ok=True)
+    os.makedirs(paths['model_output_path'], exist_ok=True)
 
-    saved_meta = run_predictions(predict_file=model_list, predict_dir=model_path)
+    saved_meta = run_predictions(predict_file=model_list, predict_dir=paths['model_path'])
 
     if saved_meta:
-        save_json(model_path / output_file, saved_meta)
+        save_json(paths['model_path'] / output_file, saved_meta)
         logger.info(f"Predict complete! Results accessible via workflow.available_predictions")
 
 if __name__ == '__main__':

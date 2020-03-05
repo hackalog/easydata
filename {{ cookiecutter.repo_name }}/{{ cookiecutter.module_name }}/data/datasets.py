@@ -6,8 +6,7 @@ import joblib
 from sklearn.utils import Bunch
 from sklearn.model_selection import train_test_split
 from functools import partial
-
-from ..paths import processed_data_path, data_path, raw_data_path, interim_data_path, catalog_path
+from .. import paths
 from ..log import logger
 from .fetch import fetch_file,  get_dataset_filename, hash_file, unpack
 from .utils import partial_call_signature, serialize_partial, deserialize_partial, process_dataset_default
@@ -35,7 +34,7 @@ def available_datasets(dataset_path=None, keys_only=True):
         location of saved dataset files
     """
     if dataset_path is None:
-        dataset_path = processed_data_path
+        dataset_path = paths['processed_data_path']
     else:
         dataset_path = pathlib.Path(dataset_path)
 
@@ -113,7 +112,7 @@ def available_datasources(datasource_file='datasources.json',
         Tuple (available_datasource_dict, available_datasource_dict_filename)
     """
     if datasource_path is None:
-        datasource_path = catalog_path
+        datasource_path = paths['catalog_path']
 
     datasource_file_fq = pathlib.Path(datasource_path) / datasource_file
 
@@ -217,7 +216,7 @@ class Dataset(Bunch):
         must be present in dataset.json"""
 
         if data_path is None:
-            data_path = processed_data_path
+            data_path = paths['processed_data_path']
         else:
             data_path = pathlib.Path(data_path)
 
@@ -307,7 +306,7 @@ class Dataset(Bunch):
             Filename stem. By default, just the dataset name
         hash_type: {'sha1', 'md5'}
             Hash function to use for hashing data/labels
-        dump_path: path. (default: `processed_data_path`)
+        dump_path: path. (default: `paths['processed_data_path']`)
             Directory where data will be dumped.
         force: boolean
             If False, raise an exception if the file already exists
@@ -317,7 +316,7 @@ class Dataset(Bunch):
 
         """
         if dump_path is None:
-            dump_path = processed_data_path
+            dump_path = paths['processed_data_path']
         dump_path = pathlib.Path(dump_path)
 
         if file_base is None:
@@ -395,7 +394,7 @@ class DataSource(object):
         if file_list is None:
             file_list = []
         if dataset_dir is None:
-            dataset_dir = raw_data_path
+            dataset_dir = paths['raw_data_path']
         if parse_function is None:
             parse_function = process_dataset_default
         self.name = name
@@ -414,12 +413,12 @@ class DataSource(object):
 
         filename: create metadata entry from contents of this file
         contents: create metadata entry from this string
-        metadata_path: (default `raw_data_path`)
+        metadata_path: (default `paths['raw_data_path']`)
             Where to store metadata
         kind: {'DESCR', 'LICENSE'}
         """
         if metadata_path is None:
-            metadata_path = raw_data_path
+            metadata_path = paths['raw_data_path']
         else:
             metadata_path = pathlib.Path(metadata_path)
         filename_map = {
@@ -599,7 +598,7 @@ class DataSource(object):
             logger.debug(f'Data Source {self.name} is already unpacked. Skipping')
         else:
             if unpack_path is None:
-                unpack_path = interim_data_path / self.name
+                unpack_path = paths['interim_data_path'] / self.name
             else:
                 unpack_path = pathlib.Path(unpack_path)
             for filename in self.fetched_files_:
@@ -637,7 +636,7 @@ class DataSource(object):
             self.unpack()
 
         if cache_path is None:
-            cache_path = interim_data_path
+            cache_path = paths['interim_data_path']
         else:
             cache_path = pathlib.Path(cache_path)
 
@@ -698,7 +697,7 @@ class DataSource(object):
             # if metadata is present in the URL list, use it
             if name in optmap:
                 txtfile = get_dataset_filename(fetch_dict)
-                with open(raw_data_path / txtfile, 'r') as fr:
+                with open(paths['raw_data_path'] / txtfile, 'r') as fr:
                     metadata[optmap[name]] = fr.read()
         if use_docstring:
             func = partial(self.parse_function)

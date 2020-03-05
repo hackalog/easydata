@@ -7,8 +7,10 @@ from dotenv import find_dotenv, load_dotenv
 
 from ..log import logger
 from ..utils import load_json, save_json
-from ..paths import reports_path, analysis_path
+from .. import paths
+
 from .analysis import run_analyses   #, save_df_summary
+
 
 @click.command()
 @click.argument('analysis_list')
@@ -46,11 +48,11 @@ def main(analysis_list, *, output_file, hash_type):
     """
     logger.debug(f'Running summary analysis from {analysis_list}')
 
-    os.makedirs(analysis_path, exist_ok=True)
+    os.makedirs(paths['analysis_path'], exist_ok=True)
     saved_meta = run_analyses(analysis_list=analysis_list)
 
     if saved_meta:
-        save_json(reports_path / output_file, saved_meta)
+        save_json(paths['reports_path'] / output_file, saved_meta)
     logger.info("Access results via workflow.available_summaries()")
 
 if __name__ == '__main__':

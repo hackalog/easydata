@@ -6,7 +6,7 @@ import time
 
 from ..data import Dataset
 from ..log import logger
-from ..paths import model_path, model_output_path
+from .. import paths
 from ..utils import record_time_interval, save_json
 from .train import load_model
 from .model_list import get_model_list
@@ -61,7 +61,7 @@ def run_model(experiment_info=None,
     with experiment dictionary embedded in metadata
     '''
     if output_path is None:
-        output_path = model_output_path
+        output_path = paths['model_output_path']
     else:
         output_path = pathlib.Path(output_path)
 
@@ -149,7 +149,7 @@ def load_prediction(predict_name=None, metadata_only=False, predict_path=None):
     if predict_name is None:
         raise Exception("predict_name must be specified")
     if predict_path is None:
-        predict_path = model_output_path
+        predict_path = paths['model_output_path']
     else:
         predict_path = pathlib.Path(predict_path)
 
@@ -163,7 +163,7 @@ def run_predictions(force=False, *, predict_file='predict_list.json', predict_di
     """
     """
     if predict_dir is None:
-        predict_dir = model_path
+        predict_dir = paths['model_path']
     else:
         predict_dir = pathlib.Path(predict_dir)
 
@@ -201,7 +201,7 @@ def get_prediction_list(model_dir=None, prediction_file=None, include_filename=F
         Name of json file that contains the prediction pipeline
     """
     if model_dir is None:
-        model_dir = model_path
+        model_dir = paths['model_path']
     else:
         model_dir = pathlib.Path(model_dir)
 
@@ -256,7 +256,7 @@ def add_prediction(dataset_name=None,
         Force the addition of a prediction to the predict list
     """
     if model_dir is None:
-        model_dir = model_path
+        model_dir = paths['model_path']
 
     model_list, model_file_fq = get_model_list(model_dir=model_dir,
                                                model_file=model_file,
@@ -288,5 +288,5 @@ def available_predictions(models_dir=None, keys_only=True):
         location of saved prediction files
     """
     if models_dir is None:
-        models_dir = model_output_path
+        models_dir = paths['model_output_path']
     return available_datasets(dataset_path=models_dir, keys_only=keys_only)

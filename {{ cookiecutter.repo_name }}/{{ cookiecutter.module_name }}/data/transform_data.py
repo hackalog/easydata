@@ -6,7 +6,7 @@ from ..log import logger
 from ..utils import load_json, save_json
 from .datasets import Dataset, DataSource, available_datasources
 from .transformers import available_transformers
-from ..paths import processed_data_path, catalog_path
+from .. import paths
 
 __all__ = [
     'add_transformer',
@@ -39,7 +39,7 @@ def get_transformer_list(transformer_path=None, transformer_file=None, include_f
         Name of json file that contains the transformer pipeline
     """
     if transformer_path is None:
-        transformer_path = catalog_path
+        transformer_path = paths['catalog_path']
     else:
         transformer_path = pathlib.Path(transformer_path)
     if transformer_file is None:
@@ -143,12 +143,12 @@ def add_transformer(from_datasource=None, datasource_opts=None,
 def apply_transforms(transformer_path=None, transformer_file='transformer_list.json', output_dir=None):
 
     if output_dir is None:
-        output_dir = processed_data_path
+        output_dir = paths['processed_data_path']
     else:
         output_dir = pathlib.Path(output_dir)
 
     if transformer_path is None:
-        transformer_path = catalog_path
+        transformer_path = paths['catalog_path']
     else:
         transformer_path = pathlib.Path(transformer_path)
 

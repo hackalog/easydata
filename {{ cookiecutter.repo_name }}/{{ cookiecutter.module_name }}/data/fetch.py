@@ -8,7 +8,7 @@ import zipfile
 import zlib
 import requests
 
-from ..paths import raw_data_path, interim_data_path
+from .. import paths
 from ..log import logger
 
 __all__ = [
@@ -170,7 +170,7 @@ def fetch_file(url=None, contents=None,
         not present on the filesystem, or if the existing file has a
         bad hash. If force is True, download is always attempted.
     source_file: path
-        Path to source file. Will be copied to `raw_data_path`
+        Path to source file. Will be copied to `paths['raw_data_path']`
 
     Returns
     -------
@@ -187,7 +187,7 @@ def fetch_file(url=None, contents=None,
     Exception: One of `file_name`, `url`, or `source_file` is required
     '''
     if dst_dir is None:
-        dst_dir = raw_data_path
+        dst_dir = paths['raw_data_path']
     if file_name is None:
         if url:
             file_name = url.split("/")[-1]
@@ -266,13 +266,13 @@ def unpack(filename, dst_dir=None, create_dst=True):
 
     filename: path
         file to unpack
-    dst_dir: path (default paths.interim_data_path)
+    dst_dir: path (default paths['interim_data_path'])
         destination directory for the unpack
     create_dst: boolean
         create the destination directory if needed
     '''
     if dst_dir is None:
-        dst_dir = interim_data_path
+        dst_dir = paths['interim_data_path']
 
     if create_dst:
         if not os.path.exists(dst_dir):

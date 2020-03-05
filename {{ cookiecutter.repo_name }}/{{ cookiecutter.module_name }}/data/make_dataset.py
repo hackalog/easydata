@@ -11,9 +11,9 @@ from ..log import logger
 def main(action, datasources=None):
     """Fetch and/or process the raw data
 
-    Raw files are downloaded into .paths.raw_data_path
-    Interim files are generated in .paths.interim_data_path
-    Processed data files are saved in .paths.processed_data_path
+    Raw files are downloaded into paths['raw_data_path']
+    Interim files are generated in paths['interim_data_path']
+    Processed data files are saved in paths['processed_data_path']
 
     action: {'fetch', 'unpack', 'process'}
 
