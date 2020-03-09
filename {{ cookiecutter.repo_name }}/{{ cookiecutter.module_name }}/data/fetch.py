@@ -141,7 +141,7 @@ def fetch_text_file(url, file_name=None, dst_dir=None, force=True, **kwargs):
         logger.warning(f'fetch of {url} failed with status: {retlist[0]}')
         return None
 
-def infer_filename(self, url=None, file_name=None, source_file=None, **kwargs):
+def infer_filename(url=None, file_name=None, source_file=None, **kwargs):
     """Infer a filename for a file-to-be-fetched.
 
     Parameters

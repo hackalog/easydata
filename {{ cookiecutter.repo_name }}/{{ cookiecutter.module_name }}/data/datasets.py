@@ -665,7 +665,7 @@ class DataSource(object):
             for filename, item in self.file_dict.items():
                 raw_data_file = paths['raw_data_path'] / filename
                 if not raw_data_file.exists():
-                    logger.warning("{raw_data_file.name} missing. Invalidating fetch cache")
+                    logger.warning(f"{raw_data_file.name} missing. Invalidating fetch cache")
                     self.fetched_ = False
                     break
                 raw_file_hash = hash_file(raw_data_file, algorithm=item['hash_type']).hexdigest()
