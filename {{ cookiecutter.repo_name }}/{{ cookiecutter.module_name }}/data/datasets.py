@@ -418,7 +418,7 @@ class DataSource(object):
         logger.warning("file_list is deprecated. Use file_dict instead")
         return list(self.file_dict.values())
 
-    def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='DESCR', force=False):
+    def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='DESCR', unpack_action='copy', force=False):
         """Add metadata to a DataSource
 
         filename: create metadata entry from contents of this file
@@ -444,14 +444,14 @@ class DataSource(object):
 
         if filename is not None:
             filelist_entry = {
-                'fetch_action': 'metadata',
+                'fetch_action': 'copy',
                 'file_name': str(filename),
                 'name': kind,
             }
         elif contents is not None:
             filelist_entry = {
                 'contents': contents,
-                'fetch_action': 'metadata',
+                'fetch_action': 'create',
                 'file_name': filename_map[kind],
                 'name': kind,
             }
