@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from functools import partial
 from .. import paths
 from ..log import logger
-from .fetch import fetch_file,  get_dataset_filename, hash_file, unpack
+from .fetch import fetch_file,  get_dataset_filename, hash_file, unpack, infer_filename
 from .utils import partial_call_signature, serialize_partial, deserialize_partial, process_dataset_default
 from ..utils import load_json, save_json
 

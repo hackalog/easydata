@@ -18,7 +18,8 @@ __all__ = [
     'fetch_text_file',
     'get_dataset_filename',
     'hash_file',
-    'unpack'
+    'infer_filename',
+    'unpack',
 ]
 
 _HASH_FUNCTION_MAP = {
@@ -140,6 +141,33 @@ def fetch_text_file(url, file_name=None, dst_dir=None, force=True, **kwargs):
         logger.warning(f'fetch of {url} failed with status: {retlist[0]}')
         return None
 
+def infer_filename(self, url=None, file_name=None, source_file=None, **kwargs):
+    """Infer a filename for a file-to-be-fetched.
+
+    Parameters
+    ----------
+    file_name: string
+        if given, this is returned as the inferred filename (as a string, in case
+        if is in pathlib.Path format)
+    url: string
+        if supplied (and no file_name is specified), the last component of the URL is
+        returned as the inferred filename
+    source_file: string
+        If neither file_name nor url are specified, the last component of the source file
+        is returned as the inferred filename.
+    """
+    if file_name is not None:
+        return str(file_name)
+    elif url is not None:
+        file_name = url.split("/")[-1]
+        logger.debug(f"`file_name` not specified. Inferring from URL: {file_name}")
+    elif source_file is not None:
+        file_name = str(pathlib.Path(source_file).name)
+        logger.debug(f"`file_name` not specified. Inferring from `source_file`: {file_name}")
+    else:
+        raise Exception('One of `file_name`, `url`, or `source_file` is required')
+
+
 def fetch_file(url=None, contents=None,
                file_name=None, dst_dir=None,
                force=False, source_file=None,
@@ -213,58 +241,58 @@ def fetch_file(url=None, contents=None,
       ...
     Exception: One of `file_name`, `url`, or `source_file` is required
     '''
+    _valid_fetch_actions = ('message', 'copy', 'url', 'create')
 
+    # infer filename from url or src_path if needed
     if file_name is None:
-        if url:
-            file_name = url.split("/")[-1]
-            logger.debug(f"`file_name` not specified. Inferring from URL: {file_name}")
-        elif source_file:
-            file_name = str(pathlib.Path(source_file).name)
-            logger.debug(f"`file_name` not specified. Inferring from `source_file`: {file_name}")
-        else:
-            raise Exception('One of `file_name`, `url`, or `source_file` is required')
+        file_name = infer_filename(self, url=url, source_file=source_file)
 
     if dst_dir is None:
         dst_dir = paths['raw_data_path']
-    dl_data_path = pathlib.Path(dst_dir)
+    else:
+        dst_dir = pathlib.Path(dst_dir)
 
-    if not dl_data_path.exists():
-        os.makedirs(dl_data_path)
+    if not dst_dir.exists():
+        os.makedirs(dst_dir)
 
-    raw_data_file = dl_data_path / file_name
+    raw_data_file = dst_dir / file_name
 
-    if fetch_action == 'message':
-        if message is None:
-            raise Exception("`message` must be nonempty when fetch_action == message")
-        print(message)
-        return False, message, None
-    elif contents is not None or fetch_action == 'create':
-        if contents is None:
-            raise Exception("`contents` must be nonempty if fetch_action == 'create'")
-        logger.debug(f'Creating {raw_data_file.name} from `contents` string')
-        with open(raw_data_file, 'w') as fw:
-            fw.write(contents)
+    if fetch_action not in _valid_fetch_actions:
+        # infer fetch action (for backwards compatibility)
+        if contents is not None:
+            fetch_action = 'create'
+        elif message is not None:
+            fetch_action = 'message'
+        elif url is not None:
+            fetch_action = 'url'
+        elif source_file is not None:
+            fetch_action = 'copy'
+        logger.debug(f"No `fetch_action` specified. Inferring type: {fetch_action}")
 
+    # If the file is already present, check its hash.
     if raw_data_file.exists():
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
         if hash_value is not None:
             if raw_file_hash == hash_value:
                 if force is False:
-                    logger.debug(f"{file_name} already exists and hash is valid")
+                    logger.debug(f"{file_name} already exists and hash is valid. Skipping download.")
                     return True, raw_data_file, raw_file_hash
-            else:
+            else:  # raw_file_hash != hash_value
                 logger.warning(f"{file_name} exists but has bad hash {raw_file_hash}."
-                               " Re-fetching")
-        else:
+                               " Re-fetching.")
+        else:  # hash_value is None
             if force is False:
                 logger.debug(f"{file_name} exists, but no hash to check. "
                              f"Setting to {hash_type}:{raw_file_hash}")
                 return True, raw_data_file, raw_file_hash
 
-    if url is None and contents is None and source_file is None and message is None::
-        raise Exception(f"Cannot proceed: {file_name} not found on disk, and no fetch information (`url` or `source_file`, `contents` or `message`) specified.")
+    if url is None and contents is None and source_file is None and message is None:
+        raise Exception(f"Cannot proceed: {file_name} not found on disk, and no fetch information "
+                        "(`url`, `source_file`, `contents` or `message`) specified.")
 
-    if url is not None:
+    if fetch_action == 'url':
+        if url is None:
+            raise Exception(f"fetch_action = {fetch_action} but `url` unspecified")
         # Download the file
         try:
             results = requests.get(url)
@@ -279,67 +307,107 @@ def fetch_file(url=None, contents=None,
                 code.write(results.content)
         except requests.exceptions.HTTPError as err:
             return False, err, None
-    elif contents is not None:
+    elif fetch_action == 'create':
+        if contents is None:
+            raise Exception(f"fetch_action == 'create' but `contents` unspecified")
+        if hash_value is not None:
+            logger.warning(f"Hash value ({hash_value}) ignored for fetch_action=='create'")
         with open(raw_data_file, 'w') as fw:
             fw.write(contents)
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
         return True, raw_data_file, raw_file_hash
-    elif source_file is not None:
+    elif fetch_action == 'copy':
+        if source_file is None:
+            raise Exception("fetch_action == 'copy' but `copy` unspecified")
+        logger.warning(f"Hardcoded paths for fetch_action == 'copy' may not be reproducible. Consider using fetch_action='message' instead")
         shutil.copyfile(source_file, raw_data_file)
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type).hexdigest()
         source_file = pathlib.Path(source_file)
         logger.debug(f"Copying {source_file.name} to raw_data_path")
         return True, raw_data_file, raw_file_hash
+    elif fetch_action == 'message':
+        if message is None:
+            raise Exception("fetch_action == 'copy' but `copy` unspecified")
+        print(message)
+        return False, message, None
     else:
-        raise Exception('One of `url` or `contents` must be specified')
+        raise Exception("No valid fetch_action found: (fetch_action=='{fetch_action}')")
 
     logger.debug(f'Retrieved {raw_data_file.name} (hash '
                  f'{hash_type}:{raw_file_hash})')
     return results.status_code, raw_data_file, raw_file_hash
 
-def unpack(filename, dst_dir=None, create_dst=True):
+def unpack(filename, dst_dir=None, src_dir=None, create_dst=True, unpack_action=None):
     '''Unpack a compressed file
 
     filename: path
         file to unpack
     dst_dir: path (default paths['interim_data_path'])
         destination directory for the unpack
+    src_dir: path (default paths['raw_data_path'])
+        destination directory for the unpack
     create_dst: boolean
         create the destination directory if needed
+    unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
+        action to take in order to unpack this file. If None, it is inferred.
     '''
     if dst_dir is None:
         dst_dir = paths['interim_data_path']
+    if src_dir is None:
+        src_dir = paths['raw_data_path']
 
     if create_dst:
         if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
 
     # in case it is a Path
-    path = str(filename)
+    filename = pathlib.Path(filename)
+    path = str((src_dir / filename).resolve())
+
+    if unpack_action is None:
+        # infer unpack action
+        if path.endswith('.zip'):
+            unpack_action = 'zip'
+        elif path.endswith('.tar.gz') or path.endswith('.tgz'):
+            unpack_action = 'tgz'
+        elif path.endswith('.tar.bz2') or path.endswith('.tbz'):
+            unpack_action = 'tbz2'
+        elif path.endswith('.tar'):
+            unpack_action = 'tar'
+        elif path.endswith('.gz'):
+            unpack_action = 'gz'
+        elif path.endswith('.Z'):
+            unpack_action = 'compress'
+        else:
+            logger.warning(f"Can't infer `unpack_action` from filename {filename.name}. Defaulting to 'copy'.")
+            unpack_action = 'copy'
 
     archive = False
     verb = "Copying"
-    if path.endswith('.zip'):
+    if unpack_action == 'copy':
+        opener, mode = open, 'rb'
+        outfile, outmode = path, 'wb'
+    elif unpack_action == 'zip':
         archive = True
         verb = "Unzipping"
         opener, mode = zipfile.ZipFile, 'r'
-    elif path.endswith('.tar.gz') or path.endswith('.tgz'):
+    elif unpack_action == 'tgz':
         archive = True
         verb = "Untarring and ungzipping"
         opener, mode = tarfile.open, 'r:gz'
-    elif path.endswith('.tar.bz2') or path.endswith('.tbz'):
+    elif unpack_action == 'tbz2':
         archive = True
         verb = "Untarring and unbzipping"
         opener, mode = tarfile.open, 'r:bz2'
-    elif path.endswith('.tar'):
+    elif unpack_action == 'tar':
         archive = True
         verb = "Untarring"
         opener, mode = tarfile.open, 'r'
-    elif path.endswith('.gz'):
+    elif unpack_action == 'gz':
         verb = "Ungzipping"
         opener, mode = gzip.open, 'rb'
         outfile, outmode = path[:-3], 'wb'
-    elif path.endswith('.Z'):
+    elif unpack_action == 'compress':
         verb = "Uncompressing"
         logger.warning(".Z files are only supported on systems that ship with gzip. Trying...")
         os.system(f'gzip -f -d {path}')
@@ -347,8 +415,7 @@ def unpack(filename, dst_dir=None, create_dst=True):
         path = path[:-2]
         outfile, outmode = path, 'wb'
     else:
-        opener, mode = open, 'rb'
-        outfile, outmode = path, 'wb'
+        raise Exception(f"Unknown unpack_action: {unpack_action}")
 
     with opener(path, mode) as f_in:
         if archive:
