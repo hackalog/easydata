@@ -174,8 +174,9 @@ help-prefix:
 	@echo "To get started:"
 	@echo "  >>> $$(tput bold)make create_environment$$(tput sgr0)"
 	@echo "  >>> $$(tput bold)conda activate $(PROJECT_NAME)$$(tput sgr0)"
-	@echo
+	@echo ""
 	@echo "$$(tput bold)Project Variables:$$(tput sgr0)"
+	@echo ""
 
 show-help: help-prefix $(addprefix print-, $(HELP_VARS))
 	@echo
