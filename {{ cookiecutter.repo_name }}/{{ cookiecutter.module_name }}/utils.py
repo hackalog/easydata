@@ -2,7 +2,7 @@ import time
 import pathlib
 import numpy as np
 import json
-from .logging import logger
+from .log import logger
 # Timing and Performance
 
 def timing_info(method):

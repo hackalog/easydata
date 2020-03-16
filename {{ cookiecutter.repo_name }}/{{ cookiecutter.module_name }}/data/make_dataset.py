@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 import click
-import logging
 import os
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 from .datasets import process_datasources
-from ..logging import logger
+from ..log import logger
 
 @click.command()
 @click.argument('action')
 def main(action, datasources=None):
     """Fetch and/or process the raw data
 
-    Raw files are downloaded into .paths.raw_data_path
-    Interim files are generated in .paths.interim_data_path
-    Processed data files are saved in .paths.processed_data_path
+    Raw files are downloaded into paths['raw_data_path']
+    Interim files are generated in paths['interim_data_path']
+    Processed data files are saved in paths['processed_data_path']
 
     action: {'fetch', 'unpack', 'process'}
 

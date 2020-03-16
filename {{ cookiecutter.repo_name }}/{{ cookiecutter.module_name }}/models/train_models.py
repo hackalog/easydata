@@ -5,9 +5,9 @@ import os
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 
-from ..logging import logger
+from ..log import logger
 from ..utils import save_json
-from ..paths import model_path, trained_model_path
+from .. import paths
 from .model_list import build_models
 
 @click.command()
@@ -31,7 +31,7 @@ def main(model_list, *, output_file, hash_type):
 
     The combination of these 3 things must be unique.
 
-    trained models are written to `trained_model_path`.
+    trained models are written to `paths['trained_model_path']`.
 
     For every model, we write:
 
@@ -54,14 +54,14 @@ def main(model_list, *, output_file, hash_type):
     """
     logger.debug(f'Building models from {model_list}')
 
-    os.makedirs(trained_model_path, exist_ok=True)
+    os.makedirs(paths['trained_model_path'], exist_ok=True)
 
     saved_meta = build_models(model_file=model_list, hash_type=hash_type)
 
     logger.debug(f"output dir: {model_path}")
     logger.debug(f"output filename: {output_file}")
     if saved_meta:
-        save_json(model_path / output_file, saved_meta)
+        save_json(paths['model_path'] / output_file, saved_meta)
         logger.info("Training complete! Access results via workflow.available_models()")
 
 if __name__ == '__main__':

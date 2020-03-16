@@ -6,10 +6,9 @@ import joblib
 from sklearn.utils import Bunch
 from sklearn.model_selection import train_test_split
 from functools import partial
-
-from ..paths import processed_data_path, data_path, raw_data_path, interim_data_path, catalog_path
-from ..logging import logger
-from .fetch import fetch_file,  get_dataset_filename, hash_file, unpack
+from .. import paths
+from ..log import logger
+from .fetch import fetch_file,  get_dataset_filename, hash_file, unpack, infer_filename
 from .utils import partial_call_signature, serialize_partial, deserialize_partial, process_dataset_default
 from ..utils import load_json, save_json
 
@@ -35,7 +34,7 @@ def available_datasets(dataset_path=None, keys_only=True):
         location of saved dataset files
     """
     if dataset_path is None:
-        dataset_path = processed_data_path
+        dataset_path = paths['processed_data_path']
     else:
         dataset_path = pathlib.Path(dataset_path)
 
@@ -113,7 +112,7 @@ def available_datasources(datasource_file='datasources.json',
         Tuple (available_datasource_dict, available_datasource_dict_filename)
     """
     if datasource_path is None:
-        datasource_path = catalog_path
+        datasource_path = paths['catalog_path']
 
     datasource_file_fq = pathlib.Path(datasource_path) / datasource_file
 
@@ -217,7 +216,7 @@ class Dataset(Bunch):
         must be present in dataset.json"""
 
         if data_path is None:
-            data_path = processed_data_path
+            data_path = paths['processed_data_path']
         else:
             data_path = pathlib.Path(data_path)
 
@@ -307,7 +306,7 @@ class Dataset(Bunch):
             Filename stem. By default, just the dataset name
         hash_type: {'sha1', 'md5'}
             Hash function to use for hashing data/labels
-        dump_path: path. (default: `processed_data_path`)
+        dump_path: path. (default: `paths['processed_data_path']`)
             Directory where data will be dumped.
         force: boolean
             If False, raise an exception if the file already exists
@@ -317,7 +316,7 @@ class Dataset(Bunch):
 
         """
         if dump_path is None:
-            dump_path = processed_data_path
+            dump_path = paths['processed_data_path']
         dump_path = pathlib.Path(dump_path)
 
         if file_base is None:
@@ -388,18 +387,22 @@ class DataSource(object):
                 hash_value: string
                     Value of hash used to verify file integrity
                 file_name: string (optional)
-                    filename to use when saving file locally.
+                    filename to use when saving file locally. If omitted, it will be inferred from url or source_file
                 name: string or {'DESCR', 'LICENSE'} (optional)
                     description of the file. of DESCR or LICENSE, will be used as metadata
+                unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
+                    action to take in order to unpack this file. If None, infers from file type.
+
         """
         if file_list is None:
             file_list = []
+
         if dataset_dir is None:
-            dataset_dir = raw_data_path
+            dataset_dir = paths['raw_data_path']
         if parse_function is None:
             parse_function = process_dataset_default
         self.name = name
-        self.file_list = file_list
+        self.file_dict = {infer_filename(**item):item for item in file_list}
         self.parse_function = parse_function
         self.dataset_dir = dataset_dir
 
@@ -409,17 +412,27 @@ class DataSource(object):
         self.unpacked_ = False
         self.unpack_path_ = None
 
-    def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='DESCR'):
-        """Add metadata to a data source
+    @property
+    def file_list(self):
+        """For backwards compatibility while replacing the file_list with a file_dict"""
+        logger.warning("file_list is deprecated. Use file_dict instead")
+        return list(self.file_dict.values())
+
+    def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='DESCR', unpack_action='copy', force=False):
+        """Add metadata to a DataSource
 
         filename: create metadata entry from contents of this file
         contents: create metadata entry from this string
-        metadata_path: (default `raw_data_path`)
+        metadata_path: (default `paths['raw_data_path']`)
             Where to store metadata
         kind: {'DESCR', 'LICENSE'}
+        unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
+            action to take in order to unpack this file. If None, infers from file type.
+        force: boolean (default False)
+            If True, overwrite an existing entry for this file
         """
         if metadata_path is None:
-            metadata_path = raw_data_path
+            metadata_path = paths['raw_data_path']
         else:
             metadata_path = pathlib.Path(metadata_path)
         filename_map = {
@@ -431,23 +444,82 @@ class DataSource(object):
 
         if filename is not None:
             filelist_entry = {
+                'fetch_action': 'copy',
                 'file_name': str(filename),
-                'name': kind
-                }
+                'name': kind,
+            }
         elif contents is not None:
             filelist_entry = {
                 'contents': contents,
+                'fetch_action': 'create',
                 'file_name': filename_map[kind],
                 'name': kind,
             }
         else:
             raise Exception(f'One of `filename` or `contents` is required')
 
-        self.file_list.append(filelist_entry)
+        if unpack_action:
+            filelist_entry.update({'unpack_action': unpack_action})
+
+        fn = filelist_entry['file_name']
+        if fn in self.file_dict and not force:
+            raise Exception(f"{fn} already exists in file_dict. Set `force=True` to overwrite.")
+        self.file_dict[fn] = filelist_entry
         self.fetched_ = False
 
+    def add_manual_download(self, message=None, *,
+                            hash_type='sha1', hash_value=None,
+                            name=None, file_name=None, unpack_action=None,
+                            force=False):
+        """Add a manual download step to the file list.
+
+        Some datasets must be downloaded manually (usually ones that
+        require opting-in to a specific set of terms and conditions).
+        This method displays a message indicating how the user can manually
+        download the file, and from where.
+
+        message: string
+            Message to be displayed to the user. This message indicates
+            how to download the indicated dataset.
+        hash_type: {'sha1', 'md5', 'sha256'}
+        hash_value: string. required
+            Hash, computed via the algorithm specified in `hash_type`
+        file_name: string, required
+            Name of destination file. relative to paths['raw_data_dir']
+        name: str
+            text description of this file.
+        force: boolean (default False)
+            If True, overwrite an existing entry for this file
+        unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
+            action to take in order to unpack this file. If None, infers from file type.
+        """
+        if hash_value is None:
+            raise Exception("You must specify a `hash_value` "
+                            "for a manual download")
+        if file_name is None:
+            raise Exception("You must specify a file_name for a manual download")
+
+        if file_name in self.file_dict and not force:
+            raise Exception(f"{file_name} already in file_dict. Use `force=True` to overwrite")
+
+        fetch_dict = {
+            'fetch_action': 'message',
+            'file_name': file_name,
+            'hash_type': hash_type,
+            'hash_value': hash_value,
+            'message': message,
+            'name': name,
+        }
+        if unpack_action:
+            fetch_dict.update({'unpack_action': unpack_action})
+
+        self.file_dict[file_name] = fetch_dict
+        self.fetched_ = False
+
+
     def add_file(self, source_file=None, *, hash_type='sha1', hash_value=None,
-                 name=None, file_name=None, force=False):
+                 name=None, file_name=None, unpack_action=None,
+                 force=False):
         """
         Add a file to the file list.
 
@@ -458,42 +530,55 @@ class DataSource(object):
         hash_value: string or None
             if None, hash will be computed from specified file
         file_name: string
-            Name of destination file.
+            Name of destination file. relative to paths['raw_data_dir']
         name: str
             text description of this file.
         source_file: path
             file to be copied
-        force: boolean
-            If True, permit multiple copies of the same source file
+        force: boolean (default False)
+            If True, overwrite an existing entry for this file
+        unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
+            action to take in order to unpack this file. If None, infers from file type.
         """
         if source_file is None:
             raise Exception("`source_file` is required")
         source_file = pathlib.Path(source_file)
-        if file_name:
-            file_name = str(file_name)
+
         if not source_file.exists():
             logger.warning(f"{source_file} not found on disk")
+
+        file_name = infer_filename(file_name=file_name, source_file=source_file)
 
         if hash_value is None:
             logger.debug(f"Hash unspecified. Computing {hash_type} hash of {source_file.name}")
             hash_value = hash_file(source_file, algorithm=hash_type).hexdigest()
 
-        fetch_dict = {'hash_type': hash_type,
-                      'hash_value': hash_value,
-                      'name': name,
-                      'source_file': str(source_file),
-                      'file_name': file_name}
-        existing_files = [f['source_file'] for f in self.file_list]
-        existing_hashes = [f['hash_value'] for f in self.file_list if f['hash_value']]
-        if str(source_file) in existing_files and not force:
+        fetch_dict = {
+            'fetch_action': 'copy',
+            'file_name': file_name,
+            'hash_type': hash_type,
+            'hash_value': hash_value,
+            'name': name,
+            'source_file': str(source_file),
+        }
+        if unpack_action:
+            fetch_dict.update({'unpack_action': unpack_action})
+
+        existing_files = [f['source_file'] for k,f in self.file_dict.items()]
+        existing_hashes = [f['hash_value'] for k,f in self.file_dict.items() if f['hash_value']]
+        if file_name in self.file_dict and not force:
+            raise Exception(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
+        if str(source_file.name) in existing_files and not force:
             raise Exception(f"source file: {source_file} already in file list. Use `force=True` to add anyway.")
         if hash_value in existing_hashes and not force:
             raise Exception(f"file with hash {hash_value} already in file list. Use `force=True` to add anyway.")
-        self.file_list.append(fetch_dict)
+
+        logger.warning("Reproducibility Issue: add_file is often not reproducible. If possible, use add_manual_download instead")
+        self.file_dict[file_name] = fetch_dict
         self.fetched_ = False
 
     def add_url(self, url=None, *, hash_type='sha1', hash_value=None,
-                name=None, file_name=None):
+                name=None, file_name=None, force=False):
         """
         Add a URL to the file list
 
@@ -506,16 +591,30 @@ class DataSource(object):
             URL to fetch
         name: str
             text description of this file.
+        force: boolean (default False)
+            If True, overwrite an existing entry for this file
+        unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
+            action to take in order to unpack this file. If None, infers from file type.
         """
         if url is None:
             raise Exception("`url` is required")
 
-        fetch_dict = {'url': url,
-                      'hash_type':hash_type,
-                      'hash_value':hash_value,
-                      'name': name,
-                      'file_name':file_name}
-        self.file_list.append(fetch_dict)
+        file_name = infer_filename(file_name=file_name, url=url)
+
+        fetch_dict = {
+            'fetch_action': 'url',
+            'file_name': file_name,
+            'hash_type': hash_type,
+            'hash_value': hash_value,
+            'name': name,
+            'url': url,
+        }
+        if unpack_action:
+            filelist_entry.update({'unpack_action': unpack_action})
+
+        if file_name in self.file_dict and not force:
+            raise Exception(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
+        self.file_dict[file_name] = fetch_dict
         self.fetched_ = False
 
     def dataset_opts(self, metadata=None, **kwargs):
@@ -562,8 +661,21 @@ class DataSource(object):
         """Fetch to raw_data_dir and check hashes
         """
         if self.fetched_ and force is False:
-            logger.debug(f'Data Source {self.name} is already fetched. Skipping')
-            return
+            # validate the downloaded files:
+            for filename, item in self.file_dict.items():
+                raw_data_file = paths['raw_data_path'] / filename
+                if not raw_data_file.exists():
+                    logger.warning(f"{raw_data_file.name} missing. Invalidating fetch cache")
+                    self.fetched_ = False
+                    break
+                raw_file_hash = hash_file(raw_data_file, algorithm=item['hash_type']).hexdigest()
+                if raw_file_hash != item['hash_value']:
+                    logger.warning(f"{raw_data_file.name} {item['hash_type']} hash invalid ({raw_file_hash} != {item['hash_value']}). Invalidating fetch cache.")
+                    self.fetched_ = False
+                    break
+            else:
+                logger.debug(f'Data Source {self.name} is already fetched. Skipping')
+                return
 
         if fetch_path is None:
             fetch_path = self.dataset_dir
@@ -572,7 +684,7 @@ class DataSource(object):
 
         self.fetched_ = False
         self.fetched_files_ = []
-        for item in self.file_list:
+        for key, item in self.file_dict.items():
             status, result, hash_value = fetch_file(**item)
             if status:  # True (cached) or HTTP Code (successful download)
                 item['hash_value'] = hash_value
@@ -588,6 +700,21 @@ class DataSource(object):
         self.unpacked_ = False
         return self.fetched_
 
+    def raw_file_list(self, return_hashes=False):
+        """Returns the list of raw files.
+
+        Parameters
+        ----------
+        return_hashes: Boolean
+            If True, returns tuples (filename, hash_type, hash_value).
+            If False (default), return filenames only
+
+        Returns the list of raw files that will be present once data is successfully fetched"""
+        if return_hashes:
+            return [(key, item['hash_type'], item['hash_value']) \
+                    for (key, item) in self.file_dict.items()]
+        else:
+            return [key for key in self.file_dict]
 
     def unpack(self, unpack_path=None, force=False):
         """Unpack fetched files to interim dir"""
@@ -599,11 +726,11 @@ class DataSource(object):
             logger.debug(f'Data Source {self.name} is already unpacked. Skipping')
         else:
             if unpack_path is None:
-                unpack_path = interim_data_path / self.name
+                unpack_path = paths['interim_data_path'] / self.name
             else:
                 unpack_path = pathlib.Path(unpack_path)
-            for filename in self.fetched_files_:
-                unpack(filename, dst_dir=unpack_path)
+            for filename, item in self.file_dict.items():
+                unpack(filename, dst_dir=unpack_path, unpack_action=item.get('unpack_action', None))
             self.unpacked_ = True
             self.unpack_path_ = unpack_path
 
@@ -637,7 +764,7 @@ class DataSource(object):
             self.unpack()
 
         if cache_path is None:
-            cache_path = interim_data_path
+            cache_path = paths['interim_data_path']
         else:
             cache_path = pathlib.Path(cache_path)
 
@@ -693,12 +820,12 @@ class DataSource(object):
             'descr': f'{self.name}.readme'
         }
 
-        for fetch_dict in self.file_list:
+        for key, fetch_dict in self.file_dict.items():
             name = fetch_dict.get('name', None)
             # if metadata is present in the URL list, use it
             if name in optmap:
                 txtfile = get_dataset_filename(fetch_dict)
-                with open(raw_data_path / txtfile, 'r') as fr:
+                with open(paths['raw_data_path'] / txtfile, 'r') as fr:
                     metadata[optmap[name]] = fr.read()
         if use_docstring:
             func = partial(self.parse_function)
@@ -738,7 +865,7 @@ class DataSource(object):
         """Convert a DataSource to a serializable dictionary"""
         parse_function_dict = serialize_partial(self.parse_function)
         obj_dict = {
-            'url_list': self.file_list,
+            'url_list': list(self.file_dict.values()),
             **parse_function_dict,
             'name': self.name,
             'dataset_dir': str(self.dataset_dir)

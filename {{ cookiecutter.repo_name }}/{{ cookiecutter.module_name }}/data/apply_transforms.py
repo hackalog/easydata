@@ -3,11 +3,10 @@ import os
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 import click
-
-import logging
-from ..logging import logger
-from ..paths import processed_data_path, catalog_path
+from .. import paths
+from ..log import logger
 from .transform_data import apply_transforms
+
 
 @click.command()
 @click.argument('transformer_file', default='transformer_list.json')
@@ -18,11 +17,11 @@ def main(transformer_file, output_dir=None, input_dir=None, *, hash_type):
     logger.info(f'Transforming datasets from {transformer_file}')
 
     if output_dir is None:
-        output_dir = processed_data_path
+        output_dir = paths['processed_data_path']
     else:
         output_dir = Path(output_dir)
     if input_dir is None:
-        input_dir = catalog_path
+        input_dir = paths['catalog_path']
     else:
         input_dir = Path(input_dir)
 

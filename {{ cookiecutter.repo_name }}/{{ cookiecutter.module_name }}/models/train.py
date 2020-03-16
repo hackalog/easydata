@@ -1,15 +1,13 @@
 import json
 import joblib
 import pathlib
-import logging
 import time
 
 from .. import paths
-from ..paths import trained_model_path, model_path
 from ..utils import save_json, load_json, record_time_interval
 from ..data import Dataset, available_datasets
 from .algorithms import available_algorithms
-from ..logging import logger
+from ..log import logger
 
 __all__ = [
     'load_model',
@@ -51,7 +49,7 @@ def save_model(metadata=None, model_path=None, hash_type='sha1',
         sklearn estimator representing a model
     hash_type: {'sha1', 'md5'}
         hash algorithm to use for joblib hashing
-    model_path: path, default `trained_model_path`
+    model_path: path, default `paths['trained_model_path']`
         Where model should be saved.
 
     Returns
@@ -64,7 +62,7 @@ def save_model(metadata=None, model_path=None, hash_type='sha1',
         metadata = metadata.copy()
 
     if model_path is None:
-        model_path = trained_model_path
+        model_path = paths['trained_model_path']
     else:
         model_path = pathlib.Path(model_path)
 
@@ -97,7 +95,7 @@ def load_model(model_name=None, metadata_only=False, model_path=None):
     if model_name is None:
         raise Exception("model_name must be specified")
     if model_path is None:
-        model_path = trained_model_path
+        model_path = paths['trained_model_path']
     else:
         model_path = pathlib.Path(model_path)
 

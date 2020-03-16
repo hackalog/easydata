@@ -1,9 +1,9 @@
 import pathlib
 import pandas as pd
 
-from ..logging import logger
+from ..log import logger
 from ..data import Dataset
-from ..paths import model_output_path, trained_model_path, analysis_path, summary_path
+from .. import paths
 from ..models.predict import available_predictions
 from ..models.model_list import load_model
 from ..utils import load_json, save_json
@@ -77,7 +77,7 @@ def add_analysis(analysis_name=None, analysis_params=None,
     if analysis_params is None:
         analysis_params = {}
     if analysis_dir is None:
-        analysis_dir = analysis_path
+        analysis_dir = paths['analysis_path']
     else:
         analysis_dir = pathlib.Path(analysis_dir)
 
@@ -99,7 +99,7 @@ def add_analysis(analysis_name=None, analysis_params=None,
 
 def run_analyses(analysis_dir=None, analysis_list='analysis_list.json'):
     if analysis_dir is None:
-        analysis_dir = analysis_path
+        analysis_dir = paths['analysis_path']
     else:
         analysis_dir = pathlib.Path(analysis_dir)
 
@@ -159,7 +159,7 @@ def score_predictions(predictions_list=None,
     csv_file: filename
         if None, defaults to 'score_predictions.csv'
     csv_dir: path
-        If None, assumes summary_path
+        If None, assumes paths['summary_path']
 
     Returns
     -------
@@ -168,19 +168,19 @@ def score_predictions(predictions_list=None,
     analysis_metadata = {}
 
     if predictions_dir is None:
-        predictions_dir = model_output_path
+        predictions_dir = paths['model_output_path']
     else:
         analysis_metadata['predictions_dir'] = str(predictions_dir)
         predictions_dir = pathlib.Path(predictions_dir)
 
     if model_dir is None:
-        model_dir = trained_model_path
+        model_dir = paths['trained_model_path']
     else:
         analysis_metadata['model_dir'] = str(model_dir)
         model_dir = pathlib.Path(model_dir)
 
     if csv_dir is None:
-        csv_dir = summary_path
+        csv_dir = paths['summary_path']
     else:
         analysis_metadata['csv_dir'] = str(csv_dir)
         csv_dir = pathlib.Path(csv_dir)
@@ -245,7 +245,7 @@ def get_analysis_list(analysis_dir=None, analysis_file=None, include_filename=Fa
         Name of json file that contains the analysis pipeline
     """
     if analysis_dir is None:
-        analysis_dir = analysis_path
+        analysis_dir = paths['analysis_path']
     else:
         analysis_dir = pathlib.Path(analysis_dir)
 

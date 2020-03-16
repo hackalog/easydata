@@ -3,7 +3,7 @@ import pathlib
 import os
 from sklearn.model_selection import train_test_split
 from .datasets import Dataset
-from ..logging import logger
+from ..log import logger
 
 __all__ = [
     'available_transformers'

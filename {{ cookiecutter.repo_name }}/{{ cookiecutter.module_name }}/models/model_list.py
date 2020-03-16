@@ -1,10 +1,9 @@
-import logging
 import pathlib
 from ..utils import load_json, save_json
-from ..paths import model_path, trained_model_path
+from .. import paths
 from ..data import available_datasets
 from .algorithms import available_algorithms
-from ..logging import logger
+from ..log import logger
 from .train import train_model, save_model, load_model
 
 __all__ =[
@@ -35,7 +34,7 @@ def get_model_list(model_dir=None, model_file=None, include_filename=False):
         Name of json file that contains the model pipeline
     """
     if model_dir is None:
-        model_dir = model_path
+        model_dir = paths['model_path']
     else:
         model_dir = pathlib.Path(model_dir)
 
@@ -121,7 +120,7 @@ def add_model(dataset_name=None,
 def build_models(model_file='model_list.json', model_dir=None, hash_type='sha1'):
     """Build, train, and save models.
 
-    Trained models are written to `trained_model_path`.
+    Trained models are written to `paths['trained_model_path']`.
 
     For every model, we write:
 
@@ -199,7 +198,7 @@ def available_models(models_dir=None, keys_only=True):
         location of saved dataset files
     """
     if models_dir is None:
-        models_dir = trained_model_path
+        models_dir = paths['trained_model_path']
     else:
         models_dir = pathlib.Path(models_dir)
 
