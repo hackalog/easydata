@@ -578,7 +578,7 @@ class DataSource(object):
         self.fetched_ = False
 
     def add_url(self, url=None, *, hash_type='sha1', hash_value=None,
-                name=None, file_name=None, force=False):
+                name=None, file_name=None, force=False, unpack_action=None):
         """
         Add a URL to the file list
 
