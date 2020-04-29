@@ -2,3 +2,4 @@ mkdocs
 mkdocs-cinder
 cookiecutter
 pytest
+ruamel.yaml

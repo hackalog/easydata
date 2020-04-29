@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/hackalog/cookiecutter-easydata.svg?branch=master)](https://travis-ci.org/hackalog/cookiecutter-easydata)
+
+[![Coverage Status](https://coveralls.io/repos/github/hackalog/cookiecutter-easydata/badge.svg?branch=master)](https://coveralls.io/github/hackalog/cookiecutter-easydata?branch=master)
+
 # Cookiecutter EasyData
 
 _A flexible (but opinionated) toolkit for doing and sharing reproducible data science._

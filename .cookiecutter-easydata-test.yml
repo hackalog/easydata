@@ -1,0 +1,10 @@
+default_context:
+  author_name: acwooding
+  conda_path: /home/travis/miniconda3/conda
+  description: Template for testing cookiecutter-easydata
+  module_name: src
+  open_source_license: MIT
+  project_name: test-env
+  python_version: latest
+  repo_name: test-env
+  virtualenv: conda
