@@ -21,6 +21,8 @@ install:
   - conda update --yes conda
   # create cookiecutter environment
   - conda create -n cookiecutter --yes python=3.8
+  - conda init bash
+  - . ~/.bashrc
   - conda activate cookiecutter
   - pip install cookiecutter
   - pwd
