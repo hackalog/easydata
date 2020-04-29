@@ -19,15 +19,24 @@ install:
   - chmod +x $MINICONDA_PATH
   - export PATH=$MINICONDA_PATH/condabin:$PATH
   - conda update --yes conda
-  # create the testing environment
-  - cd \{\{\ cookiecutter.repo_name\ \}\}
-  - conda env update -n test-env -f environment.yml
-  - conda activate test-env
-  - test_environment environment.$(ARCH).lock.yml
+  # create cookiecutter environment
+  - conda create -n cookiecutter python=3.8
+  - conda activate cookiecutter
+  - pip install cookicutter
+  - pwd
 
 script:
-  - cd \{\{\ cookiecutter.module_name\ \}\}
-  - coverage run -m pytest --doctest-modules --doctest-continue-on-failure --verbose
+  # build a cookiecutter project test-env
+  - cookiecutter --config-file .cookiecutter-easydata-test.yml gh:hackalog/cookiecutter-easydata -f --no-input
+  - conda deactivate
+  # create the environment from test-env
+  - cd test-env
+  - make create_environment
+  - conda activate test-env
+  - make update environment
+  # run tests on the src module
+  - cd src
+  - coverage run -m pytest --doctest-modules --doctest-continue-on-failure --verbose --pyargs src
 
 after_success:
   - coveralls
