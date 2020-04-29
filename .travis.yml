@@ -25,7 +25,7 @@ install:
   - . ~/.bashrc
   - conda activate cookiecutter
   - pip install cookiecutter
-  - pip install ruaml.yaml
+  - pip install ruamel.yaml
 
 script:
   - pwd
