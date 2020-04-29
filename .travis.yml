@@ -17,15 +17,15 @@ install:
   - export PATH=$MINICONDA_PATH/condabin:$PATH
   - conda update --yes conda
   # create the testing environment
-  - cd {{ cookiecutter.repo_name }}
+  - cd \{\{\ cookiecutter.repo_name\ \}\}
   - make create_environment
   - conda init bash
   - . ~/.bashrc
-  - conda activate {{ cookiecutter.module_name }}
+  - conda activate \{\{\ cookiecutter.module_name\ \}\}
   - make update_environment
 
 script:
-  - cd {{ cookiecutter.module_name }}
+  - cd \{\{\ cookiecutter.module_name\ \}\}
   - coverage run -m pytest --doctest-modules --doctest-continue-on-failure --verbose
 
 after_success:
