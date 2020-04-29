@@ -26,9 +26,9 @@ install:
   - conda activate cookiecutter
   - pip install cookiecutter
   - conda install --yes ruaml_yaml
-  - pwd
 
 script:
+  - pwd
   # build a cookiecutter project test-env
   - cookiecutter --config-file .cookiecutter-easydata-test.yml gh:hackalog/cookiecutter-easydata -f --no-input
   - conda deactivate
