@@ -30,7 +30,7 @@ install:
 script:
   - pwd
   # build a cookiecutter project test-env
-  - cookiecutter --config-file .cookiecutter-easydata-test.yml gh:hackalog/cookiecutter-easydata -f --no-input
+  - cookiecutter --config-file .cookiecutter-easydata-test.yml . -f --no-input
   - conda deactivate
   # create the environment from test-env
   - cd test-env
