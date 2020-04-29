@@ -20,9 +20,9 @@ install:
   - export PATH=$MINICONDA_PATH/condabin:$PATH
   - conda update --yes conda
   # create cookiecutter environment
-  - conda create -n cookiecutter python=3.8
+  - conda create -n cookiecutter --yes python=3.8
   - conda activate cookiecutter
-  - pip install cookicutter
+  - pip install cookiecutter
   - pwd
 
 script:
