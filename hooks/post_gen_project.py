@@ -2,7 +2,10 @@ import pathlib
 import shutil
 import logging
 import json
-from ruamel_yaml import YAML
+try:
+    from ruamel_yaml import YAML
+except ModuleNotFoundError:
+    from ruamel.yaml import YAML
 
 from cookiecutter.config import get_user_config
 
