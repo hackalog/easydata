@@ -24,7 +24,7 @@ install:
   - conda init bash
   - . ~/.bashrc
   - conda activate cookiecutter
-  - pip install cookiecutter
+  - pip install -r requirements.txt
   - pwd
 
 script:
