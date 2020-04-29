@@ -1,0 +1,32 @@
+language: python
+
+cache:
+  directories:
+  - $HOME/.cache/pip
+
+python:
+  - "3.8"
+
+install:
+  # install miniconda
+  - deactivate
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - MINICONDA_PATH=/home/travis/miniconda3
+  - chmod +x miniconda.sh && ./miniconda.sh -b -p $MINICONDA_PATH
+  - chmod +x $MINICONDA_PATH
+  - export PATH=$MINICONDA_PATH/condabin:$PATH
+  - conda update --yes conda
+  # create the testing environment
+  - cd {{ cookiecutter.repo_name }}
+  - make create_environment
+  - conda init bash
+  - . ~/.bashrc
+  - conda activate {{ cookiecutter.module_name }}
+  - make update_environment
+
+script:
+  - cd {{ cookiecutter.module_name }}
+  - coverage run -m pytest --doctest-modules --doctest-continue-on-failure --verbose
+
+after_success:
+  - coveralls
