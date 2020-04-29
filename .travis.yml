@@ -7,6 +7,9 @@ cache:
 python:
   - "3.8"
 
+envs:
+  - REQUIRED_PYTHON="python3"
+
 install:
   # install miniconda
   - deactivate
@@ -18,11 +21,9 @@ install:
   - conda update --yes conda
   # create the testing environment
   - cd \{\{\ cookiecutter.repo_name\ \}\}
-  - make create_environment
-  - conda init bash
-  - . ~/.bashrc
-  - conda activate \{\{\ cookiecutter.module_name\ \}\}
-  - make update_environment
+  - conda env update -n test-env -f environment.yml
+  - conda activate test-env
+  - test_environment environment.$(ARCH).lock.yml
 
 script:
   - cd \{\{\ cookiecutter.module_name\ \}\}
