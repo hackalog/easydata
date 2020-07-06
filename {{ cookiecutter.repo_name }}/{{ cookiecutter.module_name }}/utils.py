@@ -57,8 +57,8 @@ def save_json(filename, obj, indent=2, sort_keys=True):
 
 def load_json(filename):
     """Read a json file from disk"""
-    with open(filename) as fw:
-        obj = json.load(fw)
+    with open(filename) as f:
+        obj = json.load(f)
     return obj
 
 def head_file(filename, n=5):
@@ -88,3 +88,36 @@ def list_dir(path, fully_qualified=False, glob_pattern='*'):
         return list(pathlib.Path(path).glob(glob_pattern))
 
     return [file.name for file in pathlib.Path(path).glob(glob_pattern)]
+
+def custom_join(iterator, seperator):
+    """
+    This function casts the elements of iterator to strings then merges those strings together with a string
+    representation of seperator.
+    Had to write a custom join to handle very, very long lists of things. "".join falls appart above 3013.
+
+    Parameters
+    ----------
+    iterator: an iterator.
+        This function makes use of the overload + operator for strings
+    seperator:
+        an item of the same class as is contained in our iterator to be added between every pair of instances.
+
+    Returns
+    -------
+    The sum of the iterator values with seperator iterposed between each.
+    """
+    it = map(str, iterator)
+    seperator = str(seperator)
+    string = next(it, '')
+    for s in it:
+        string += seperator + s
+    return string
+
+def normalize_to_list(str_or_iterable):
+    """Convert strings to lists. convert None to list. Convert all other iterables to lists
+    """
+    if isinstance(str_or_iterable, str):
+        return [str_or_iterable]
+    if str_or_iterable is None:
+        return []
+    return str_or_iterable

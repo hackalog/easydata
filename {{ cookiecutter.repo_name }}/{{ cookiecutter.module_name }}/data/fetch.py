@@ -157,7 +157,7 @@ def infer_filename(url=None, file_name=None, source_file=None, **kwargs):
         is returned as the inferred filename.
     """
     if file_name is not None:
-        file_name = str(file_name)
+        return str(file_name)
     elif url is not None:
         file_name = url.split("/")[-1]
         logger.debug(f"`file_name` not specified. Inferring from URL: {file_name}")
@@ -167,6 +167,7 @@ def infer_filename(url=None, file_name=None, source_file=None, **kwargs):
     else:
         raise Exception('One of `file_name`, `url`, or `source_file` is required')
     return file_name
+
 
 def fetch_file(url=None, contents=None,
                file_name=None, dst_dir=None,
