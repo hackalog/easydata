@@ -57,8 +57,8 @@ def save_json(filename, obj, indent=2, sort_keys=True):
 
 def load_json(filename):
     """Read a json file from disk"""
-    with open(filename) as fw:
-        obj = json.load(fw)
+    with open(filename) as f:
+        obj = json.load(f)
     return obj
 
 def head_file(filename, n=5):
@@ -88,3 +88,12 @@ def list_dir(path, fully_qualified=False, glob_pattern='*'):
         return list(pathlib.Path(path).glob(glob_pattern))
 
     return [file.name for file in pathlib.Path(path).glob(glob_pattern)]
+
+def normalize_to_list(str_or_iterable):
+    """Convert strings to lists. convert None to list. Convert all other iterables to lists
+    """
+    if isinstance(str_or_iterable, str):
+        return [str_or_iterable]
+    if str_or_iterable is None:
+        return []
+    return str_or_iterable
