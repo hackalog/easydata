@@ -63,21 +63,6 @@ transform_data: .make.transform_data
 	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).data.apply_transforms
 	touch .make.transform_data
 
-.PHONY: train
-## train / fit / build models
-train: unfinished models/model_list.json
-	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.train_models model_list.json
-
-.PHONY: predict
-## predict / transform / run experiments
-predict: unfinished models/predict_list.json
-	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).models.predict_model predict_list.json
-
-.PHONY: analysis
-## Convert predictions / transforms / experiments into output data
-analysis: unfinished reports/analysis_list.json
-	$(PYTHON_INTERPRETER) -m $(MODULE_NAME).analysis.run_analysis analysis_list.json
-
 .PHONY: clean
 ## Delete all compiled Python files
 clean:
@@ -100,32 +85,12 @@ clean_raw:
 clean_processed:
 	rm -f data/processed/*
 
-.PHONY: clean_models
-## Delete all trained models
-clean_models:
-	rm -f models/trained/*
-	rm -f models/trained_models.json
-
-.PHONY: clean_predictions
-## Delete all predictions
-clean_predictions:
-	rm -f models/predictions/*
-	rm -f models/predictions.json
-
 .PHONY: clean_workflow
 clean_workflow:
 	rm -f catalog/datasources.json
 	rm -f catalog/transformer_list.json
-	rm -f models/model_list.json
-	rm -f models/predict_list.json
-	rm -f models/predictions.json
-	rm -f models/trained_models.json
-	rm -f reports/analysis_list.json
-	rm -f reports/summary_list.json
-	rm -f reports/analyses.json
-	rm -f reports/summaries.json
-
 .PHONY: test
+
 ## Run all Unit Tests
 test:
 	cd $(MODULE_NAME) && pytest --doctest-modules --verbose --cov
