@@ -20,6 +20,10 @@ Project Organization
 * `LICENSE`
 * `Makefile`
     * top-level makefile. Type `make` for a list of valid commands
+* `Makefile.include`
+    * Global includes for makefile routines. Included by `Makefile`
+* `Makefile.env`
+    * Command for maintaining reproducible conda environment. Included by `Makefile`
 * `README.md`
     * this file
 * `catalog`
@@ -46,17 +50,13 @@ Project Organization
     the creator's initials, and a short `-` delimited description,
     e.g. `1.0-jqp-initial-data-exploration`.
 * `references`
-    * Data dictionaries, manuals, and all other explanatory materials.
+    * Data dictionaries, manuals, papers, or other explanatory materials.
 * `reports`
     * Generated analysis as HTML, PDF, LaTeX, etc.
     * `reports/figures`
         * Generated graphics and figures to be used in reporting
-    * `reports/tables`
-        * Generated data tables to be used in reporting
-    * `reports/summary`
-        * Generated summary information to be used in reporting
 * `environment.yml`
-    * (if using conda) The YAML file for reproducing the analysis environment
+    * The YAML file for reproducing the conda/pip environment
 * `setup.py`
     * Turns contents of `{{ cookiecutter.module_name }}` into a
     pip-installable python module  (`pip install -e .`) so it can be
@@ -72,13 +72,8 @@ Project Organization
             or  `python -m {{ cookiecutter.module_name }}.data.make_dataset process`
     * `{{ cookiecutter.module_name }}/analysis`
         * Scripts to turn datasets into output products
-    * `{{ cookiecutter.module_name }}/models`
-        * Scripts to train models and then use trained models to make predictions.
-        e.g. `predict_model.py`, `train_model.py`
 * `tox.ini`
-    * tox file with settings for running tox; see tox.testrun.org
-
-
+    * tox file with settings for running tox, including flake8 configuration; see tox.testrun.org
 --------
 
 <p><small>This project was built using <a target="_blank" href="https://github.com/hackalog/cookiecutter-easydata">cookiecutter-easydata</a>, an opinionated fork of [cookiecutter-data-science](https://github.com/drivendata/cookiecutter-data-science) aimed at making your data science workflow reproducible.</small></p>

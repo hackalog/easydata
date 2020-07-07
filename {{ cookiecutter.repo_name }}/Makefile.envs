@@ -62,4 +62,3 @@ endif
 else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
-	$(PYTHON_INTERPRETER) test_environment.py
