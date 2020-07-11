@@ -304,7 +304,7 @@ class Dataset(Bunch):
     load = from_disk
 
     @classmethod
-    def from_catalog(dataset_name,
+    def from_catalog(cls, dataset_name,
          metadata_only=False,
          dataset_cache_path=None,
          catalog_path=None,
@@ -325,9 +325,6 @@ class Dataset(Bunch):
             name of dataset in the `dataset_file`
         metadata_only: Boolean
             if True, return only metadata. Otherwise, return the entire dataset
-        check_hashes: Boolean
-            if True, hashes will  be checked against `dataset_cache`.
-            If they differ, an exception will be raised
         dataset_cache_path: str
             path containing cachec copy of `dataset_name`.
             Default `paths['processed_data_path']`
@@ -351,16 +348,16 @@ class Dataset(Bunch):
             raise AttributeError(f"'{dataset_name}' not found in datset catalog.")
         meta = xform_graph.datasets[dataset_name]
         catalog_hashes = meta['hashes']
+        ## XX check if cached copy of dataset is already on disk
 
         if metadata_only:
             return meta
 
-        ds = generate(xform_graph, dataset_name, dataset_cache_path=dataset_cache_path) ## fix
+        ds = xform_graph.generate(dataset_name)
 
         generated_hashes = ds.metadata['hashes']
-        if not check_hashes(catalog_hashes, generated_hashes):
+        if not ds.verify_hashes(catalog_hashes):
             raise Exception(f"Dataset '{dataset_name}' hashes {generated_hashes} do not match catalog: {catalog_hashes}")
-
 
         return ds
 
@@ -1723,9 +1720,9 @@ def add_dataset(dataset=None, dataset_name=None, datasource_name=None, datasourc
             dataset_name = datasource_name
         dataset = Dataset.from_datasource(datasource_name=datasource_name, dataset_name=dataset_name, **datasource_opts)
 
-    dataset_catalog, dataset_catalog_fq = dataset_catalog(include_filename=True)
-    dataset_catalog[dataset_name] = dataset.metadata
-    save_json(dataset_catalog_fq, dataset_catalog)
+    catalog, catalog_fq = dataset_catalog(include_filename=True)
+    catalog[dataset_name] = dataset.metadata
+    save_json(catalog_fq, catalog)
 
 
 def dataset_from_datasource(dsdict, *, datasource_name, dataset_name=None, **dsrc_args):
