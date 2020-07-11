@@ -1723,9 +1723,9 @@ def add_dataset(dataset=None, dataset_name=None, datasource_name=None, datasourc
             dataset_name = datasource_name
         dataset = Dataset.from_datasource(datasource_name=datasource_name, dataset_name=dataset_name, **datasource_opts)
 
-    dataset_catalog, dataset_catalog_fq = dataset_catalog(include_filename=True)
-    dataset_catalog[dataset_name] = dataset.metadata
-    save_json(dataset_catalog_fq, dataset_catalog)
+    catalog, catalog_fq = dataset_catalog(include_filename=True)
+    catalog[dataset_name] = dataset.metadata
+    save_json(catalog_fq, catalog)
 
 
 def dataset_from_datasource(dsdict, *, datasource_name, dataset_name=None, **dsrc_args):
