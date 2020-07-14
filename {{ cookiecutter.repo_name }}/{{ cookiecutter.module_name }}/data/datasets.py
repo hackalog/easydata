@@ -413,7 +413,7 @@ class Dataset(Bunch):
             List of attributes to skip.
             if None, skips ['metadata']
 
-        hash_type: {'sha1', 'md5', 'sha256'}
+        hash_type: {'sha1', 'md5'}
             Algorithm to use for hashing. Must be valid joblib hash type
         """
         if exclude_list is None:
@@ -578,14 +578,14 @@ class DataSource(object):
             name of dataset
         process_function: func (or partial)
             Function that will be called to process raw data into usable Dataset
-        download_dir: path
+        download_dir: path (default paths['raw_data_path']
             default location for raw files
         file_list: list
             list of file_dicts associated with this DataSource.
             Valid keys for each file_dict include:
                 url: (optional)
                     URL of resource to be fetched
-                hash_type: {'sha1', 'md5', 'sha256'}
+                hash_type: {'sha1', 'md5'}
                     Type of hash function used to verify file integrity
                 hash_value: string
                     Value of hash used to verify file integrity
@@ -624,10 +624,10 @@ class DataSource(object):
     def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='DESCR', unpack_action='copy', force=False):
         """Add metadata to a DataSource
 
-        filename: create metadata entry from contents of this file
+        filename: create metadata entry from contents of this file. Relative to `metadata_path`
         contents: create metadata entry from this string
         metadata_path: (default `paths['raw_data_path']`)
-            Where to store metadata
+            where to store metadata files
         kind: {'DESCR', 'LICENSE'}
         unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
             action to take in order to unpack this file. If None, infers from file type.
@@ -638,6 +638,7 @@ class DataSource(object):
             metadata_path = paths['raw_data_path']
         else:
             metadata_path = pathlib.Path(metadata_path)
+
         filename_map = {
             'DESCR': f'{self.name}.readme',
             'LICENSE': f'{self.name}.license',
@@ -646,9 +647,14 @@ class DataSource(object):
             raise Exception(f'Unknown kind: {kind}. Must be one of {filename_map.keys()}')
 
         if filename is not None:
+            filename = pathlib.Path(filename)
+            try:
+                fn = filename.relative_to(metadata_path)
+            except ValueError:
+                fn = filename
             filelist_entry = {
                 'fetch_action': 'copy',
-                'file_name': str(filename),
+                'file_name': str(fn),
                 'name': kind,
             }
         elif contents is not None:
@@ -684,7 +690,7 @@ class DataSource(object):
         message: string
             Message to be displayed to the user. This message indicates
             how to download the indicated dataset.
-        hash_type: {'sha1', 'md5', 'sha256'}
+        hash_type: {'sha1', 'md5'}
         hash_value: string. required
             Hash, computed via the algorithm specified in `hash_type`
         file_name: string, required
@@ -728,7 +734,7 @@ class DataSource(object):
         This file must exist on disk, as there is no method specified for fetching it.
         This is useful when the data source requires an offline procedure for downloading.
 
-        hash_type: {'sha1', 'md5', 'sha256'}
+        hash_type: {'sha1', 'md5'}
         hash_value: string or None
             if None, hash will be computed from specified file
         file_name: string
@@ -753,7 +759,7 @@ class DataSource(object):
 
         if hash_value is None:
             logger.debug(f"Hash unspecified. Computing {hash_type} hash of {source_file.name}")
-            hash_value = hash_file(source_file, algorithm=hash_type).hexdigest()
+            hash_value = hash_file(source_file, algorithm=hash_type)
 
         fetch_dict = {
             'fetch_action': 'copy',
@@ -783,7 +789,7 @@ class DataSource(object):
                 name=None, file_name=None, force=False, unpack_action=None):
         """Add a file to the file list by URL.
 
-        hash_type: {'sha1', 'md5', 'sha256'}
+        hash_type: {'sha1', 'md5'}
             hash function that produced `hash_value`. Default 'sha1'
         hash_value: string or None
             if None, hash will be computed from downloaded file
@@ -879,9 +885,10 @@ class DataSource(object):
                     logger.warning(f"{raw_data_file.name} missing. Invalidating fetch cache")
                     self.fetched_ = False
                     break
-                raw_file_hash = hash_file(raw_data_file, algorithm=item['hash_type']).hexdigest()
+                hash_type = item.get('hash_type', 'sha1')
+                raw_file_hash = hash_file(raw_data_file, algorithm=hash_type)
                 if raw_file_hash != item['hash_value']:
-                    logger.warning(f"{raw_data_file.name} {item['hash_type']} hash invalid ({raw_file_hash} != {item['hash_value']}). Invalidating fetch cache.")
+                    logger.warning(f"{raw_data_file.name} hash invalid ({raw_file_hash} != {item['hash_value']}). Invalidating fetch cache.")
                     self.fetched_ = False
                     break
             else:
@@ -922,7 +929,7 @@ class DataSource(object):
 
         Returns the list of raw files that will be present once data is successfully fetched"""
         if return_hashes:
-            return [(key, item['hash_type'], item['hash_value']) \
+            return [(key, item.get('hash_type', 'sha1'), item['hash_value']) \
                     for (key, item) in self.file_dict.items()]
         else:
             return [key for key in self.file_dict]
@@ -1054,7 +1061,7 @@ class DataSource(object):
         converts this object to a dict, and hashes the result,
         adding or removing keys as specified.
 
-        hash_type: {'md5', 'sha1', 'sha256'}
+        hash_type: {'md5', 'sha1'}
             Hash algorithm to use
         ignore: list
             list of keys to ignore
@@ -1078,9 +1085,10 @@ class DataSource(object):
         obj_dict = {
             'url_list': list(self.file_dict.values()),
             **process_function_dict,
-            'name': self.name,
-            'download_dir': str(self.download_dir)
+            'name': self.name
         }
+        if self.download_dir != paths['raw_data_path']:
+            obj_dict['download_dir'] = str(self.download_dir)
         return obj_dict
 
     @classmethod
