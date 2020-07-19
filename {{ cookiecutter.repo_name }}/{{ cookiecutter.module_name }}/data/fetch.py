@@ -290,10 +290,11 @@ def fetch_file(url=None, contents=None,
         else:
             hash_type, _ = hash_value.split(":")
     else: # hash_type is not None
-        old_hash_type = hash_type
-        hash_type, _ = hash_value.split(":")
-        if hash_type != old_hash_type:
-            logger.warning(f"Conflicting hash_type and hash_value. Using {hash_type}")
+        if hash_value:
+            old_hash_type = hash_type
+            hash_type, _ = hash_value.split(":")
+            if hash_type != old_hash_type:
+                logger.warning(f"Conflicting hash_type and hash_value. Using {hash_type}")
 
     # If the file is already present, check its hash.
     if raw_data_file.exists():
@@ -321,9 +322,10 @@ def fetch_file(url=None, contents=None,
             raise Exception(f"fetch_action = {fetch_action} but `url` unspecified")
         # Download the file
         try:
+            logger.debug(f"fetching {url}")
             results = requests.get(url)
             results.raise_for_status()
-            raw_file_hash = _HASH_FUNCTION_MAP[hash_type](results.content).hexdigest()
+            raw_file_hash = f"{hash_type}:{_HASH_FUNCTION_MAP[hash_type](results.content).hexdigest()}"
             if hash_value is not None:
                 if raw_file_hash != hash_value:
                     logger.error(f"Invalid hash on downloaded {file_name}"
@@ -359,7 +361,7 @@ def fetch_file(url=None, contents=None,
     else:
         raise Exception("No valid fetch_action found: (fetch_action=='{fetch_action}')")
 
-    logger.debug(f'Retrieved {raw_data_file.name} (hash {raw_file_hash})')
+    logger.debug(f'Retrieved {raw_data_file.name} ({hash_type}:{raw_file_hash})')
     return results.status_code, raw_data_file, raw_file_hash
 
 def unpack(filename, dst_dir=None, src_dir=None, create_dst=True, unpack_action=None):
@@ -444,8 +446,8 @@ def unpack(filename, dst_dir=None, src_dir=None, create_dst=True, unpack_action=
 
     with opener(path, mode) as f_in:
         if archive:
-            f_in.extractall(path=dst_dir)
             logger.debug(f"Extracting {filename.name}")
+            f_in.extractall(path=dst_dir)
         else:
             outfile = pathlib.Path(outfile).name
             logger.debug(f"{verb} {outfile}")
