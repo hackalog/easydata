@@ -8,6 +8,13 @@ class TestImports(unittest.TestCase):
     imported (we had a compatibility issue once that was not resolved
     properly by conda).
     """
+    def test_infrastructure_packages(self):
+        import gdown
+        import sphinx
+        import click
+        import joblib
+        import requests
+
     def test_common_packages(self):
         import numpy
         import scipy.sparse
