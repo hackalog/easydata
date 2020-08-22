@@ -8,6 +8,7 @@ class KVStore(MutableMapping):
     Basic functionality is that of a dictionary, with the addition of an implicit
     `config_file` and `config_section`:
 
+    >>> getfixture('manage_config_ini')  # This is just a test fixture, please disregard
     >>> d = KVStore({'key1':'value1'}, key2='value2')
     >>> d['key3'] = 'value3'
     >>> d
@@ -127,6 +128,7 @@ class KVStore(MutableMapping):
 
     def __str__(self):
         return str({k:v for k,v in self._config.items(self._config_section, raw=False)})
+
 
 if __name__ == "__main__":
     import doctest
