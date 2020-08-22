@@ -13,6 +13,7 @@ dependencies:
     - python-dotenv>=0.5.1
     - nbval
     - nbdime
+    - gdown
   - setuptools
   - wheel
   - git>=2.5  # for git worktree template updating
