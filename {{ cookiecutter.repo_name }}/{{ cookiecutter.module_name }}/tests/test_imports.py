@@ -1,5 +1,5 @@
 import unittest
-import src.log.debug
+import {{ cookiecutter.module_name }}.log.debug
 
 
 class TestImports(unittest.TestCase):

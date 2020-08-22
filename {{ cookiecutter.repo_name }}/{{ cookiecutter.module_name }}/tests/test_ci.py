@@ -2,10 +2,10 @@
 import logging
 import unittest
 
-from src.data import Dataset
-from src import workflow
-from src.log import logger
-import src.log.debug
+from {{ cookiecutter.module_name }}.data import Dataset
+from {{ cookiecutter.module_name }} import workflow
+from {{ cookiecutter.module_name }}.log import logger
+import {{ cookiecutter.module_name }}.log.debug
 
 
 class TestDatasetsSmall(unittest.TestCase):

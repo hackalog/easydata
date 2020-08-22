@@ -1,8 +1,8 @@
 ## Test dataset information
 import unittest
 
-from src.data import Dataset
-import src.log.debug
+from {{ cookiecutter.module_name }}.data import Dataset
+import {{ cookiecutter.module_name }}.log.debug
 
 
 class TestDatasets(unittest.TestCase):
