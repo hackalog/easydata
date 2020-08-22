@@ -13,11 +13,14 @@ dependencies:
     - python-dotenv>=0.5.1
     - nbval
     - nbdime
+    - holoviews
+    - umap-learn
     - gdown
   - setuptools
   - wheel
   - git>=2.5  # for git worktree template updating
   - sphinx
+  - bokeh
   - click
   - coverage
   - pytest-cov
