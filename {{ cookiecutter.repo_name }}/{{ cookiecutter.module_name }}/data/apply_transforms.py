@@ -5,7 +5,7 @@ from dotenv import find_dotenv, load_dotenv
 import click
 from .. import paths
 from ..log import logger
-from .transform_data import apply_transforms
+from . import apply_transforms
 
 
 @click.command()
