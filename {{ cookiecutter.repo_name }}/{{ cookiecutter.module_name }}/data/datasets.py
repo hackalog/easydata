@@ -73,7 +73,7 @@ def cached_datasets(dataset_path=None, keys_only=True):
     ds_dict = {}
     for dsfile in dataset_path.glob("*.metadata"):
         ds_stem = str(dsfile.stem)
-        ds_meta = Dataset.load(ds_stem, data_path=dataset_path, metadata_only=True)
+        ds_meta = Dataset.from_disk(ds_stem, data_path=dataset_path, metadata_only=True)
         ds_dict[ds_stem] = ds_meta
 
     if keys_only:
@@ -290,7 +290,7 @@ class Dataset(Bunch):
                 raise FileNotFoundError(f"No dataset {dataset_name} in {data_path}.")
             else:
                 return None
-
+        logger.debug(f"Loading {dataset_name} from disk...")
         with open(metadata_fq, 'rb') as fd:
             meta = joblib.load(fd)
 
@@ -301,17 +301,16 @@ class Dataset(Bunch):
             ds = joblib.load(fd)
         return ds
 
-    load = from_disk
-
     @classmethod
-    def from_catalog(cls, dataset_name,
+    def load(cls, dataset_name,
          metadata_only=False,
          dataset_cache_path=None,
          catalog_path=None,
          dataset_file='datasets.json',
          transformer_file='transformers.json',
         ):
-        """Load a dataset (or its metadata) from the dataset catalog.
+        """
+        Load a dataset (or its metadata) from the dataset catalog.
 
         The named dataset must exist in the `dataset_file`.
 
@@ -345,9 +344,78 @@ class Dataset(Bunch):
                                        transformer_file=transformer_file,
                                        dataset_file=dataset_file)
         if dataset_name not in xform_graph.datasets:
+            raise AttributeError(f"'{dataset_name}' not found in dataset catalog.")
+        meta = xform_graph.datasets[dataset_name]
+        catalog_hashes = meta.get('hashes')
+
+        if metadata_only:
+            return meta
+        try:
+            ds = cls.from_disk(dataset_name, data_path=dataset_cache_path,
+                               metadata_only=metadata_only,
+                               errors=True,
+                               catalog_path=catalog_path,
+                               dataset_cache=dataset_cache_path)
+            logger.debug(f"Loaded {dataset_name} from disk.")
+            generated_hashes = ds.metadata['hashes']
+            if catalog_hashes is not None:
+                if not ds.verify_hashes(catalog_hashes):
+                    raise Exception(f"Dataset '{dataset_name}' hashes {generated_hashes} do not match catalog: {catalog_hashes}")
+        except:
+            logger.debug(f"Falling back to loading {dataset_name} from catalog.")
+            ds = cls.from_catalog(
+                dataset_name,
+                metadata_only=metadata_only,
+                dataset_cache_path=dataset_cache_path,
+                catalog_path=catalog_path,
+                dataset_file=dataset_file,
+                transformer_file=transformer_file
+            )
+
+        return ds
+
+    @classmethod
+    def from_catalog(cls, dataset_name,
+         metadata_only=False,
+         dataset_cache_path=None,
+         catalog_path=None,
+         dataset_file='datasets.json',
+         transformer_file='transformers.json',
+        ):
+        """Load a dataset (or its metadata) from the dataset catalog.
+
+        The named dataset must exist in the `dataset_file`.
+
+
+        Parameters
+        ----------
+        dataset_name: str
+            name of dataset in the `dataset_file`
+        metadata_only: Boolean
+            if True, return only metadata. Otherwise, return the entire dataset
+        dataset_cache_path: str
+            path containing cachec copy of `dataset_name`.
+            Default `paths['processed_data_path']`
+        catalog_path: str or None:
+            path to data catalog (containing dataset_file and transformer_file)
+            Default `paths['catalog_path']`
+        dataset_file: str. default 'datasets.json'
+            name of dataset catalog file. Relative to `catalog_path`.
+        transformer_file: str. default 'transformers.json'
+            name of dataset cache file. Relative to `catalog_path`.
+        """
+        if dataset_cache_path is None:
+            dataset_cache_path = paths['processed_data_path']
+        else:
+            dataset_cache_path = pathlib.Path(dataset_cache_path)
+
+        xform_graph = TransformerGraph(catalog_path=catalog_path,
+                                       transformer_file=transformer_file,
+                                       dataset_file=dataset_file)
+        if dataset_name not in xform_graph.datasets:
             raise AttributeError(f"'{dataset_name}' not found in datset catalog.")
         meta = xform_graph.datasets[dataset_name]
-        catalog_hashes = meta['hashes']
+        catalog_hashes = meta.get('hashes')
         ## XX check if cached copy of dataset is already on disk
 
         if metadata_only:
@@ -356,8 +424,9 @@ class Dataset(Bunch):
         ds = xform_graph.generate(dataset_name)
 
         generated_hashes = ds.metadata['hashes']
-        if not ds.verify_hashes(catalog_hashes):
-            raise Exception(f"Dataset '{dataset_name}' hashes {generated_hashes} do not match catalog: {catalog_hashes}")
+        if catalog_hashes is not None:
+            if not ds.verify_hashes(catalog_hashes):
+                raise Exception(f"Dataset '{dataset_name}' hashes {generated_hashes} do not match catalog: {catalog_hashes}")
 
         return ds
 
@@ -397,12 +466,10 @@ class Dataset(Bunch):
         dsrc_dict = datasource_catalog()
         if datasource_name not in dsrc_dict:
             raise Exception(f'Unknown Dataset: {dataset_name}')
-        if dataset_name is not None:
-            dsrc_dict['name'] = dataset_name
-        dsrc = DataSource.from_dict(dsrc_dict[datasource_name], name=dataset_name)
+        dsrc = DataSource.from_dict(dsrc_dict[datasource_name])
         dsrc.fetch(fetch_path=fetch_path, force=force)
         dsrc.unpack(unpack_path=unpack_path, force=force)
-        ds = dsrc.process(cache_path=cache_path, force=force, **kwargs)
+        ds = dsrc.process(cache_path=cache_path, force=force, dataset_name=dataset_name, **kwargs)
 
         return ds
 
@@ -825,7 +892,7 @@ class DataSource(object):
         self.file_dict[file_name] = fetch_dict
         self.fetched_ = False
 
-    def dataset_costructor_opts(self, metadata=None, **kwargs):
+    def dataset_constructor_opts(self, dataset_name=None, metadata=None, **kwargs):
         """Convert raw DataSource files into a Dataset constructor dict
 
 
@@ -850,7 +917,8 @@ class DataSource(object):
         """
         if metadata is None:
             metadata = {}
-
+        if dataset_name is None:
+            dataset_name = self.name
         data, target = None, None
 
         if self.process_function is None:
@@ -859,7 +927,7 @@ class DataSource(object):
             data, target, metadata = self.process_function(metadata=metadata, **kwargs)
 
         dset_opts = {
-            'dataset_name': self.name,
+            'dataset_name': dataset_name,
             'metadata': metadata,
             'data': data,
             'target': target,
@@ -994,7 +1062,7 @@ class DataSource(object):
         dset_opts = {}
         if force is False:
             try:
-                dset = Dataset.load(meta_hash, data_path=cache_path)
+                dset = Dataset.from_disk(meta_hash, data_path=cache_path)
                 logger.debug(f"Found cached Dataset for {self.name}: {meta_hash}")
             except FileNotFoundError:
                 logger.debug(f"No cached Dataset found. Re-creating {self.name}")
@@ -1002,7 +1070,7 @@ class DataSource(object):
         if dset is None:
             metadata = self.default_metadata(use_docstring=use_docstring)
             supplied_metadata = kwargs.pop('metadata', {})
-            dset_opts = self.dataset_costructor_opts(metadata={**metadata, **supplied_metadata}, **kwargs)
+            dset_opts = self.dataset_constructor_opts(metadata={**metadata, **supplied_metadata}, **kwargs)
             dset = Dataset(**dset_opts)
             dset.dump(dump_path=cache_path, file_base=meta_hash, force=force)
 
@@ -1649,7 +1717,7 @@ class TransformerGraph:
         input_datasets = self.transformers[edge].get('input_datasets', [])
 
         for ds_name in input_datasets:
-            ds_meta = Dataset.load(ds_name, metadata_only=True, errors=False)
+            ds_meta = Dataset.from_disk(ds_name, metadata_only=True, errors=False)
             if not ds_meta:  # does not exist
                 logger.debug(f"No cached dataset found for dataset '{ds_name}'.")
                 return False
@@ -1847,7 +1915,7 @@ def apply_transforms(datasets=None, transformer_path=None, transformer_file='tra
             ds = rds.process(**datasource_opts)
         else:
             logger.debug("Loading Dataset: {input_dataset}")
-            ds = Dataset.load(input_dataset)
+            ds = Dataset.from_disk(input_dataset)
 
         for tname, topts in transformations:
             tfunc = transformers.get(tname, None)
