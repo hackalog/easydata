@@ -36,6 +36,7 @@ script:
   - cd test-env
   - make create_environment
   - conda activate test-env
+  - touch environment.yml
   - make update_environment
   # run tests on the src module
   - cd src
