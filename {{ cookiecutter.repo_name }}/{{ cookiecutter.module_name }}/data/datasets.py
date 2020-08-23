@@ -20,6 +20,7 @@ __all__ = [
     'add_dataset',
     'dataset_catalog',
     'cached_datasets',
+    'create_transformer_pipeline',
     'DataSource',
     'add_datasource',
     'datasource_catalog',
@@ -290,13 +291,13 @@ class Dataset(Bunch):
                 raise FileNotFoundError(f"No dataset {dataset_name} in {data_path}.")
             else:
                 return None
-        logger.debug(f"Loading {dataset_name} from disk...")
         with open(metadata_fq, 'rb') as fd:
             meta = joblib.load(fd)
 
         if metadata_only:
             return meta
 
+        logger.debug(f"Load {dataset_name} from disk...")
         with open(dataset_fq, 'rb') as fd:
             ds = joblib.load(fd)
         return ds
@@ -360,7 +361,9 @@ class Dataset(Bunch):
             generated_hashes = ds.metadata['hashes']
             if catalog_hashes is not None:
                 if not ds.verify_hashes(catalog_hashes):
-                    raise Exception(f"Dataset '{dataset_name}' hashes {generated_hashes} do not match catalog: {catalog_hashes}")
+                    msg = (f"Dataset '{dataset_name}' hashes {generated_hashes} do not match catalog: {catalog_hashes}")
+                    logger.warning(msg)
+                    raise Exception(msg)
         except:
             logger.debug(f"Falling back to loading {dataset_name} from catalog.")
             ds = cls.from_catalog(
@@ -422,6 +425,8 @@ class Dataset(Bunch):
             return meta
 
         ds = xform_graph.generate(dataset_name)
+        if ds is None:
+            return None
 
         generated_hashes = ds.metadata['hashes']
         if catalog_hashes is not None:
@@ -463,14 +468,31 @@ class Dataset(Bunch):
 
         Remaining keywords arguments are passed to the DataSource's `process()` method
         '''
+        if cache_path is None:
+            cache_path = paths['interim_data_path']
+        else:
+            cache_path = pathlib.Path(cache_path)
         dsrc_dict = datasource_catalog()
         if datasource_name not in dsrc_dict:
-            raise Exception(f'Unknown Dataset: {dataset_name}')
+            raise Exception(f'Unknown Datasource={datasource_name} specified for datset={dataset_name}')
         dsrc = DataSource.from_dict(dsrc_dict[datasource_name])
-        dsrc.fetch(fetch_path=fetch_path, force=force)
-        dsrc.unpack(unpack_path=unpack_path, force=force)
-        ds = dsrc.process(cache_path=cache_path, force=force, dataset_name=dataset_name, **kwargs)
+        if not dsrc.fetch(fetch_path=fetch_path, force=force):
+            logger.debug("Fetch failed. Aborting.")
+            return None
+        # Look for hash after fetching, as fetch creates hash values on metadata
+        meta_hash, hash_dict = dsrc.to_hash(dataset_name=dataset_name, **kwargs, include_dict=True)
+        try:
+            logger.debug(f"Checking for cached Dataset {dataset_name} ({meta_hash})...")
+            dset = Dataset.from_disk(meta_hash, data_path=cache_path)
+            logger.debug(f"Found cached Dataset for {dataset_name}")
+            return dset
+        except FileNotFoundError:
+            logger.debug(f"No cached Dataset found for {dataset_name}. Re-processing from source:{datasource_name}...")
 
+        if dsrc.unpack(unpack_path=unpack_path, force=force) is None:
+            logger.debug("Unpack failed. Aborting.")
+            return None
+        ds = dsrc.process(cache_path=cache_path, force=force, dataset_name=dataset_name, **kwargs)
         return ds
 
     def get_data_hashes(self, exclude_list=None, hash_type='sha1'):
@@ -885,7 +907,48 @@ class DataSource(object):
             'url': url,
         }
         if unpack_action:
-            filelist_entry.update({'unpack_action': unpack_action})
+            fetch_dict.update({'unpack_action': unpack_action})
+
+        if file_name in self.file_dict and not force:
+            raise Exception(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
+        self.file_dict[file_name] = fetch_dict
+        self.fetched_ = False
+
+
+    def add_google_drive(self, file_id=None, *, hash_type='sha1', hash_value=None,
+                         name=None, file_name=None, force=False, unpack_action=None):
+        """Add a file to the file list by google drive file ID.
+
+        hash_type: {'sha1', 'md5'}
+            hash function that produced `hash_value`. Default 'sha1'
+        hash_value: string or None
+            if None, hash will be computed from downloaded file
+        file_name: string or None
+            Name of downloaded file. If None, will be the file_id
+        file_id: string
+            Google Drive file ID
+        name: str
+            text description of this file.
+        force: boolean (default False)
+            If True, overwrite an existing entry for this file
+        unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
+            action to take in order to unpack this file. If None, infers from file type.
+        """
+        if file_id is None:
+            raise Exception("`file_id` is required")
+
+        file_name = infer_filename(file_name=file_name, url=file_id)
+
+        fetch_dict = {
+            'fetch_action': 'google-drive',
+            'file_name': file_name,
+            'hash_type': hash_type,
+            'hash_value': hash_value,
+            'name': name,
+            'url': file_id,
+        }
+        if unpack_action:
+            fetch_dict.update({'unpack_action': unpack_action})
 
         if file_name in self.file_dict and not force:
             raise Exception(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
@@ -961,7 +1024,7 @@ class DataSource(object):
                     break
             else:
                 logger.debug(f'Data Source {self.name} is already fetched. Skipping')
-                return
+                return True
 
         if fetch_path is None:
             fetch_path = self.download_dir
@@ -973,7 +1036,6 @@ class DataSource(object):
         self.fetched_ = True
         for key, item in self.file_dict.items():
             status, result, hash_value = fetch_file(**item, force=force)
-            logger.debug(f"Fetching {key}: status:{status}")
             if status:  # True (cached) or HTTP Code (successful download)
                 item['hash_value'] = hash_value
                 item['file_name'] = result.name
@@ -1006,7 +1068,9 @@ class DataSource(object):
         """Unpack fetched files to interim dir"""
         if not self.fetched_:
             logger.debug("unpack() called before fetch()")
-            self.fetch()
+            if not self.fetch():
+                logger.debug(f"Fetch failed. Aborting unpack")
+                return None
 
         if self.unpacked_ and force is False:
             logger.debug(f'Data Source {self.name} is already unpacked. Skipping')
@@ -1056,22 +1120,25 @@ class DataSource(object):
 
         # If any of these things change, recreate and cache a new Dataset
 
-        meta_hash = self.to_hash(**kwargs)
+        meta_hash, hash_dict = self.to_hash(include_dict=True, **kwargs)
 
         dset = None
         dset_opts = {}
         if force is False:
             try:
+                logger.debug(f"Checking for cached Dataset {self.name} ({meta_hash})...")
                 dset = Dataset.from_disk(meta_hash, data_path=cache_path)
-                logger.debug(f"Found cached Dataset for {self.name}: {meta_hash}")
+                logger.debug(f"Found cached Dataset for {self.name}")
+                return dset
             except FileNotFoundError:
-                logger.debug(f"No cached Dataset found. Re-creating {self.name}")
+                logger.debug(f"No cached Dataset found for {self.name}.")
 
         if dset is None:
             metadata = self.default_metadata(use_docstring=use_docstring)
             supplied_metadata = kwargs.pop('metadata', {})
             dset_opts = self.dataset_constructor_opts(metadata={**metadata, **supplied_metadata}, **kwargs)
             dset = Dataset(**dset_opts)
+            logger.debug(f"Caching dataset as {meta_hash}...")
             dset.dump(dump_path=cache_path, file_base=meta_hash, force=force)
 
         if return_X_y:
@@ -1123,7 +1190,7 @@ class DataSource(object):
         metadata['dataset_name'] = self.name
         return metadata
 
-    def to_hash(self, ignore=None, hash_type='sha1', **kwargs):
+    def to_hash(self, ignore=None, hash_type='sha1', include_dict=False, **kwargs):
         """Compute a hash for this object.
 
         converts this object to a dict, and hashes the result,
@@ -1135,6 +1202,9 @@ class DataSource(object):
             list of keys to ignore
         kwargs:
             key/value pairs to add before hashing
+        include_dict: boolean
+            if True, also compute the dict the hash was computed over
+            Useful for troubleshooting
         """
         if ignore is None:
             ignore = ['download_dir']
@@ -1142,6 +1212,8 @@ class DataSource(object):
         for key in ignore:
             my_dict.pop(key, None)
 
+        if include_dict:
+            return joblib.hash(my_dict, hash_name=hash_type), my_dict
         return joblib.hash(my_dict, hash_name=hash_type)
 
     def __hash__(self):
@@ -1525,10 +1597,14 @@ class TransformerGraph:
         for ds in set(output_datasets + input_datasets):
             if ds not in self.datasets:
                 if write_catalog:
-                    self.datasets[ds] = {'dataset_name': ds}
                     logger.info(f"Adding Dataset '{ds}' to catalog")
+                    self.datasets[ds] = {'dataset_name': ds}
             else:
-                logger.debug(f"Dataset '{ds}' already in catalog. Skipping")
+                if force:
+                    logger.info(f"Updating Dataset '{ds}' in catalog")
+                    self.datasets[ds] = {'dataset_name': ds}
+                else:
+                    logger.debug(f"Dataset '{ds}' already in catalog. Skipping")
         if write_catalog:
             logger.debug(f'Writing new catalog files')
             save_json(self._transformer_catalog_fq, self.transformers)
@@ -1636,6 +1712,9 @@ class TransformerGraph:
             If True, write updated metadata even if Dataset hashes differ. Requires write_catalog=True
         dataset_path: path
             location of saved dataset files
+
+        returns:
+            dict {dataset_name: Dataset}
         """
         if force is True and write_catalog is False:
             raise Exception("Force=True requires write_catalog=True")
@@ -1653,7 +1732,7 @@ class TransformerGraph:
             if in_ds not in self.datasets:
                 raise Exception(f"Edge '{edge_name}' specifies an input dataset, '{in_ds}' that is not in the dataset catalog")
             ds = Dataset.from_disk(in_ds)
-            if not check_dataset_hashes(in_ds, ds.HASHES):
+            if not self.check_dataset_hashes(in_ds, ds.HASHES):
                 if force and write_catalog:
                     logger.debug(f"Dataset Hash mismatch for {in_ds} but force=True. Writing new hash to catalog")
                 else:
@@ -1664,17 +1743,24 @@ class TransformerGraph:
             transformer = deserialize_partial(xform_dict, key_base="transformer",
                                               fail_func=partial(default_transformer,
                                                                 transformer_name=xform_dict['transformer_name']))
-            logger.debug(f"Applying transformer: {xform_dict}")
+            logger.debug(f"Applying transformer: {xform_dict} to input datasets: {list(dsdict.keys())}")
             dsdict = transformer(dsdict)
+            logger.debug(f"Obtained datasets: {list(dsdict.keys())}")
             cached_dsdicts = cached_datasets(dataset_path=dataset_path)
-            if write_catalog:
-                for ds_name, ds in dsdict.items():
-                    self.datasets[ds_name] = ds.metadata
-                    if ds_name not in cached_dsdicts: # XXX and check hashes
-                        logger.debug(f"Writing '{ds_name}' to processed data cache")
-                        ds.dump(dump_path=dataset_path, force=force, update_catalog=False)
+            success = True
+            for ds_name, ds in dsdict.items():
+                if ds is None:
+                    logger.warning(f"Fetch failed for {ds_name}")
+                    success = False
+                    continue
+                self.datasets[ds_name] = ds.metadata
+                if write_catalog and ds_name not in cached_dsdicts: # XXX and check hashes
+                    logger.debug(f"Writing '{ds_name}' to processed data cache")
+                    ds.dump(dump_path=dataset_path, force=force, update_catalog=False)
                 logger.debug("Writing updated Dataset catalog to disk")
                 save_json(self._dataset_catalog_fq, self.datasets)
+            if success is False:
+                return None
         return dsdict
 
 
@@ -1699,7 +1785,7 @@ class TransformerGraph:
         False otherwise
         """
         if self.datasets[ds_name].get('hashes', None):
-            cached_hashes, catalog_hashes = ds_meta['hashes'], self.datasets[ds_name]['hashes']
+            cached_hashes, catalog_hashes = hash_dict, self.datasets[ds_name]['hashes']
             if not cached_hashes.items() <= catalog_hashes.items():
                 logger.debug(f"Cached dataset '{ds_name}' hash {cached_hashes} != catalog hash {catalog_hashes}")
                 return False
@@ -1723,7 +1809,7 @@ class TransformerGraph:
                 return False
             if ds_name not in self.datasets:
                 raise Exception(f"Missing '{ds_name}' in dataset catalog")
-            if not check_catalog_hash(ds_name, ds_meta['hashes']):
+            if not self.check_dataset_hashes(ds_name, ds_meta['hashes']):
                 return False
 
 
@@ -1735,6 +1821,9 @@ class TransformerGraph:
         _, edge_list = self.traverse(dataset_name)
         for edge in edge_list:
             dsdict = self.process_edge(edge, write_catalog=write_catalog, force=force)
+            if dsdict is None:
+                logger.debug("Generation from catalog failed.")
+                return None
         return dsdict.get(dataset_name, None)
 
 

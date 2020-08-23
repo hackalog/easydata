@@ -92,8 +92,10 @@ clean_workflow:
 .PHONY: test
 
 ## Run all Unit Tests
-test:
-	cd $(MODULE_NAME) && pytest --doctest-modules --verbose --cov
+test: update_environment
+	pytest --pyargs --doctest-modules --doctest-continue-on-failure --verbose \
+		$(if $(CI_RUNNING),--ignore=$(TESTS_NO_CI)) \
+		$(MODULE_NAME)
 
 .PHONY: lint
 ## Lint using flake8

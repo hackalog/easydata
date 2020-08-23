@@ -8,6 +8,7 @@ import zipfile
 import zlib
 import requests
 import joblib
+import gdown
 
 from .. import paths
 from ..log import logger
@@ -256,12 +257,12 @@ def fetch_file(url=None, contents=None,
       ...
     Exception: One of `file_name`, `url`, or `source_file` is required
     '''
-    _valid_fetch_actions = ('message', 'copy', 'url', 'create')
+    _valid_fetch_actions = ('message', 'copy', 'url', 'create', 'google-drive')
 
     # infer filename from url or src_path if needed
     if file_name is None:
-        file_name = infer_filename(self, url=url, source_file=source_file)
-
+        file_name = infer_filename(url=url, source_file=source_file)
+        logger.debug(f"Inferred filename:{file_name} from url:{url}, source_file:{source_file}")
     if dst_dir is None:
         dst_dir = paths['raw_data_path']
     else:
@@ -297,12 +298,13 @@ def fetch_file(url=None, contents=None,
                 logger.warning(f"Conflicting hash_type and hash_value. Using {hash_type}")
 
     # If the file is already present, check its hash.
-    if raw_data_file.exists():
+    if raw_data_file.exists() and fetch_action != 'create':
+        logger.debug(f"{file_name} already exists. Checking hash...")
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type)
         if hash_value is not None:
             if raw_file_hash == hash_value:
                 if force is False:
-                    logger.debug(f"{file_name} already exists and hash is valid. Skipping download.")
+                    logger.debug(f"{file_name} hash is valid. Skipping download.")
                     return True, raw_data_file, raw_file_hash
             else:  # raw_file_hash != hash_value
                 logger.warning(f"{file_name} exists but has bad hash {raw_file_hash} != {hash_value}."
@@ -335,6 +337,18 @@ def fetch_file(url=None, contents=None,
                 code.write(results.content)
         except requests.exceptions.HTTPError as err:
             return False, err, None
+    elif fetch_action == 'google-drive':
+        if url is None:
+            raise Exception(f"fetch_action = {fetch_action} but file ID unspecified (expected through url field)")
+        # Download the file
+        try:
+            url_google_drive = f"https://drive.google.com/uc?id={url}"
+            logger.debug(f"Fetch file ID {url} off of Google Drive (full URL {url_google_drive})")
+            gdown.download(url_google_drive, str(raw_data_file), quiet=False)
+        except Exception as err:
+            return False, err, None
+        raw_file_hash = hash_file(raw_data_file, algorithm=hash_type)
+        return True, raw_data_file, raw_file_hash
     elif fetch_action == 'create':
         if contents is None:
             raise Exception(f"fetch_action == 'create' but `contents` unspecified")
@@ -342,6 +356,7 @@ def fetch_file(url=None, contents=None,
             logger.warning(f"Hash value ({hash_value}) ignored for fetch_action=='create'")
         with open(raw_data_file, 'w') as fw:
             fw.write(contents)
+        logger.debug(f"Generating {file_name} hash...")
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type)
         return True, raw_data_file, raw_file_hash
     elif fetch_action == 'copy':
@@ -349,6 +364,7 @@ def fetch_file(url=None, contents=None,
             raise Exception("fetch_action == 'copy' but `copy` unspecified")
         logger.warning(f"Hardcoded paths for fetch_action == 'copy' may not be reproducible. Consider using fetch_action='message' instead")
         shutil.copyfile(source_file, raw_data_file)
+        logger.debug(f"Checking hash of {file_name}...")
         raw_file_hash = hash_file(raw_data_file, algorithm=hash_type)
         source_file = pathlib.Path(source_file)
         logger.debug(f"Copying {source_file.name} to raw_data_path")
@@ -446,11 +462,11 @@ def unpack(filename, dst_dir=None, src_dir=None, create_dst=True, unpack_action=
 
     with opener(path, mode) as f_in:
         if archive:
-            logger.debug(f"Extracting {filename.name}")
+            logger.debug(f"Extracting {filename.name}...")
             f_in.extractall(path=dst_dir)
         else:
             outfile = pathlib.Path(outfile).name
-            logger.debug(f"{verb} {outfile}")
+            logger.debug(f"{verb} {outfile}...")
             with open(pathlib.Path(dst_dir) / outfile, outmode) as f_out:
                 shutil.copyfileobj(f_in, f_out)
 

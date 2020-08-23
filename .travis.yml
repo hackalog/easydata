@@ -36,10 +36,13 @@ script:
   - cd test-env
   - make create_environment
   - conda activate test-env
-  - make update environment
+  - touch environment.yml
+  - make update_environment
   # run tests on the src module
   - cd src
+  - export CI_RUNNING=yes
   - coverage run -m pytest --doctest-modules --doctest-continue-on-failure --verbose --pyargs src
 
 after_success:
+  - conda activate test-env
   - coveralls

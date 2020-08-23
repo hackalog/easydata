@@ -5,7 +5,7 @@ import pathlib
 class PathStore(KVStore):
     """Persistent Key-Value store for project-level paths
 
-    >>> b = PathStore(config_file='/tmp/project/catalog/config.ini', \
+    >>> b = PathStore(config_file='/tmpx/project/catalog/config.ini', \
         project_path='${catalog_path}/..', \
         data_path='${project_path}/data', \
         persistent=False)
@@ -13,14 +13,14 @@ class PathStore(KVStore):
     By default, the project directory is the parent of the directory containing the `config_file`:
 
     >>> b['project_path']
-    PosixPath('/tmp/project')
+    PosixPath('/tmpx/project')
     >>> b['data_path']
-    PosixPath('/tmp/project/data')
+    PosixPath('/tmpx/project/data')
 
     The `catalog_path` is set upon instantiation and is read-only:
 
     >>> b['catalog_path']
-    PosixPath('/tmp/project/catalog')
+    PosixPath('/tmpx/project/catalog')
     >>> b['catalog_path'] = '/tmp'
     Traceback (most recent call last):
      ...
@@ -28,17 +28,17 @@ class PathStore(KVStore):
 
     Changing a value changes all values that expand to contain it:
 
-    >>> b['project_path'] = '/tmp'
+    >>> b['project_path'] = '/tmpy'
     >>> b['project_path']
-    PosixPath('/tmp')
+    PosixPath('/tmpy')
     >>> b['data_path']
-    PosixPath('/tmp/data')
+    PosixPath('/tmpy/data')
 
     We can have multiple levels of expansion:
 
     >>> b['raw_data_path'] = "${data_path}/raw"
     >>> b['raw_data_path']
-    PosixPath('/tmp/data/raw')
+    PosixPath('/tmpy/data/raw')
     >>> b['project_path'] = '/tmp3'
     >>> b['data_path']
     PosixPath('/tmp3/data')

@@ -5,10 +5,12 @@ import random
 import sys
 import pandas as pd
 import numpy as np
+from typing import Iterator, List
 from functools import partial
 from joblib import func_inspect as jfi
 
 from ..log import logger
+from .. import paths
 
 __all__ = [
     'deserialize_partial',
@@ -204,3 +206,29 @@ def reservoir_sample(filename, n_samples=1, random_seed=None):
                 if r < n_samples:
                     sample[r] = line.rstrip()
     return sample
+
+
+def iter_directory(root: pathlib.Path) -> Iterator[pathlib.Path]:
+    """
+    Iterates the contents of a directory recursively, in depth-first
+    alphanumeric order.
+
+    Parameters
+    ----------
+    path
+        Path to the directory to iterate.
+
+    Items
+    -----
+    Paths to the various items contained in the directory and its subdirectories, recursively. The root prepends all the
+    yielded paths.
+    """
+    def listdir_sorted(path: pathlib.Path) -> List[pathlib.Path]:
+        return sorted(list(path.iterdir()), reverse=True)
+
+    elements = listdir_sorted(root)
+    while elements:
+        item = elements.pop()
+        yield item
+        if item.is_dir():
+            elements += listdir_sorted(item)

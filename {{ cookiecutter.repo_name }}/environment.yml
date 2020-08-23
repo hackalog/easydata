@@ -13,15 +13,24 @@ dependencies:
     - python-dotenv>=0.5.1
     - nbval
     - nbdime
+    - umap-learn
+    - gdown
   - setuptools
   - wheel
   - git>=2.5  # for git worktree template updating
   - sphinx
+  - bokeh
   - click
+  - colorcet
   - coverage
+  - coveralls
+  - datashader
+  - holoviews
+  - matplotlib
   - pytest-cov
   - jupyter
   - scikit-learn
+  - scipy
   - joblib
   - nb_conda_kernels<2.2.0  # nb_conda_kernels issue #158
   - pandas
