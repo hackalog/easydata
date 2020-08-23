@@ -2,6 +2,6 @@
 # DEBUG level.
 
 import logging
-from src.log import logger
+from {{ cookiecutter.module_name }}.log import logger
 
 logger.setLevel(logging.DEBUG)
