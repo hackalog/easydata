@@ -23,6 +23,7 @@ dependencies:
   - click
   - colorcet
   - coverage
+  - coveralls
   - datashader
   - holoviews
   - matplotlib
