@@ -44,4 +44,5 @@ script:
   - coverage run -m pytest --doctest-modules --doctest-continue-on-failure --verbose --pyargs src
 
 after_success:
+  - conda activate test-env
   - coveralls
