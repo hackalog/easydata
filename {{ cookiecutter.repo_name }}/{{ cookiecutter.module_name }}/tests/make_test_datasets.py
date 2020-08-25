@@ -1,7 +1,7 @@
 from sklearn.datasets import fetch_20newsgroups
 from functools import partial
 
-from {{ cookiecutter.module_name }}.data import Datasource, Dataset, TransformerGraph
+from {{ cookiecutter.module_name }}.data import DataSource, Dataset, TransformerGraph
 from {{ cookiecutter.module_name }} import workflow, paths
 from {{ cookiecutter.module_name }}.log import logger
 import {{ cookiecutter.module_name }}.log.debug
