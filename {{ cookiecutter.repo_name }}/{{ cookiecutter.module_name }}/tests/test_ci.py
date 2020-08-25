@@ -14,8 +14,9 @@ class TestDatasetsSmall(unittest.TestCase):
     available datasets load and have some expected property.
     """
     def test_dataset(self):
-        #ds = Dataset.load('dataset_name')
-        assert True
+        ds = Dataset.load('20_newsgroups')
+        assert len(ds.data) == 18846
+        assert len(ds.target) == 18846
 
 def test_logging_is_debug_level():
     assert logger.getEffectiveLevel() == logging.DEBUG
