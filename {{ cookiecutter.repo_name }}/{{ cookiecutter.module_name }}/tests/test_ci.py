@@ -15,6 +15,7 @@ class TestDatasetsSmall(unittest.TestCase):
     """
     def test_dataset(self):
         ds = Dataset.load('20_newsgroups')
+        ds = Dataset.load('20_newsgroups')
         assert len(ds.data) == 18846
         assert len(ds.target) == 18846
 
