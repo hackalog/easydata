@@ -38,6 +38,8 @@ script:
   - conda activate test-env
   - touch environment.yml
   - make update_environment
+  # create test dataset
+  - python src/tests/make_test_datasets.py
   # run tests on the src module
   - cd src
   - export CI_RUNNING=yes
