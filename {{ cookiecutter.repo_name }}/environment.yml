@@ -27,7 +27,6 @@ dependencies:
   - datashader
   - holoviews
   - matplotlib
-  - pytest-cov
   - jupyter
   - scikit-learn
   - scipy
