@@ -30,8 +30,6 @@ If you haven't set up SSH access to GitHub, see [Configuring SSH Access to Githu
 1. Add the main source repo as a remote branch called `upstream` (to make syncing easier):
   `cd {{cookiecutter.project_name}}`
   `git remote add upstream git@github.com:<upstream-repo>/{{cookiecutter.project_name}}.git`
-1. If your site is maintaining its own fork of the surge repo, add it as a remote branch called `site`:
-  `git remote add site git@github.com:<your local site>/{{cookiecutter.project_name}}.git`
 
 You're all set for staying up-to-date with the project repo. Follow the instructions in this handy [Github Workflow Cheat Sheet](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) for keeping your working copy of the repo in sync.
 
