@@ -2,9 +2,9 @@
 
 NOTE: By default, raw data is installed and unpacked in the
 `{{ cookiecutter.repo_name}}/data` directory. If you are working with big data (or
-have a small disk partition), it is HIGHLY recommended that you move
-this directory elsewhere; i.e. either move it and leave a symlink
-behind, or change its location by setting {{ cookiecutter.module_name }}.paths['data_path']
-accordingly.
+have a small disk partition), it is HIGHLY recommended that you point
+this directory elsewhere; i.e. by setting paths['data_path']. For example:
+>>> conda activate {{ cookiecutter.repo_name }}
+>>> python -c "import {{ cookiecutter.module_name }}; {{ cookiecutter.module_name }}.paths['data_path'] = '/path/to/big/data'"
 
 You have been warned.
