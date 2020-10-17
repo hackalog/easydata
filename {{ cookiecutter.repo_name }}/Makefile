@@ -108,25 +108,20 @@ debug:
 	@echo "\n\n======================"
 	@echo "\nPlease include the contents $(DEBUG_FILE) when submitting an issue or support request.\n"
 	@echo "======================\n\n"
-	@echo "\n======================\n">> $(DEBUG_FILE)
-	@echo "Git status" >> $(DEBUG_FILE)
-	@echo "\n======================\n">> $(DEBUG_FILE)
+	@echo "##\n## Git status\n##\n" > $(DEBUG_FILE)
 	git status >> $(DEBUG_FILE)
-	@echo "\n======================\n" >> $(DEBUG_FILE)
+	@echo "\n##\n## git log\n##\n" >> $(DEBUG_FILE)
 	git log -8 --graph --oneline --decorate --all >> $(DEBUG_FILE)
-	@echo "\n======================\n" >> $(DEBUG_FILE)
-	@echo "\n======================\n" >> $(DEBUG_FILE)
-	@echo "Github status" >> $(DEBUG_FILE)
-	@echo "\n======================\n" >> $(DEBUG_FILE)
+	@echo "\n##\n## Github remotes\n##\n" >> $(DEBUG_FILE)
 	git remote -v >> $(DEBUG_FILE)
-	@echo "\n======================\n" >> $(DEBUG_FILE)
+	@echo "\n##\n## github SSH credentials\n##\n" >> $(DEBUG_FILE)
 	ssh git@github.com 2>&1 | cat >> $(DEBUG_FILE)
-	@echo "\n======================\n" >> $(DEBUG_FILE)
-	@echo "\n======================\n" >> $(DEBUG_FILE)
-	@echo "Environment status" >> $(DEBUG_FILE)
-	@echo "\n======================\n" >> $(DEBUG_FILE)
+	@echo "\n##\n## Conda config\n##\n" >> $(DEBUG_FILE)
+	$(CONDA_EXE) config --get >> $(DEBUG_FILE)
+	@echo "\n##\n## Conda info\n##\n" >> $(DEBUG_FILE)
+	$(CONDA_EXE) info  >> $(DEBUG_FILE)
+	@echo "\n##\n## Conda list\n##\n" >> $(DEBUG_FILE)
 	$(CONDA_EXE) list >> $(DEBUG_FILE)
-	@echo "\n======================\n" >> $(DEBUG_FILE)
 
 #################################################################################
 # PROJECT RULES                                                                 #
