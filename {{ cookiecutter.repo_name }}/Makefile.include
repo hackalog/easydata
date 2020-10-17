@@ -1,4 +1,3 @@
-ARCH := $(shell arch)
 CONDA_EXE ?= {{ cookiecutter.conda_path }}
 DEBUG_FILE := debug.txt
 MODULE_NAME := {{ cookiecutter.module_name }}
@@ -6,4 +5,5 @@ TESTS_NO_CI = $(MODULE_NAME)/tests/no_ci
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 PROJECT_NAME := {{ cookiecutter.repo_name }}
 PYTHON_INTERPRETER := python3
-VIRTUALENV := {{ cookiecutter.virtualenv }}
+ARCH := $(shell $(PYTHON_INTERPRETER) -c "import platform; print(platform.platform())")
+VIRTUALENV := conda
