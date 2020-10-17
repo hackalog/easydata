@@ -5,7 +5,6 @@
     "author_name": "Your name (or your organization/company/team)",
     "description": "A short description of this project.",
     "open_source_license": ["MIT", "BSD-2-Clause", "Proprietary"],
-    "virtualenv": ["conda"],
-    "python_version": ["latest", "3.8", "3.7", "3.6"],
+    "python_version": ["3.7", "3.6", "latest", "3.8"],
     "conda_path": "~/anaconda3/bin/conda"
 }
