@@ -6,6 +6,8 @@
 {% endif -%}
 {% endmacro -%}
 name: {{ cookiecutter.repo_name }}
+channels:
+  - defaults
 dependencies:
   - pip
   - pip:
@@ -13,7 +15,6 @@ dependencies:
     - python-dotenv>=0.5.1
     - nbval
     - nbdime
-    - umap-learn
     - gdown
   - setuptools
   - wheel
@@ -24,8 +25,6 @@ dependencies:
   - colorcet
   - coverage
   - coveralls
-  - datashader
-  - holoviews
   - matplotlib
   - jupyter
   - scikit-learn
