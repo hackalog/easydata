@@ -13,7 +13,7 @@ class TestDatasetsSmall(unittest.TestCase):
     Basic smoke tests to ensure that the smaller (and more quickly processed)
     available datasets load and have some expected property.
     """
-    def test_dataset(self):
+    def test_20_newsgroups(self):
         ds = Dataset.load('20_newsgroups')
         ds = Dataset.load('20_newsgroups')
         assert len(ds.data) == 18846

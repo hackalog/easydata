@@ -1,10 +1,16 @@
 import pathlib
 
+import pandas as pd
+from tqdm.auto import tqdm
+
 from sklearn.model_selection import train_test_split
 
 from . import Dataset
+from .. import paths
+from ..log import logger
 
 __all__ = [
+    'csv_to_pandas',
     'sklearn_train_test_split',
     'sklearn_transform',
 ]
@@ -78,3 +84,32 @@ def sklearn_transform(ds_dict, transformer_name, transformer_opts=None, subselec
         new_dsname = f"{dset.name}_{transformer.__class__.__name__}"
         new_dsdict[new_dsname] = Dataset(dataset_name=new_dsname, metadata=dset.metadata, data=new_data)
     return new_dsdict
+
+def csv_to_pandas(ds_dict, *, output_map, **opts):
+    """
+
+    Parameters
+    ----------
+    ds_dict:
+        input datasets. If multiple datasets, processing will stop at first matching csv_filename
+    output_map: dict(new_dataset_name:csv_filename)
+        datasets to create. new_dataset_name will be created using csv_filename as its data column.
+    **opts:
+        Remaining options will be ignored
+    """
+    new_ds = {}
+    df = None
+    for ds_name, dset in ds_dict.items():
+        extra = dset.metadata.get('extra', None)
+        if extra is not None:
+            logger.debug(f"Input dataset {ds_name} has extra data. Processing...")
+            for rel_dir, file_dict in extra.items():
+                for new_dsname, csv_filename in output_map.items():
+                    if csv_filename in file_dict:
+                        logger.debug(f"Found {csv_filename}. Creating {new_dsname} dataset")
+                        path = paths['processed_data_path'] / rel_dir / csv_filename
+                        df = pd.read_csv(path)
+                        new_metadata = dset.metadata
+                        new_metadata.pop('extra', None)
+                        new_ds[new_dsname] = Dataset(dataset_name=new_dsname, data=df, metadata=new_metadata)
+    return new_ds
