@@ -22,7 +22,3 @@ class TestImports(unittest.TestCase):
         import bokeh
         import matplotlib
         import sklearn
-
-    def test_extra_packages(self):
-        import umap
-        import umap.plot
