@@ -667,8 +667,10 @@ class DataSource(object):
             name of dataset
         process_function: func (or partial)
             Function that will be called to process raw data into usable Dataset
-        download_dir: path (default paths['raw_data_path']
-            default location for raw files
+        download_dir: path (default None)
+            default location for raw files either absolute or
+            relative to paths['raw_data_path']. If None, will download to
+            paths['raw_data_path']
         file_list: list
             list of file_dicts associated with this DataSource.
             Valid keys for each file_dict include:
@@ -689,8 +691,6 @@ class DataSource(object):
         if file_list is None:
             file_list = []
 
-        if download_dir is None:
-            download_dir = paths['raw_data_path']
         if process_function is None:
             process_function = process_dataset_default
         self.name = name
@@ -703,6 +703,20 @@ class DataSource(object):
         self.fetched_files_ = []
         self.unpacked_ = False
         self.unpack_path_ = None
+
+    @property
+    def download_dir_fq(self):
+        """
+        Return the fq path to the download dir as download_dir is relative.
+        """
+        if self.download_dir is None:
+            return paths['raw_data_path']
+        else:
+            download_path = pathlib.Path(self.download_dir)
+            if download_path.is_absolute():
+                return download_path
+            else:
+                return paths['raw_data_path'] / self.download_dir
 
     @property
     def file_list(self):
@@ -1027,7 +1041,7 @@ class DataSource(object):
                 return True
 
         if fetch_path is None:
-            fetch_path = self.download_dir
+            fetch_path = self.download_dir_fq
         else:
             fetch_path = pathlib.Path(fetch_path)
 
@@ -1227,8 +1241,8 @@ class DataSource(object):
             **process_function_dict,
             'name': self.name
         }
-        if self.download_dir != paths['raw_data_path']:
-            obj_dict['download_dir'] = str(self.download_dir)
+        if self.download_dir_fq != paths['raw_data_path']:
+            obj_dict['download_dir'] = str(self.download_dir_fq)
         return obj_dict
 
     @classmethod
