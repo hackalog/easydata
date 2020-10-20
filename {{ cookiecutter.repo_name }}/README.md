@@ -1,6 +1,6 @@
 {{cookiecutter.project_name}}
 ==============================
-_Author: {{ cookiecutter.author_name }}
+_Author: {{ cookiecutter.author_name }}_
 
 {{cookiecutter.description}}
 
@@ -21,17 +21,17 @@ REQUIREMENTS
 GETTING STARTED
 ---------------
 ### Checking out the repo
-Note: These instructions assume you are using SSH keys (and not HTTPS authentication) with github.
-If you haven't set up SSH access to GitHub, see [Configuring SSH Access to Github](https://github.com/hackalog/cookiecutter-easydata/wiki/Configuring-SSH-Access-to-Github). This also includes instuctions for using more than one account with SSH keys.
+Note: These instructions assume you are using SSH keys (and not HTTPS authentication) with gitlab.
+If you haven't set up SSH access to GitLab, see [Configuring SSH Access to Github or GitLab](https://github.com/hackalog/cookiecutter-easydata/wiki/Configuring-SSH-Access-to-Github). This also includes instuctions for using more than one account with SSH keys.
 
-1. Fork the repo (on GitHub) to your personal account
+1. Fork the repo (on GitLab) to your personal account
 1. Clone your fork to your local machine
-  `git clone git@github.com:<your github handle>/{{cookiecutter.project_name}}.git`
+  `git clone git@gitlab.com:<your gitlab handle>/{{cookiecutter.project_name}}.git`
 1. Add the main source repo as a remote branch called `upstream` (to make syncing easier):
   `cd {{cookiecutter.project_name}}`
-  `git remote add upstream git@github.com:<upstream-repo>/{{cookiecutter.project_name}}.git`
+  `git remote add upstream git@gitlab.com:<upstream-repo>/{{cookiecutter.project_name}}.git`
 
-You're all set for staying up-to-date with the project repo. Follow the instructions in this handy [Github Workflow Cheat Sheet](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) for keeping your working copy of the repo in sync.
+You're all set for staying up-to-date with the project repo. Follow the instructions in this handy [Gitlab Workflow Cheat Sheet](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) for keeping your working copy of the repo in sync.
 
 ### Setting up your environment
 **WARNING**: If you have conda-forge listed as a channel in your `.condarc` (or any other channels other than defaults), remove it during the course of the workshop. Even better, don't use a `.condarc` for managing channels, as it overrides the `environment.yml` instructions and makes things less reproducible. Make the changes to the `environment.yml` file if necessary. We've had some conda-forge related issues with version conflicts. We also recommend [setting your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) to reduce package incompatibility problems.

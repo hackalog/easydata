@@ -2,7 +2,7 @@
 
 * [Contributor Guidelines and Checklist](#contributor-guide-and-checklist)
 * [Best Practices for Sharing](#best-practices-for-sharing)
-  * [Sharing Code Using Git and GitHub](#sharing-code-using-git-and-github)
+  * [Sharing Code Using Git and GitLab](#sharing-code-using-git-and-github)
   * [Sharing Datasets](#sharing-datasets)
   * [Sharing Conda Environments](#sharing-conda-environments)
   * [Sharing Notebooks](#sharing-notebooks)
@@ -42,11 +42,11 @@ When you are ready share your notebook or code with others, you'll be able to ti
 - [ ] Share your conda environment. Check in your `environment.yml` file if you've made any changes.
   * If there's any chance that you added something to the conda environment needed to run your code that was **not** added via your `environment.yml` file as per [Setting up and Maintaining your Conda Environment (Reproducibly)](conda-environments.md), [delete your environment and recreate it](conda-environments.md#nuke-it-from-orbit).
 - [ ] *(Optional)* Make sure all tests pass (run `make test`). This will test all of the dataset integration so if you don't have a lot of room on your machine (as it will build all the the datasets if you haven't yet), you may want to skip this step.
-- [ ] At least, make sure all of the tests for your code pass. To subselect your tests you can run `pytest --pyargs {{ cookiecutter.module_name }} -k your_test_filename`.
+- [ ] At least, make sure all of the tests for your code pass. To subselect your tests you can run `pytest --pyargs src -k your_test_filename`.
 
 #### Final Checks
 - [ ] You've [merged the latest version](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) of `upstream/master` into your branch.
-- [ ] [Submitted a PR via GitHub](#how-to-submit-a-PR) in **Draft** status and checked the PR diff to make sure that you aren't missing anything critical, you're not adding anything extraneous, and you don't have any merge conflicts.
+- [ ] [Submitted a PR via GitLab](#how-to-submit-a-PR) in **Draft** status and checked the PR diff to make sure that you aren't missing anything critical, you're not adding anything extraneous, and you don't have any merge conflicts.
 
 Once this checklist is complete, take your **PR** out of **Draft** status. It's ready to go!
 
@@ -54,15 +54,15 @@ As a person who is trying to contribute and share your work with others, it may 
 
 
 ## Best Practices for Sharing
-### Sharing Code Using Git and GitHub
+### Sharing Code Using Git and GitLab
 
 Quick References:
 
-* Keeping up-to-date: [Our GitHub Workflow](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet)
+* Keeping up-to-date: [Our GitLab Workflow](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet)
 * Recommended [Git tutorial](https://github.com/hackalog/cookiecutter-easydata/wiki/Git-Tutorial)
 
 
-There are several ways to use Git and GitHub successfully, and a lot more ways to use them unsuccessfully when working with lots of other people. Here are some best practices that we suggest you use to make your life, and our lives easier. This workflow we suggest makes choosing which changes to put in a pull request easier, and helps to avoid crazy merge conflicts.
+There are several ways to use Git and GitLab successfully, and a lot more ways to use them unsuccessfully when working with lots of other people. Here are some best practices that we suggest you use to make your life, and our lives easier. This workflow we suggest makes choosing which changes to put in a pull request easier, and helps to avoid crazy merge conflicts.
 
 First off, follow the [Getting Started](../README.md#getting-started) instructions for setting yourself up to work off of your own fork. The idea here will be to keep `upstream/master`, your local `master` and your `origin/master` all in sync with each other.
 
@@ -71,17 +71,17 @@ Any changes should be made in a separate branch---**not** your `master`---that y
 1. Make sure your `master` is up-to-date with upstream `git fetch upstream` and `git merge upstream/master`
 1. Make sure your environment is up-to-date with upstream `make update_environment`
 1. Start your work (from your up-to-date `master`) in a new branch: `git checkout -b my_new_branch`
-1. Commit all your changes to `my_new_branch` (as per the [Github Workflow](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet))
+1. Commit all your changes to `my_new_branch` (as per the [GitLab Workflow](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet))
 
 
-You can pretty much blindly do this by following the [Github Workflow](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) religiously.
+You can pretty much blindly do this by following the [GitLab Workflow](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) religiously.
 
 #### How to submit a PR
 
-1. Push to your GitHub fork by `git push origin my_new_branch`.
-1. If this is the first time you do this from `my_new_branch`, you'll be prompted with a URL from your terminal for how to create a PR. Otherwise, if you go to GitHub, you'll see a yellow banner at the top of the screen prompting you to submit a PR (as long as you're not out of sync with the `upstream master`, in which case, re-sync your branch).
+1. Push to your GitLab fork by `git push origin my_new_branch`.
+1. If this is the first time you do this from `my_new_branch`, you'll be prompted with a URL from your terminal for how to create a PR. Otherwise, if you go to GitLab, you'll see a yellow banner at the top of the screen prompting you to submit a PR (as long as you're not out of sync with the `upstream master`, in which case, re-sync your branch).
 1. You have the option to submit a PR in **Draft** status. Select this if you have a work in progress. It disables the ability to merge your PR.
-1. Once you submit your PR, there may be a yellow dot or red X beside your PR. This is because we have tests set up in CircleCI. If you are working in a private repo, you need to authorize access to CircleCI on your fork for tests to run successfully. To do so, follow the link to CircleCI and **authorize github** on your fork of the repo.
+1. Once you submit your PR, there may be a yellow dot or red X beside your PR. This is because we have tests set up in CircleCI. If you are working in a private repo, you need to authorize access to CircleCI on your fork for tests to run successfully. To do so, follow the link to CircleCI and **authorize gitlab** on your fork of the repo.
 1. When ready, take your PR out of **Draft** status.
 
 
