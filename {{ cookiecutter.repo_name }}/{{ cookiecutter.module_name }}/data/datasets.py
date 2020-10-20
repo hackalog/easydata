@@ -189,7 +189,7 @@ class Dataset(Bunch):
         self['metadata']['dataset_name'] = dataset_name
         self['data'] = data
         self['target'] = target
-        self['extra'] = Extra.from_dict(metadata.get('extra', None))
+        #self['extra'] = Extra.from_dict(metadata.get('extra', None))
         data_hashes = self.get_data_hashes()
 
         if update_hashes:
