@@ -479,15 +479,6 @@ class Dataset(Bunch):
         if not dsrc.fetch(fetch_path=fetch_path, force=force):
             logger.debug("Fetch failed. Aborting.")
             return None
-        # Look for hash after fetching, as fetch creates hash values on metadata
-        meta_hash, hash_dict = dsrc.to_hash(dataset_name=dataset_name, **kwargs, include_dict=True)
-        try:
-            logger.debug(f"Checking for cached Dataset {dataset_name} ({meta_hash})...")
-            dset = Dataset.from_disk(meta_hash, data_path=cache_path)
-            logger.debug(f"Found cached Dataset for {dataset_name}")
-            return dset
-        except FileNotFoundError:
-            logger.debug(f"No cached Dataset found for {dataset_name}. Re-processing from source:{datasource_name}...")
 
         if dsrc.unpack(unpack_path=unpack_path, force=force) is None:
             logger.debug("Unpack failed. Aborting.")
@@ -1138,22 +1129,15 @@ class DataSource(object):
 
         dset = None
         dset_opts = {}
-        if force is False:
-            try:
-                logger.debug(f"Checking for cached Dataset {self.name} ({meta_hash})...")
-                dset = Dataset.from_disk(meta_hash, data_path=cache_path)
-                logger.debug(f"Found cached Dataset for {self.name}")
-                return dset
-            except FileNotFoundError:
-                logger.debug(f"No cached Dataset found for {self.name}.")
 
         if dset is None:
             metadata = self.default_metadata(use_docstring=use_docstring)
             supplied_metadata = kwargs.pop('metadata', {})
             dset_opts = self.dataset_constructor_opts(metadata={**metadata, **supplied_metadata}, **kwargs)
             dset = Dataset(**dset_opts)
-            logger.debug(f"Caching dataset as {meta_hash}...")
-            dset.dump(dump_path=cache_path, file_base=meta_hash, force=force)
+            # if we were going to cache the dataset, we would dump it here; e.g.
+            # logger.debug(f"Caching dataset as {dataset_hash}...")
+            # dset.dump(dump_path=cache_path, file_base=dataset_hash, force=force)
 
         if return_X_y:
             return dset.data, dset.target
