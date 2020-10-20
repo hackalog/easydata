@@ -85,7 +85,7 @@ def hash_file(fname, algorithm="sha1", block_size=4096):
     String: f"{hash_type}:{hash_value}"
     '''
     if algorithm == 'size':
-        hashval = _HASH_FUNCTION_MAP[algorithm]()
+        hashval = _HASH_FUNCTION_MAP[algorithm]
         return f"{algorithm}:{hashval(fname)}"
 
     hashval = _HASH_FUNCTION_MAP[algorithm]()
