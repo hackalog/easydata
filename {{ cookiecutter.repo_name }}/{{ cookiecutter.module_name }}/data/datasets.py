@@ -384,6 +384,7 @@ class Dataset(Bunch):
          catalog_path=None,
          dataset_file='datasets.json',
          transformer_file='transformers.json',
+         force=False
         ):
         """Load a dataset (or its metadata) from the dataset catalog.
 
@@ -406,6 +407,8 @@ class Dataset(Bunch):
             name of dataset catalog file. Relative to `catalog_path`.
         transformer_file: str. default 'transformers.json'
             name of dataset cache file. Relative to `catalog_path`.
+        force: Boolean
+            if True, ignore any Dataset cache and always regenerate
         """
         if dataset_cache_path is None:
             dataset_cache_path = paths['processed_data_path']
@@ -424,7 +427,7 @@ class Dataset(Bunch):
         if metadata_only:
             return meta
 
-        ds = xform_graph.generate(dataset_name)
+        ds = xform_graph.generate(dataset_name, force=force)
         if ds is None:
             return None
 
@@ -479,15 +482,6 @@ class Dataset(Bunch):
         if not dsrc.fetch(fetch_path=fetch_path, force=force):
             logger.debug("Fetch failed. Aborting.")
             return None
-        # Look for hash after fetching, as fetch creates hash values on metadata
-        meta_hash, hash_dict = dsrc.to_hash(dataset_name=dataset_name, **kwargs, include_dict=True)
-        try:
-            logger.debug(f"Checking for cached Dataset {dataset_name} ({meta_hash})...")
-            dset = Dataset.from_disk(meta_hash, data_path=cache_path)
-            logger.debug(f"Found cached Dataset for {dataset_name}")
-            return dset
-        except FileNotFoundError:
-            logger.debug(f"No cached Dataset found for {dataset_name}. Re-processing from source:{datasource_name}...")
 
         if dsrc.unpack(unpack_path=unpack_path, force=force) is None:
             logger.debug("Unpack failed. Aborting.")
@@ -667,8 +661,10 @@ class DataSource(object):
             name of dataset
         process_function: func (or partial)
             Function that will be called to process raw data into usable Dataset
-        download_dir: path (default paths['raw_data_path']
-            default location for raw files
+        download_dir: path (default None)
+            default location for raw files either absolute or
+            relative to paths['raw_data_path']. If None, will download to
+            paths['raw_data_path']
         file_list: list
             list of file_dicts associated with this DataSource.
             Valid keys for each file_dict include:
@@ -689,8 +685,6 @@ class DataSource(object):
         if file_list is None:
             file_list = []
 
-        if download_dir is None:
-            download_dir = paths['raw_data_path']
         if process_function is None:
             process_function = process_dataset_default
         self.name = name
@@ -703,6 +697,20 @@ class DataSource(object):
         self.fetched_files_ = []
         self.unpacked_ = False
         self.unpack_path_ = None
+
+    @property
+    def download_dir_fq(self):
+        """
+        Return the fq path to the download dir as download_dir is relative.
+        """
+        if self.download_dir is None:
+            return paths['raw_data_path']
+        else:
+            download_path = pathlib.Path(self.download_dir)
+            if download_path.is_absolute():
+                return download_path
+            else:
+                return paths['raw_data_path'] / self.download_dir
 
     @property
     def file_list(self):
@@ -1027,7 +1035,7 @@ class DataSource(object):
                 return True
 
         if fetch_path is None:
-            fetch_path = self.download_dir
+            fetch_path = self.download_dir_fq
         else:
             fetch_path = pathlib.Path(fetch_path)
 
@@ -1102,8 +1110,8 @@ class DataSource(object):
         cache_path: path
             Location of dataset cache.
         force: boolean
-            If False, use a cached object (if available).
-            If True, regenerate object from scratch.
+            If False, raise an error if the generated dataset exists
+            If True, overwrite any existing processed dataset
         return_X_y: boolean
             if True, returns (data, target) instead of a `Dataset` object.
         use_docstring: boolean
@@ -1124,22 +1132,15 @@ class DataSource(object):
 
         dset = None
         dset_opts = {}
-        if force is False:
-            try:
-                logger.debug(f"Checking for cached Dataset {self.name} ({meta_hash})...")
-                dset = Dataset.from_disk(meta_hash, data_path=cache_path)
-                logger.debug(f"Found cached Dataset for {self.name}")
-                return dset
-            except FileNotFoundError:
-                logger.debug(f"No cached Dataset found for {self.name}.")
 
         if dset is None:
             metadata = self.default_metadata(use_docstring=use_docstring)
             supplied_metadata = kwargs.pop('metadata', {})
             dset_opts = self.dataset_constructor_opts(metadata={**metadata, **supplied_metadata}, **kwargs)
             dset = Dataset(**dset_opts)
-            logger.debug(f"Caching dataset as {meta_hash}...")
-            dset.dump(dump_path=cache_path, file_base=meta_hash, force=force)
+            # if we were going to cache the dataset, we would dump it here; e.g.
+            # logger.debug(f"Caching dataset as {dataset_hash}...")
+            # dset.dump(dump_path=cache_path, file_base=dataset_hash, force=force)
 
         if return_X_y:
             return dset.data, dset.target
@@ -1227,8 +1228,8 @@ class DataSource(object):
             **process_function_dict,
             'name': self.name
         }
-        if self.download_dir != paths['raw_data_path']:
-            obj_dict['download_dir'] = str(self.download_dir)
+        if self.download_dir_fq != paths['raw_data_path']:
+            obj_dict['download_dir'] = str(self.download_dir_fq)
         return obj_dict
 
     @classmethod
@@ -1662,8 +1663,8 @@ class TransformerGraph:
 
         kind: {'depth-first', 'breadth-first'}. Default 'breadth-first'
         force: Boolean
-            if True, stop when all upstream dependencies are satisfied
-            if False, always traverse all the way to source nodes.
+            if False, stop when all upstream dependencies are satisfied
+            if True, always traverse all the way to source nodes.
 
         Returns
         -------
@@ -1754,10 +1755,10 @@ class TransformerGraph:
                     success = False
                     continue
                 self.datasets[ds_name] = ds.metadata
-                if write_catalog and ds_name not in cached_dsdicts: # XXX and check hashes
+                if write_catalog and (force or ds_name not in cached_dsdicts): # XXX and check hashes
                     logger.debug(f"Writing '{ds_name}' to processed data cache")
                     ds.dump(dump_path=dataset_path, force=force, update_catalog=False)
-                logger.debug("Writing updated Dataset catalog to disk")
+                logger.debug("Writing updated Dataset catalog")
                 save_json(self._dataset_catalog_fq, self.datasets)
             if success is False:
                 return None

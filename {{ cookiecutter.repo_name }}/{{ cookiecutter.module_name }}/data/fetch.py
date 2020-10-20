@@ -28,6 +28,7 @@ __all__ = [
 _HASH_FUNCTION_MAP = {
     'md5': hashlib.md5,
     'sha1': hashlib.sha1,
+    'size': os.path.getsize,
 }
 
 def available_hashes():
@@ -46,21 +47,26 @@ def available_hashes():
     ============     ====================================
     md5              hashlib.md5
     sha1             hashlib.sha1
+    size             os.path.getsize
     ============     ====================================
 
     >>> list(available_hashes().keys())
-    ['md5', 'sha1']
+    ['md5', 'sha1', 'size']
     """
     return _HASH_FUNCTION_MAP
 
 def hash_object(obj, hash_type="sha1"):
     '''compute the hash of a python object
 
-    hash_type: md5{'f', 'sha1'}
+    Parameters
+    ----------
+    hash_type: {'md5', 'sha1', 'size'}
         hash function to use.
-        Must be valid joblib hash type
+        Must be in `available_hashes`
 
-    Returns: string "{hash_type}:{hash_value}"
+    Returns
+    -------
+    A string: f"{hash_type}:{hash_value}"
     '''
     data_hash = joblib.hash(obj, hash_name=hash_type).hexdigest()
     return f"{hash_type}:{data_hash}"
@@ -68,14 +74,20 @@ def hash_object(obj, hash_type="sha1"):
 def hash_file(fname, algorithm="sha1", block_size=4096):
     '''Compute the hash of an on-disk file
 
-    algorithm: {'md5', 'sha1'}
-        hash algorithm to use
+    hash_type: {'md5', 'sha1', 'size'}
+        hash function to use.
+        Must be in `available_hashes`
     block_size:
         size of chunks to read when hashing
 
-    Returns: string
-        "{hash_type}:{hash_value}"
+    Returns
+    -------
+    String: f"{hash_type}:{hash_value}"
     '''
+    if algorithm == 'size':
+        hashval = _HASH_FUNCTION_MAP[algorithm]()
+        return f"{algorithm}:{hashval(fname)}"
+
     hashval = _HASH_FUNCTION_MAP[algorithm]()
     with open(fname, "rb") as fd:
         for chunk in iter(lambda: fd.read(block_size), b""):
