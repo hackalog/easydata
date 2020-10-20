@@ -1,10 +1,12 @@
+import json
 import os
 import pathlib
 import sys
 from functools import partial
-from collections import Counter
+from collections import Counter, defaultdict
 
 import joblib
+import fsspec
 from sklearn.utils import Bunch
 from sklearn.model_selection import train_test_split
 
@@ -187,6 +189,7 @@ class Dataset(Bunch):
         self['metadata']['dataset_name'] = dataset_name
         self['data'] = data
         self['target'] = target
+        self['extra'] = Extra.from_dict(metadata.get('extra', None))
         data_hashes = self.get_data_hashes()
 
         if update_hashes:
@@ -223,6 +226,28 @@ class Dataset(Bunch):
             self['metadata'][key.lower()] = value
         elif key == 'name':
             self['metadata']['dataset_name'] = value
+        elif key in ['extra_base', 'extra_auth_kwargs']:
+            if self.name not in paths._config.sections():
+                paths._config.add_section(self.name)
+            if key == 'extra_auth_kwargs':
+                paths._config.set(self.name, key, json.dumps(value, sort_keys=True))
+            else:
+                paths._config.set(self.name, key, value)
+            paths._write()
+            logger.debug(f"Writing {key} to [{self.name}] in local_config")
+        else:
+            super().__setattr__(key, value)
+
+    def __delattr__(self, key):
+        if key.isupper():
+            del self['metadata'][key.lower()]
+        elif key == 'name':
+            raise Exception("name is mandatory")
+        elif key == 'extra_base':
+            if paths._config.has_section(self.name) and paths._config.has_option(self.name, key):
+                paths._config.remove_option(self.name, key)
+                paths._write()
+                logger.debug(f"Removing {key} from [{self.name}] in local_config")
         else:
             super().__setattr__(key, value)
 
@@ -245,13 +270,58 @@ class Dataset(Bunch):
     def name(self):
         return self['metadata'].get('dataset_name', None)
 
-    @name.setter
-    def name(self, val):
-        self['metadata']['dataset_name'] = val
+    # note: won't work because of __setattr_ magic above
+    #@name.setter
+    #def name(self, val):
+    #    self['metadata']['dataset_name'] = val
 
     @property
     def has_target(self):
         return self['target'] is not None
+
+    def resolve_local_config(self, key, default=None, kind="string"):
+        """Check for local data, first from the local data store, then from metadata. Finally, from the supplied default
+        """
+        if paths._config.has_section(self.name) and paths._config.has_option(self.name, key):
+            logger.debug(f"Retrieving {key} from [{self.name}] in local_config")
+            local_config = paths._config.get(self.name, key)
+        else:
+            local_config = self.metadata.get(key, None)
+            if local_config:
+                logger.debug(f"Retrieving {key} from metadata")
+            else:
+                local_config = default
+        if kind == "string":
+            return str(local_config)
+        elif kind == "json":
+            return json.loads(local_config)
+        else:
+            raise Exception(f"Unknown kind: {kind}")
+
+    @property
+    def extra_base(self):
+        return self.resolve_local_config("extra_base", paths['processed_data_path'] / f"{self.name}.extra")
+
+    @property
+    def extra_auth_kwargs(self):
+        return self.resolve_local_config("extra_auth_kwargs", "{}", kind="json")
+
+    # Note: won't work because of set/setattr magic above
+    #@extra_base.deleter
+    #def extra_base(self):
+    #    if paths._config.has_section(self.name) and paths._config.has_option(self.name, "extra_base"):
+    #        paths._config.remove_option("extra_base")
+
+
+    # Note: Won't work because of setattr magic above
+    #@extra_base.setter
+    #def extra_base(self, val):
+    #    if self.name not in paths._config.sections():
+    #        paths._config.add_section(self.name)
+    #    paths._config.set(self.name, "extra_base", val)
+    #    paths._write()
+    #    logger.debug(f"Writing {paths._config_file}")
+
 
     @classmethod
     def from_disk(cls, dataset_name, data_path=None, metadata_only=False, errors=True,
@@ -530,6 +600,159 @@ class Dataset(Bunch):
         True
         """
         return hashdict.items() <= self.metadata['hashes'].items()
+
+    def verify_extra(self, extra_base=None, file_dict=None, return_filelists=False, hash_types=['size']):
+        """
+        Verify that all files listed in the metadata EXTRA dict are accessible and have good hashes.
+
+        Returns boolean - True if all files are accessible and have good hashes - and optional
+        file lists.
+
+        Parameters
+        ----------
+        extra_base: path or None
+           base for the EXTRA filenames.
+           if passed as explicit parameter, this location will be used
+           if omitted, the dataset `extra_base` will be read (which checks the local_config,
+           or self.EXTRA_BASE, in that order)
+        file_dict: sub-dict of extra dict
+           if None, default to the whole extra dict
+        return_filelists: boolean, default False
+           if True, returns triple (good_hashes, bad_hashes, missing_files)
+           else, returns Boolean (all files good)
+        hash_types: sublist of ['size', 'md5', 'sha1']
+           hash types to check against
+
+        Returns
+        -------
+        True if all files are accessible and have good hashes. False otherwise.
+
+        if return_filelists is True, also returns a triple:
+
+        (good, bad, missing) where
+
+        good: List
+            files that are accessible and have valid hashes
+        bad: List
+            files that are accessible but who fail hash checks
+        missing: List
+            files that are inaccessible
+
+        """
+        if extra_base is None:
+            extra_base = self.extra_base
+        extra_base = pathlib.Path(extra_base)
+        extra_dict = self.metadata.get('extra', None)
+        if file_dict is None:
+            file_dict = extra_dict
+        else:
+            if not (file_dict.keys() <= extra_dict.keys()):
+                raise ValueError(f"file_dict must be a subset of the metadata['extra'] dict")
+            else:
+                for key in file_dict.keys():
+                    if not (file_dict[key].items() <= extra_dict[key].items()):
+                        raise ValueError(f"file_dict must be a subset of the metadata['extra'] dict")
+
+        retval = False
+        bad_hash = []
+        good_hash = []
+        missing = []
+
+        if file_dict is None:
+            retval = True
+        else:
+            for directory in file_dict.keys():
+                for file, meta_hash_list in file_dict[directory].items():
+                    path = extra_base / directory / file
+                    rel_path = pathlib.Path(directory) / file
+                    if path.exists():
+                        disk_hash_list = []
+                        for hash_type in hash_types:
+                            disk_hash_list.append(hash_file(path, algorithm=hash_type))
+                        if set(meta_hash_list) <= set(disk_hash_list):
+                            good_hash.append(rel_path)
+                        else:
+                            bad_hash.append(rel_path)
+                    else:
+                        missing.append(rel_path)
+            if len(bad_hash) == 0 and len(missing) == 0:
+                retval = True
+        if return_filelists:
+            return retval, good_hash, bad_hash, missing
+        else:
+            return retval
+
+    def subselect_extra(self, rel_files):
+        """Convert a (relative) pathname to an EXTRA dict
+
+        Suitable for passing to verify_extra()
+        """
+        extra_dict = defaultdict(dict)
+        for rel_file_path in rel_files:
+            rel_path = pathlib.Path(rel_file_path)
+            try:
+                hashlist = self.EXTRA[str(rel_path.parent)][rel_path.name]
+            except KeyError:
+                raise KeyError(f"Not in EXTRA: {rel_file_path}") from None
+            extra_dict[str(rel_path.parent)][rel_path.name] = hashlist
+        return dict(extra_dict)
+
+    def extra_file(self, relative_path):
+        """Convert a relative path (relative to extra_base) to a fully qualified location
+
+        extra_base may be prefixed with optional protocol like `s3://` and
+        is suitable for passing to fsspec.open_files()
+
+        Parameters
+        ----------
+        relative_path: string or list
+            Relative filepath. Will be appended to extra_base (and an intervening '/' added as needed)
+            extra_base can be prefixed with a protocol like `s3://` to read from alternate filesystems.
+            To read from multiple files you can pass a globstring or a list of paths, with the caveat
+            that they must all have the same protocol.
+        """
+        extra_base = self.extra_base
+        if extra_base.startswith("/"):
+            fqpath =  str(pathlib.Path(extra_base) / relative_path)
+        elif extra_base.endswith('/'):
+            fqpath = f"{extra_base}{relative_path}"
+        else:
+            fqpath = f"{extra_base}/{relative_path}"
+        return fqpath
+
+    def open_extra(self, relative_path, auth_kwargs=None, **kwargs):
+        """Given a path (relative to extra_base), return an fsspec.OpenFile object
+
+        Parameters
+        ----------
+        relative_path: string or list
+            Relative filepath. Will be appended to extra_base (and an intervening '/' added as needed)
+            extra_base can be prefixed with a protocol like `s3://` to read from alternate filesystems.
+            To read from multiple files you can pass a globstring or a list of paths, with the caveat
+            that they must all have the same protocol.
+        auth_kwargs: dict or None
+            Dictionary of parameters to pass as kwargs to fsspec.OpenFile. This is where you can
+            should specify authentication information (e.g. AWS keys)
+        **kwargs: dict
+            Other parameters to pass to fsspec.open_files() e.g.
+            compression, protocol, encoding, host, port, username, password, etc. See `fsspec.open()`
+
+        Examples
+        --------
+        >>> with ds.open_extra('2020-01-*.csv') as f:
+        ...    df = pd.read_csv(f)   # doctest: +SKIP
+
+        Returns
+        -------
+        An `OpenFiles` instance, which is a list of OpenFile objects that can
+        be used as a single context
+        """
+        if auth_kwargs is None:
+            auth_kwargs = self.extra_auth_kwargs
+        if auth_kwargs:
+            logger.debug(f"Passing authentication information via auth_kwargs")
+
+        return fsspec.open(self.extra_file(relative_path), **auth_kwargs, **kwargs)
 
     def dump(self, file_base=None, dump_path=None, hash_type='sha1',
              force=False, create_dirs=True, dump_metadata=True, update_catalog=True,
