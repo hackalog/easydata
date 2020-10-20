@@ -34,4 +34,5 @@ dependencies:
   - pandas
   - requests
   - pathlib
+  - fsspec
 {{ pyver()|indent(2, true) }}
