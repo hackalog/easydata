@@ -384,6 +384,7 @@ class Dataset(Bunch):
          catalog_path=None,
          dataset_file='datasets.json',
          transformer_file='transformers.json',
+         force=False
         ):
         """Load a dataset (or its metadata) from the dataset catalog.
 
@@ -406,6 +407,8 @@ class Dataset(Bunch):
             name of dataset catalog file. Relative to `catalog_path`.
         transformer_file: str. default 'transformers.json'
             name of dataset cache file. Relative to `catalog_path`.
+        force: Boolean
+            if True, ignore any Dataset cache and always regenerate
         """
         if dataset_cache_path is None:
             dataset_cache_path = paths['processed_data_path']
@@ -424,7 +427,7 @@ class Dataset(Bunch):
         if metadata_only:
             return meta
 
-        ds = xform_graph.generate(dataset_name)
+        ds = xform_graph.generate(dataset_name, force=force)
         if ds is None:
             return None
 
@@ -1107,8 +1110,8 @@ class DataSource(object):
         cache_path: path
             Location of dataset cache.
         force: boolean
-            If False, use a cached object (if available).
-            If True, regenerate object from scratch.
+            If False, raise an error if the generated dataset exists
+            If True, overwrite any existing processed dataset
         return_X_y: boolean
             if True, returns (data, target) instead of a `Dataset` object.
         use_docstring: boolean
@@ -1660,8 +1663,8 @@ class TransformerGraph:
 
         kind: {'depth-first', 'breadth-first'}. Default 'breadth-first'
         force: Boolean
-            if True, stop when all upstream dependencies are satisfied
-            if False, always traverse all the way to source nodes.
+            if False, stop when all upstream dependencies are satisfied
+            if True, always traverse all the way to source nodes.
 
         Returns
         -------
@@ -1752,10 +1755,10 @@ class TransformerGraph:
                     success = False
                     continue
                 self.datasets[ds_name] = ds.metadata
-                if write_catalog and ds_name not in cached_dsdicts: # XXX and check hashes
+                if write_catalog and (force or ds_name not in cached_dsdicts): # XXX and check hashes
                     logger.debug(f"Writing '{ds_name}' to processed data cache")
                     ds.dump(dump_path=dataset_path, force=force, update_catalog=False)
-                logger.debug("Writing updated Dataset catalog to disk")
+                logger.debug("Writing updated Dataset catalog")
                 save_json(self._dataset_catalog_fq, self.datasets)
             if success is False:
                 return None
