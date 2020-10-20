@@ -26,10 +26,10 @@ If you haven't set up SSH access to GitLab, see [Configuring SSH Access to Githu
 
 1. Fork the repo (on GitLab) to your personal account
 1. Clone your fork to your local machine
-  `git clone git@gitlab.com:<your gitlab handle>/{{cookiecutter.project_name}}.git`
+  `git clone git@gitlab.com:<your gitlab handle>/{{cookiecutter.repo_name}}.git`
 1. Add the main source repo as a remote branch called `upstream` (to make syncing easier):
-  `cd {{cookiecutter.project_name}}`
-  `git remote add upstream git@gitlab.com:<upstream-repo>/{{cookiecutter.project_name}}.git`
+  `cd {{cookiecutter.repo_name}}`
+  `git remote add upstream git@gitlab.com:<upstream-repo>/{{cookiecutter.repo_name}}.git`
 
 You're all set for staying up-to-date with the project repo. Follow the instructions in this handy [Gitlab Workflow Cheat Sheet](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) for keeping your working copy of the repo in sync.
 
