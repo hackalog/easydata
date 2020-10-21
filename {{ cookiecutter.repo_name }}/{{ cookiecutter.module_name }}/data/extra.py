@@ -74,7 +74,7 @@ def process_extra_files(*, extract_dir=None, metadata=None, unpack_dir=None, fil
             logger.debug(f"Copying files to {extra_dir_fq}...")
 
     file_dict = defaultdict(dict)
-    files = list(unpack_dir.rglob(file_glob))
+    files = sorted(list(unpack_dir.rglob(file_glob)))
     for i, file in enumerate(tqdm(files)):
         if file.is_dir():
             continue
