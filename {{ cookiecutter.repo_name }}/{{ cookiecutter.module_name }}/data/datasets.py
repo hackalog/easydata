@@ -549,7 +549,7 @@ class Dataset(Bunch):
         if datasource_name not in dsrc_dict:
             raise Exception(f'Unknown Datasource={datasource_name} specified for datset={dataset_name}')
         dsrc = DataSource.from_dict(dsrc_dict[datasource_name])
-        if not dsrc.fetch(fetch_path=fetch_path, force=force):
+        if not dsrc.fetch(fetch_path=fetch_path, force_download=force):
             logger.debug("Fetch failed. Aborting.")
             return None
 
@@ -1228,7 +1228,7 @@ class DataSource(object):
         }
         return dset_opts
 
-    def fetch(self, fetch_path=None, force=False):
+    def fetch(self, fetch_path=None, force_download=False):
         """Fetch files in the `file_dict` to `raw_data_dir` and check hashes.
 
         Parameters
@@ -1236,26 +1236,26 @@ class DataSource(object):
         fetch_path: None or string
             By default, assumes download_dir
 
-        force: Boolean
+        force_download: Boolean
             If True, ignore the cache and re-download the fetch each time
         """
-        if self.fetched_ and force is False:
-            # validate the downloaded files:
-            for filename, item in self.file_dict.items():
-                raw_data_file = paths['raw_data_path'] / filename
-                if not raw_data_file.exists():
-                    logger.warning(f"{raw_data_file.name} missing. Invalidating fetch cache")
-                    self.fetched_ = False
-                    break
-                hash_type = item.get('hash_type', 'sha1')
-                raw_file_hash = hash_file(raw_data_file, algorithm=hash_type)
-                if raw_file_hash != item['hash_value']:
-                    logger.warning(f"{raw_data_file.name} hash invalid ({raw_file_hash} != {item['hash_value']}). Invalidating fetch cache.")
-                    self.fetched_ = False
-                    break
-            else:
-                logger.debug(f'Data Source {self.name} is already fetched. Skipping')
-                return True
+        if self.fetched_ and force_download is False:
+                # validate the downloaded files:
+                for filename, item in self.file_dict.items():
+                    raw_data_file = paths['raw_data_path'] / filename
+                    if not raw_data_file.exists():
+                        logger.warning(f"{raw_data_file.name} missing. Invalidating fetch cache")
+                        self.fetched_ = False
+                        break
+                    hash_type = item.get('hash_type', 'sha1')
+                    raw_file_hash = hash_file(raw_data_file, algorithm=hash_type)
+                    if raw_file_hash != item['hash_value']:
+                        logger.warning(f"{raw_data_file.name} hash invalid ({raw_file_hash} != {item['hash_value']}). Invalidating fetch cache.")
+                        self.fetched_ = False
+                        break
+                else:
+                    logger.debug(f'Data Source {self.name} is already fetched. Skipping')
+                    return True
 
         if fetch_path is None:
             fetch_path = self.download_dir_fq
@@ -1265,15 +1265,20 @@ class DataSource(object):
         self.fetched_ = False
         self.fetched_files_ = []
         self.fetched_ = True
-        for key, item in self.file_dict.items():
-            status, result, hash_value = fetch_file(**item, force=force)
+        for filename, fetch_params in self.file_dict.items():
+            status, result, hash_value = fetch_file(**fetch_params, force=force_download)
             if status:  # True (cached) or HTTP Code (successful download)
-                item['hash_value'] = hash_value
-                item['file_name'] = result.name
+                fetch_params['hash_value'] = hash_value
+
+                # This breaks because file_name should be relative
+                # to raw_data_path
+                #fetch_params['file_name'] = result.name
+                if fetch_params.get('file_name', None) is None:
+                    fetch_params['file_name'] = result.name
                 self.fetched_files_.append(result)
             else:
-                if item.get('fetch_action', False) != 'message':
-                    logger.error(f"fetch of {key} returned: {result}")
+                if fetch_params.get('fetch_action', False) != 'message':
+                    logger.error(f"fetch of {filename} returned: {result}")
                 self.fetched_ = False
 
         self.unpacked_ = False
