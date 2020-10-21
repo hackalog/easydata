@@ -1240,22 +1240,22 @@ class DataSource(object):
             If True, ignore the cache and re-download the fetch each time
         """
         if self.fetched_ and force_download is False:
-                # validate the downloaded files:
-                for filename, item in self.file_dict.items():
-                    raw_data_file = paths['raw_data_path'] / filename
-                    if not raw_data_file.exists():
-                        logger.warning(f"{raw_data_file.name} missing. Invalidating fetch cache")
-                        self.fetched_ = False
-                        break
-                    hash_type = item.get('hash_type', 'sha1')
-                    raw_file_hash = hash_file(raw_data_file, algorithm=hash_type)
-                    if raw_file_hash != item['hash_value']:
-                        logger.warning(f"{raw_data_file.name} hash invalid ({raw_file_hash} != {item['hash_value']}). Invalidating fetch cache.")
-                        self.fetched_ = False
-                        break
-                else:
-                    logger.debug(f'Data Source {self.name} is already fetched. Skipping')
-                    return True
+            # validate the downloaded files:
+            for filename, item in self.file_dict.items():
+                raw_data_file = paths['raw_data_path'] / filename
+                if not raw_data_file.exists():
+                    logger.warning(f"{raw_data_file.name} missing. Invalidating fetch cache")
+                    self.fetched_ = False
+                    break
+                hash_type = item.get('hash_type', 'sha1')
+                raw_file_hash = hash_file(raw_data_file, algorithm=hash_type)
+                if raw_file_hash != item['hash_value']:
+                    logger.warning(f"{raw_data_file.name} hash invalid ({raw_file_hash} != {item['hash_value']}). Invalidating fetch cache.")
+                    self.fetched_ = False
+                    break
+            else:
+                logger.debug(f'Data Source {self.name} is already fetched. Skipping')
+                return True
 
         if fetch_path is None:
             fetch_path = self.download_dir_fq
