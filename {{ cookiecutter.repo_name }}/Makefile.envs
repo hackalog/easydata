@@ -56,7 +56,7 @@ endif
 ## Test python environment is set-up correctly
 test_environment:
 ifeq (conda,$(VIRTUALENV))
-ifneq (${CONDA_DEFAULT_ENV}, $(PROJECT_NAME))
+ifneq (($(notdir ${CONDA_DEFAULT_ENV}), $(PROJECT_NAME))
 	$(error Must activate `$(PROJECT_NAME)` environment before proceeding)
 endif
 else
