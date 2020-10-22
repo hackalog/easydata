@@ -194,7 +194,7 @@ def infer_filename(url=None, file_name=None, source_file=None, **kwargs):
     return file_name
 
 
-def fetch_file(url=None, contents=None,
+def fetch_file(url=None, url_options=None, contents=None,
                file_name=None, dst_dir=None,
                force=False, source_file=None,
                hash_type=None, hash_value=None,
@@ -240,6 +240,8 @@ def fetch_file(url=None, contents=None,
         Text to be displayed to user (if fetch_action == 'message')
     fetch_action: {'copy', 'message', 'url', 'create'}
         Method used to obtain file
+    url_options: dict
+        kwargs to pass when fetching URLs using requests
     file_name:
         output file name. If not specified, use the last
         component of the URL
@@ -271,6 +273,8 @@ def fetch_file(url=None, contents=None,
     '''
     _valid_fetch_actions = ('message', 'copy', 'url', 'create', 'google-drive')
 
+    if url_options is None:
+        url_options = {}
     # infer filename from url or src_path if needed
     if file_name is None:
         file_name = infer_filename(url=url, source_file=source_file)
@@ -337,7 +341,8 @@ def fetch_file(url=None, contents=None,
         # Download the file
         try:
             logger.debug(f"fetching {url}")
-            results = requests.get(url)
+            results = requests.get(url, **url_options)
+            # TODO: change to streaming and use tqdm
             results.raise_for_status()
             raw_file_hash = f"{hash_type}:{_HASH_FUNCTION_MAP[hash_type](results.content).hexdigest()}"
             if hash_value is not None:

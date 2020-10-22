@@ -1106,7 +1106,7 @@ class DataSource(object):
         self.fetched_ = False
 
     def add_url(self, url=None, *, hash_type='sha1', hash_value=None,
-                name=None, file_name=None, force=False, unpack_action=None):
+                name=None, file_name=None, force=False, unpack_action=None, url_options=None):
         """Add a file to the file list by URL.
 
         hash_type: {'sha1', 'md5'}
@@ -1123,6 +1123,9 @@ class DataSource(object):
             If True, overwrite an existing entry for this file
         unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
             action to take in order to unpack this file. If None, infers from file type.
+        url_options: dict or None
+            if `url` is specified, these options will be passed to the requests.request() call
+            made when fetching.
         """
         if url is None:
             raise Exception("`url` is required")
@@ -1139,6 +1142,8 @@ class DataSource(object):
         }
         if unpack_action:
             fetch_dict.update({'unpack_action': unpack_action})
+        if url_options:
+            fetch_dict.update({'url_options': url_options})
 
         if file_name in self.file_dict and not force:
             raise Exception(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
@@ -1228,7 +1233,7 @@ class DataSource(object):
         }
         return dset_opts
 
-    def fetch(self, fetch_path=None, force_download=False):
+    def fetch(self, fetch_path=None, fetch_options=None, force_download=False):
         """Fetch files in the `file_dict` to `raw_data_dir` and check hashes.
 
         Parameters
@@ -1236,9 +1241,14 @@ class DataSource(object):
         fetch_path: None or string
             By default, assumes download_dir
 
+        fetch_options: dict or None
+            Options to pass to fetch_file
+
         force_download: Boolean
             If True, ignore the cache and re-download the fetch each time
         """
+        if fetch_options is None:
+            fetch_options = {}
         if self.fetched_ and force_download is False:
             # validate the downloaded files:
             for filename, item in self.file_dict.items():
@@ -1266,7 +1276,8 @@ class DataSource(object):
         self.fetched_files_ = []
         self.fetched_ = True
         for filename, fetch_params in self.file_dict.items():
-            status, result, hash_value = fetch_file(**fetch_params, force=force_download)
+            fetch_kwargs = {**fetch_params, **fetch_options, 'force':force_download}
+            status, result, hash_value = fetch_file(**fetch_kwargs)
             if status:  # True (cached) or HTTP Code (successful download)
                 fetch_params['hash_value'] = hash_value
 
