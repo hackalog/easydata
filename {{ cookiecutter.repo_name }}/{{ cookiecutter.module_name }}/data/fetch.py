@@ -10,6 +10,8 @@ import requests
 import joblib
 import gdown
 
+from tqdm.auto import tqdm
+
 from .. import paths
 from ..log import logger
 
@@ -93,6 +95,59 @@ def hash_file(fname, algorithm="sha1", block_size=4096):
         for chunk in iter(lambda: fd.read(block_size), b""):
             hashval.update(chunk)
     return f"{algorithm}:{hashval.hexdigest()}"
+
+def tqdm_download(url, url_options=None, filename=None,
+                  download_path=None,chunk_size=1024):
+    """Download a URL via requests, displaying a tqdm status bar
+
+    Parameters
+    ----------
+    url:
+        URL to download
+    url_options:
+        Options passed to requests.request() for download
+    filename:
+        filename to save. If omitted, it's inferred from the URL
+    download_path: path, default paths['raw_data_path']
+        Inferred filename is relative to this path
+    chunk_size:
+        block size for writes
+
+    Raises
+    ------
+    HTTPError if download fails
+
+    Returns
+    -------
+    filename of written file
+    """
+    if url_options is None:
+        url_options = {}
+    if download_path is None:
+        download_path = paths['raw_data_path']
+    else:
+        download_path = pathlib.Path(download_path)
+    if filename is None:
+        fn = url.split("/")[-1]
+        logger.debug(f"filename not specified. Inferring '{fn}' from url")
+        filename = download_path / fn
+    else:
+        filename = pathlib.Path(filename)
+    resp = requests.get(url, stream=True, **url_options)
+    total = int(resp.headers.get('content-length', 0))
+    with open(filename, 'wb') as file, tqdm(
+            desc=filename.name,
+            total=total,
+            unit='iB',
+            unit_scale=True,
+            unit_divisor=1024,
+    ) as bar:
+        for data in resp.iter_content(chunk_size=chunk_size):
+            size = file.write(data)
+            bar.update(size)
+    resp.raise_for_status()
+
+    return filename
 
 def fetch_files(force=False, dst_dir=None, **kwargs):
     '''
@@ -341,17 +396,14 @@ def fetch_file(url=None, url_options=None, contents=None,
         # Download the file
         try:
             logger.debug(f"fetching {url}")
+            filename = tqdm_download(url, url_options=url_options, filename=raw_data_file)
+            raw_file_hash = hash_file(filename, algorithm=hash_type)
             results = requests.get(url, **url_options)
-            # TODO: change to streaming and use tqdm
-            results.raise_for_status()
-            raw_file_hash = f"{hash_type}:{_HASH_FUNCTION_MAP[hash_type](results.content).hexdigest()}"
             if hash_value is not None:
                 if raw_file_hash != hash_value:
                     logger.error(f"Invalid hash on downloaded {file_name}"
                                  f" {raw_file_hash} != {hash_value}")
                     return False, f"Bad Hash: {raw_file_hash}", None
-            with open(raw_data_file, "wb") as code:
-                code.write(results.content)
         except requests.exceptions.HTTPError as err:
             return False, err, None
     elif fetch_action == 'google-drive':
