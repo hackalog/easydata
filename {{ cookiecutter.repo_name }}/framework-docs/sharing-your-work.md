@@ -42,7 +42,7 @@ When you are ready share your notebook or code with others, you'll be able to ti
 - [ ] Share your conda environment. Check in your `environment.yml` file if you've made any changes.
   * If there's any chance that you added something to the conda environment needed to run your code that was **not** added via your `environment.yml` file as per [Setting up and Maintaining your Conda Environment (Reproducibly)](conda-environments.md), [delete your environment and recreate it](conda-environments.md#nuke-it-from-orbit).
 - [ ] *(Optional)* Make sure all tests pass (run `make test`). This will test all of the dataset integration so if you don't have a lot of room on your machine (as it will build all the the datasets if you haven't yet), you may want to skip this step.
-- [ ] At least, make sure all of the tests for your code pass. To subselect your tests you can run `pytest --pyargs src -k your_test_filename`.
+- [ ] At least, make sure all of the tests for your code pass. To subselect your tests you can run `pytest --pyargs {{ cookiecutter.module_name }} -k your_test_filename`.
 
 #### Final Checks
 - [ ] You've [merged the latest version](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) of `upstream/master` into your branch.
