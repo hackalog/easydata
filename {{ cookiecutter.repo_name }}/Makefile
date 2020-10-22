@@ -71,17 +71,14 @@ clean:
 	rm -f .make.*
 
 .PHONY: clean_interim
-## Delete all interim (DataSource) files
 clean_interim:
 	rm -rf data/interim/*
 
 .PHONY: clean_raw
-## Delete the raw downloads directory
 clean_raw:
 	rm -f data/raw/*
 
 .PHONY: clean_processed
-## Delete all processed datasets
 clean_processed:
 	rm -f data/processed/*
 
