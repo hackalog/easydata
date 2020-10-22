@@ -17,9 +17,10 @@ endif
 ## Set up virtual environment for this project
 create_environment: environment.$(ARCH).lock.yml
 ifeq (conda,$(VIRTUALENV))
-	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f environment.$(ARCH).lock.yml
+	touch environment.yml
 	@echo "New conda env created. Activate with:"
 	@echo ">>> conda activate $(PROJECT_NAME)"
+	@echo ">>> make update_environment"
 	@echo
 	@echo "Now would be a good time to initialize a git repo; i.e."
 	@echo ">>> git init"
