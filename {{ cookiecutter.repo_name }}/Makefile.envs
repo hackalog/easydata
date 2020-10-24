@@ -17,15 +17,11 @@ endif
 ## Set up virtual environment for this project
 create_environment: environment.$(ARCH).lock.yml
 ifeq (conda,$(VIRTUALENV))
-	touch environment.yml
+	@touch environment.yml
+	@echo
 	@echo "New conda env created. Activate with:"
 	@echo ">>> conda activate $(PROJECT_NAME)"
 	@echo ">>> make update_environment"
-	@echo
-	@echo "Now would be a good time to initialize a git repo; i.e."
-	@echo ">>> git init"
-	@echo ">>> git add ."
-	@echo ">>> git commit -m 'initial import'"
 ifneq ("X$(wildcard .post-create-environment.txt)","X")
 	@cat .post-create-environment.txt
 endif
