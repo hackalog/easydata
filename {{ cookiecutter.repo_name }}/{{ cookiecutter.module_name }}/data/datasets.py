@@ -2062,7 +2062,7 @@ class TransformerGraph:
         for edge in edge_list:
             dsdict = self.process_edge(edge, write_catalog=write_catalog, force=force)
             if dsdict is None:
-                logger.debug("Generation from catalog failed.")
+                logger.error("Generation from catalog failed.")
                 return None
         return dsdict.get(dataset_name, None)
 
