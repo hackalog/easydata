@@ -3,19 +3,19 @@
 It's impossible to test the configurations on every possible machine, so we haven't caught everything. But we're working on making fixes as problems come up. Here's what we've encountered so far (with links to the issues in question if you want to deep dive into the fix).
 
 Before you report a problem, make sure you are running the latest version of the surge repo.
-Assuming you are following the [recommended git workflow](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) (i.e. you have set your `upstream` remote to point to the surge repo, you are working in a branch, and your `master` branch is tracking the surge repo), this means doing a:
+Assuming you are following the [recommended git workflow](git-workflow.md) (i.e. you have set your `upstream` remote to point to the surge repo, you are working in a branch, and your `{{ cookiecutter.default_branch }}` branch is tracking the surge repo), this means doing a:
 ```
-git checkout master
+git checkout {{ cookiecutter.default_branch }}
 git fetch upstream --prune
-git merge upstream/master
-git push origin master
+git merge upstream/{{ cookiecutter.default_branch }}
+git push origin {{ cookiecutter.default_branch }}
 make update_environment
 ```
 
 You can then update your working branches as follows:
 ```
 git checkout my_branch
-git merge master  # advanced git users can do a rebase here. Others please merge.
+git merge {{ cookiecutter.default_branch }}  # advanced git users can do a rebase here. Others please merge.
 ```
 
 Next, turn on debugging in your notebook. Add these cells to the top:

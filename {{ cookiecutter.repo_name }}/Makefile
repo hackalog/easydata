@@ -27,11 +27,9 @@ unfinished:
 #
 
 .PHONY: data
-## convert raw datasets into fully processed datasets
 data: transform_data
 
 .PHONY: sources
-## Fetch, Unpack, and Process raw DataSources
 sources: process_sources
 
 .PHONY: fetch_sources
@@ -56,7 +54,6 @@ process_sources: .make.process_sources
 	touch .make.process_sources
 
 .PHONY: transform_data
-## Apply Transformations to produce fully processed Datsets
 transform_data: .make.transform_data
 
 .make.transform_data: .make.process_sources
@@ -100,7 +97,7 @@ lint:
 	flake8 $(MODULE_NAME)
 
 .PHONY: debug
-## Give a report on current status
+## dump useful debugging information to $(DEBUG_FILE)
 debug:
 	@echo "\n\n======================"
 	@echo "\nPlease include the contents $(DEBUG_FILE) when submitting an issue or support request.\n"
@@ -152,7 +149,7 @@ debug:
 
 print-%  : ; @echo $* = $($*)
 
-HELP_VARS := PROJECT_NAME
+HELP_VARS := PROJECT_NAME DEBUG_FILE
 
 help-prefix:
 	@echo "To get started:"
