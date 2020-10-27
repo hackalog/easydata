@@ -20,18 +20,16 @@ REQUIREMENTS
 
 GETTING STARTED
 ---------------
-### Checking out the repo
-Note: These instructions assume you are using SSH keys (and not HTTPS authentication) with gitlab.
-If you haven't set up SSH access to GitLab, see [Configuring SSH Access to Github or GitLab](https://github.com/hackalog/cookiecutter-easydata/wiki/Configuring-SSH-Access-to-Github). This also includes instuctions for using more than one account with SSH keys.
+### Git Configuraiton and Checking Out the Repo
 
-1. Fork the repo (on GitLab) to your personal account
-1. Clone your fork to your local machine
-  `git clone git@gitlab.com:<your gitlab handle>/{{cookiecutter.repo_name}}.git`
-1. Add the main source repo as a remote branch called `upstream` (to make syncing easier):
-  `cd {{cookiecutter.repo_name}}`
-  `git remote add upstream git@gitlab.com:<upstream-repo>/{{cookiecutter.repo_name}}.git`
+If you haven't yet done so, please follow the instrucitons
+in [Setting up git and Checking Out the Repo](framework-docs/git-configuration.md) in
+order to check-out the code and set-up your remote branches
 
-You're all set for staying up-to-date with the project repo. Follow the instructions in this handy [Gitlab Workflow Cheat Sheet](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) for keeping your working copy of the repo in sync.
+Note: These instructions assume you are using SSH keys (and not HTTPS authentication) with {{ cookiecutter.upstream_location }}.
+If you haven't set up SSH access to {{ cookiecutter.upstream_location }}, see [Configuring SSH Access to {{cookiecutter.upstream_location}}](https://github.com/hackalog/cookiecutter-easydata/wiki/Configuring-SSH-Access-to-Github). This also includes instuctions for using more than one account with SSH keys.
+
+Once you've got your local, `origin`, and `upstream` branches configured, you can follow the instructions in this handy [Git Workflow Cheat Sheet](framework-docs/git-workflow.md) to keep your working copy of the repo in sync with the others.
 
 ### Setting up your environment
 **WARNING**: If you have conda-forge listed as a channel in your `.condarc` (or any other channels other than defaults), remove it during the course of the workshop. Even better, don't use a `.condarc` for managing channels, as it overrides the `environment.yml` instructions and makes things less reproducible. Make the changes to the `environment.yml` file if necessary. We've had some conda-forge related issues with version conflicts. We also recommend [setting your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) to reduce package incompatibility problems.

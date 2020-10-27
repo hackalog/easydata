@@ -2,17 +2,13 @@
 
 The `{{ cookiecutter.repo_name }}` repo is set up with template code to make managing your conda environments easy and reproducible. Not only will _future you_ appreciate this, but so will anyone else who needs to work with your code after today.
 
-If you haven't yet, set up your conda environment
+If you haven't yet, configure your conda environment.
+
+## Configuring your python environment
+Easydata uses conda to manage python packages installed by both conda **and pip**.
 
 ### Adjust your `.condarc`
 **WARNING FOR EXISTING CONDA USERS**: If you have `conda-forge` listed as a channel in your `.condarc` (or any other channels other than `default`), **remove them**. These channels should be specified in `environment.yml` instead.
-
-**Note for Jupyterhub Users**: You will need to store your conda environment in your **home directory** so that they wil be persisted across JupyterHub sessions.
-```
-conda init
-bash
-conda config --prepend envs_dirs ~/.conda/envs   # Store environments in local dir for JupyterHub
-```
 
 We also recommend [setting your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) to reduce package incompatibility problems. This will be the default in conda 5.0, but in order to assure reproducibility, we need to use this behavior now.
 
@@ -23,6 +19,11 @@ Whenever possible, re-order your channels so that `default` is first.
 
 ```
 conda config --prepend channels defaults
+```
+
+**Note for Jupyterhub Users**: You will need to store your conda environment in your **home directory** so that they wil be persisted across JupyterHub sessions.
+```
+conda config --prepend envs_dirs ~/.conda/envs   # Store environments in local dir for JupyterHub
 ```
 
 ### Fix the CONDA_EXE path
@@ -49,14 +50,15 @@ To activate the environment, simply `conda activate {{ cookiecutter.repo_name }}
 
 To deactivate it and return to your base environment, use `conda deactivate`
 
-### Further Instructions
+## Maintaining your Python environment
 
-#### Updating your conda and pip environments
-The `make` commands, `make create_environment` and `make update_environment` are wrappers that allow you to easily manage your conda and pip environments using the `environment.yml` file. If you want to make changes to your environment, do so by editing the `environment.yml` file and then running `make update_environment`.
+### Updating your conda and pip environments
+The `make` commands, `make create_environment` and `make update_environment` are wrappers that allow you to easily manage your conda and pip environments using the `environment.yml` file.
 
-When adding packages to your python environment, **do not `pip install` or `conda install` directly**. Always edit `environment.yml` and `make update_environment`.
+(If you ever forget which `make` command to run, you can run `make` by itself and it will provide a list of commands that are available.)
 
-If you ever forget which `make` command to run, you can run `make` and it will provide a list of commands that are available.
+
+When adding packages to your python environment, **do not `pip install` or `conda install` directly**. Always edit `environment.yml` and `make update_environment` instead.
 
 Your `environment.yml` file will look something like this:
 ```
