@@ -23,7 +23,7 @@ git calls `upstream` (the **team repo**), and `origin` (your **personal fork** o
 
 Create a local git checkout by cloning your personal fork:
 ```bash
-git clone git@{{ cookiecutter.upstream_location }}:<your_git_handle>/{{cookiecutter.project_name}}.git
+git clone git@{{ cookiecutter.upstream_location }}:<your_git_handle>/{{cookiecutter.repo_name}}.git
 ```
 Add the team (shared) repo as a remote branch named `upstream`:
 ```bash
@@ -35,10 +35,17 @@ You can verify that these branches are configured correctly by typing
 
 ```
 >>> git remote -v
-origin	git@{{ cookiecutter.upstream_location }}:<your_git_handle>/{{cookiecutter.project_name}}.git (fetch)
-origin	git@{{ cookiecutter.upstream_location }}:<your_git_handle>/{{cookiecutter.project_name}}.git (push)
+origin	git@{{ cookiecutter.upstream_location }}:<your_git_handle>/{{cookiecutter.repo_name}}.git (fetch)
+origin	git@{{ cookiecutter.upstream_location }}:<your_git_handle>/{{cookiecutter.repo_name}}.git (push)
 upstream	git@{{ cookiecutter.upstream_location }}:<upstream-repo>/{{cookiecutter.repo_name}}.git (fetch)
 upstream	git@{{ cookiecutter.upstream_location }}:<upstream-repo>/{{cookiecutter.repo_name}}.git (push)
+```
+or if you use HTTPS-based authentication:
+```
+origin	https://{{ cookiecutter.upstream_location }}/<your_git_handle>/{{cookiecutter.repo_name}}.git (fetch)
+origin	https://{{ cookiecutter.upstream_location }}/<your_git_handle>/{{cookiecutter.repo_name}}.git (push)
+upstream	https://{{ cookiecutter.upstream_location }}/<upstream-repo>/{{cookiecutter.repo_name}}.git (fetch)
+upstream	https://{{ cookiecutter.upstream_location }}/<upstream-repo>/{{cookiecutter.repo_name}}.git (push)
 ```
 
 ### Do Your Work in Branches
