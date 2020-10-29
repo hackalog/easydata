@@ -19,7 +19,8 @@ __all__ = [
 # Create a Dataset from a single csv file
 def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
                                      license_str, descr_str, *, hash_type='sha1',
-                                     hash_value=None,):
+                                     hash_value=None,
+                                     overwrite_catalog=False,):
     """
     Add a dataset to the catalog files where .data is the dataframe from a
     single .csv file obtained via manual download.
@@ -36,8 +37,17 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
         Contents of metadata license as text
     descr_str:
         Contents of the metadata description as text
+    overwrite_catalog: boolean
+        If True, existing entries in datasets and transformers catalogs will be
+        overwritten
+
+    Returns
+    -------
+    Dataset that was added to the Transformer graph
     """
 
+    if ds_name in dataset_catalog() and not overwrite_catalog:
+        raise KeyError(f"'{ds_name}' already in catalog")
     csv_path = pathlib.Path(csv_path)
     # Create a datasource
     raw_ds_name = ds_name+"_raw"
@@ -104,7 +114,7 @@ def dataset_from_metadata(dataset_name, metadata=None, overwrite_catalog=False):
 
     """
     if dataset_name in dataset_catalog() and not overwrite_catalog:
-        raise KeyError(f"{dataset_name} already in catalog")
+        raise KeyError(f"'{dataset_name}' already in catalog")
     if metadata is None:
         metadata = {}
     dag = TransformerGraph()
