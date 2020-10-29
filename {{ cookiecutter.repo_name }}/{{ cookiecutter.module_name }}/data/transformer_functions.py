@@ -11,10 +11,32 @@ from ..log import logger
 
 __all__ = [
     'csv_to_pandas',
+    'new_dataset',
     'sklearn_train_test_split',
     'sklearn_transform',
 ]
 
+def new_dataset(dsdict, *, dataset_name, dataset_opts=None):
+    """
+    Transformer function: create a dataset from its default constructor
+
+    Parameters
+    ----------
+    dsdict: ignored
+
+    dataset_name:
+        Name of dataset to create
+    dataset_opts: dict
+        kwargs dict to pass to Dataset constructor
+
+    Returns
+    -------
+    dsdict {dataset_name: Dataset}
+    """
+    if dataset_opts is None:
+        dataset_opts = {}
+    ds = Dataset(dataset_name, **dataset_opts)
+    return {dataset_name: ds}
 
 def sklearn_train_test_split(ds_dict, **split_opts):
     """Transformer Function: performs a train/test split.

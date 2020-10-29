@@ -4,11 +4,17 @@ from functools import partial
 import pathlib
 
 from ..log import logger
-from .. import paths, workflow
+from .. import paths
 
-from . import DataSource, Dataset, hash_file, TransformerGraph, create_transformer_pipeline
-from .transformer_functions import csv_to_pandas
+from . import (DataSource, Dataset, hash_file, TransformerGraph,
+               create_transformer_pipeline, dataset_catalog, add_datasource)
+from .transformer_functions import csv_to_pandas, new_dataset
 from .extra import process_extra_files
+
+__all__ = [
+    'dataset_from_csv_manual_download',
+    'dataset_from_metadata',
+]
 
 # Create a Dataset from a single csv file
 def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
@@ -57,7 +63,7 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
                                'extra_dir': raw_ds_name+'.extra',
                                'extract_dir': raw_ds_name}
     dsrc.process_function = partial(process_function, **process_function_kwargs)
-    workflow.add_datasource(dsrc)
+    add_datasource(dsrc)
 
     # Add a dataset from the datasource
     dag = TransformerGraph(catalog_path=paths['catalog_path'])
@@ -75,4 +81,37 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
                  force=True)
 
     ds = Dataset.from_catalog(ds_name)
+    return ds
+
+def dataset_from_metadata(dataset_name, metadata=None, overwrite_catalog=False):
+    """Create Dataset from supplied metadata
+
+    Dataset will be a source node in the Transformer graph
+
+    Parameters
+    ----------
+    dataset_name:
+        name of dataset to be created
+    metadata:
+        dictionary of metadata fields for dataset creation
+    overwrite_catalog: boolean
+        If True, existing entries in datasets and transformers catalogs will be
+        overwritten
+
+    Returns
+    -------
+    Dataset that was added to the Transformer graph
+
+    """
+    if dataset_name in dataset_catalog() and not overwrite_catalog:
+        raise KeyError(f"{dataset_name} already in catalog")
+    if metadata is None:
+        metadata = {}
+    dag = TransformerGraph()
+    ds_opts = {'metadata': metadata}
+    transformers = [partial(new_dataset, dataset_name=dataset_name, dataset_opts=ds_opts)]
+    dag.add_source(output_dataset=dataset_name,
+               transformer_pipeline=create_transformer_pipeline(transformers),
+               force=overwrite_catalog)
+    ds = Dataset.from_catalog(dataset_name)
     return ds
