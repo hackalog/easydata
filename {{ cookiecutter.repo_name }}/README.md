@@ -20,7 +20,7 @@ REQUIREMENTS
 
 GETTING STARTED
 ---------------
-### Git Configuraiton and Checking Out the Repo
+### Git Configuration and Checking Out the Repo
 
 If you haven't yet done so, please follow the instrucitons
 in [Setting up git and Checking Out the Repo](framework-docs/git-configuration.md) in
