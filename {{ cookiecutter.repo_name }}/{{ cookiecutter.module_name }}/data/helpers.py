@@ -14,6 +14,7 @@ from .extra import process_extra_files
 __all__ = [
     'dataset_from_csv_manual_download',
     'dataset_from_metadata',
+    'dataset_from_single_function',
 ]
 
 # Create a Dataset from a single csv file
@@ -124,4 +125,35 @@ def dataset_from_metadata(dataset_name, metadata=None, overwrite_catalog=False):
                transformer_pipeline=create_transformer_pipeline(transformers),
                force=overwrite_catalog)
     ds = Dataset.from_catalog(dataset_name)
+    return ds
+
+
+def dataset_from_single_function(*, source_dataset_name, dataset_name, data_function, added_descr_txt, drop_extra=True, overwrite_catalog=False):
+    """
+    Create a derived dataset (dataset_name) via a single function call on .data from a
+    previous dataset (source_dataset_name).
+
+    Parameters
+    ----------
+    source_dataset_name:
+        name of the dataset that the new dataset will be derived from
+    dataset_name:
+        name of the new dataset_catalog
+    added_descr_txt: Default None
+        new description text to be appended to the metadata descr
+    data_function:
+        function (from src module) to run on .data to produce the new .data
+    overwrite_catalog: boolean
+        if True, existing entries in datasets and transformers catalogs will be overwritten
+    """
+    dag = TransformerGraph(catalog_path=paths['catalog_path'])
+    serialized_function = serialize_partial(data_function)
+    transformers = [partial(apply_single_function, source_dataset_name=source_dataset_name, dataset_name=dataset_name,
+                            serialized_function=serialized_function, added_descr_txt=added_descr_txt, drop_extra=drop_extra)]
+    dag.add_edge(input_dataset=source_dataset_name,
+                 output_dataset=dataset_name,
+                 transformer_pipeline=create_transformer_pipeline(transformers),
+                 force=overwrite_catalog)
+    ds = Dataset.from_catalog(dataset_name)
+    logger.debug(f"{dataset_name} added to catalog")
     return ds
