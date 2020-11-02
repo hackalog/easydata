@@ -20,7 +20,7 @@ Easydata is a python cookiecutter for building custom data science git repos tha
 * An **opinionated workflow** for collaboration, storytelling,
 * A **python framework** to support this workflow
 * A **makefile wrapper** for conda and pip environment management
-* prebuilt **dataset recipes*, and
+* prebuilt **dataset recipes**, and
 * a vast library of training materials and documentation around doing reproducible data science.
 
 Easydata is **not**
