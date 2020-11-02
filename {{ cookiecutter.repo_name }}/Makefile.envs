@@ -14,17 +14,14 @@ else
 endif
 
 .PHONY: create_environment
-## Set up virtual environment for this project
+## Set up virtual (conda) environment for this project
 create_environment: environment.$(ARCH).lock.yml
 ifeq (conda,$(VIRTUALENV))
-	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f environment.$(ARCH).lock.yml
+	@touch environment.yml
+	@echo
 	@echo "New conda env created. Activate with:"
 	@echo ">>> conda activate $(PROJECT_NAME)"
-	@echo
-	@echo "Now would be a good time to initialize a git repo; i.e."
-	@echo ">>> git init"
-	@echo ">>> git add ."
-	@echo ">>> git commit -m 'initial import'"
+	@echo ">>> make update_environment"
 ifneq ("X$(wildcard .post-create-environment.txt)","X")
 	@cat .post-create-environment.txt
 endif
@@ -33,11 +30,12 @@ else
 endif
 
 .PHONY: delete_environment
-## Delete the virtual environment for this project
+## Delete the virtual (conda) environment for this project
 delete_environment:
 ifeq (conda,$(VIRTUALENV))
 	@echo "Deleting conda environment."
 	$(CONDA_EXE) env remove -n $(PROJECT_NAME)
+	rm environment.$(ARCH).lock.yml
 ifneq ("X$(wildcard .post-delete-environment.txt)","X")
 	@cat .post-delete-environment.txt
 endif
@@ -46,17 +44,16 @@ else
 endif
 
 .PHONY: update_environment
-## Install or update Python Dependencies
+## Install or update Python Dependencies in the virtual (conda) environment
 update_environment: test_environment environment.$(ARCH).lock.yml
 ifneq ("X$(wildcard .post-update-environment.txt)","X")
 	@cat .post-update-environment.txt
 endif
 
 .PHONY: test_environment
-## Test python environment is set-up correctly
 test_environment:
 ifeq (conda,$(VIRTUALENV))
-ifneq (${CONDA_DEFAULT_ENV}, $(PROJECT_NAME))
+ifneq ($(notdir ${CONDA_DEFAULT_ENV}), $(PROJECT_NAME))
 	$(error Must activate `$(PROJECT_NAME)` environment before proceeding)
 endif
 else

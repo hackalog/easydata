@@ -4,15 +4,30 @@
 
 # Cookiecutter EasyData
 
-_A flexible (but opinionated) toolkit for doing and sharing reproducible data science._
+_A python framework and git gemplate for data scientists, teams, and workshop organizers
+aimed at making your data science **reproducible**__
 
-EasyData started life as an experimental fork of
-[cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/)
-where we could try out ideas before proposing them as fixes to the upstream branch. It has grown into its own toolkit for implementing a reproducible data science workflow, and is the basis of our [Bus Number](https://github.com/hackalog/bus_number/) tutorial on **Reproducible Data Science**.
+For most of us, data science is 5% science, 60% data cleaning, and 35%
+IT hell.  Easydata focuses on delivering
+* reproducible python environments,
+* reproducible datasets, and
+* reproducible workflows
+in order to get you up and running with your data science quickly, and reproducibly.
 
-### Tutorial
-For a tutorial on making use of a previous version of this framework (available via the `bus_number` branch), visit:
-  https://github.com/hackalog/bus_number/
+## What is Easydata?
+
+Easydata is a python cookiecutter for building custom data science git repos that provides:
+* An **opinionated workflow** for collaboration, storytelling,
+* A **python framework** to support this workflow
+* A **makefile wrapper** for conda and pip environment management
+* prebuilt **dataset recipes*, and
+* a vast library of training materials and documentation around doing reproducible data science.
+
+Easydata is **not**
+* an ETL tooklit
+* A data analysis pipreline
+* a containerization solution, or
+* a prescribed data format.
 
 
 ### Requirements to use this cookiecutter template:
@@ -22,15 +37,12 @@ For a tutorial on making use of a previous version of this framework (available 
 
  - [Cookiecutter Python package](http://cookiecutter.readthedocs.org/en/latest/installation.html) >= 1.4.0: This can be installed with pip by or conda depending on how you manage your Python packages:
 
-``` bash
-$ pip install cookiecutter
-```
+once you've installed anaconda, you can install the remaining requirements (including cookiecutter) by doing:
 
-or
-
-``` bash
-$ conda config --add channels conda-forge
-$ conda install cookiecutter
+```bash
+conda create -n easydata python=3
+conda activate easydata
+python -m pip install -f requirements.txt
 ```
 
 
@@ -54,6 +66,8 @@ The directory structure of your new project looks like this:
 * `catalog`
   * Data catalog. This is where config information such as data sources
     and data transformations are saved
+  * `catalog/config.ini`
+     * Local Data Store. This configuration file is for local data only, and is never checked into the repo.
 * `data`
     * Data directory. often symlinked to a filesystem with lots of space
     * `data/raw`
@@ -64,6 +78,8 @@ The directory structure of your new project looks like this:
         * The final, canonical data sets for modeling.
 * `docs`
     * A default Sphinx project; see sphinx-doc.org for details
+* `framework-docs`
+    * Markdown documentation for using Easydata
 * `models`
     * Trained and serialized models, model predictions, or model summaries
     * `models/trained`
@@ -86,6 +102,8 @@ The directory structure of your new project looks like this:
         * Generated summary information to be used in reporting
 * `environment.yml`
     * (if using conda) The YAML file for reproducing the analysis environment
+* `environment.(platform).lock.yml`
+    * resolved versions, result of processing `environment.yml`
 * `setup.py`
     * Turns contents of `MODULE_NAME` into a
     pip-installable python module  (`pip install -e .`) so it can be
@@ -95,15 +113,9 @@ The directory structure of your new project looks like this:
     * `MODULE_NAME/__init__.py`
         * Makes MODULE_NAME a Python module
     * `MODULE_NAME/data`
-        * Scripts to fetch or generate data. In particular:
-        * `MODULE_NAME/data/make_dataset.py`
-            * Run with `python -m MODULE_NAME.data.make_dataset fetch`
-            or  `python -m MODULE_NAME.data.make_dataset process`
+        * code to fetch raw data and generate Datasets from them
     * `MODULE_NAME/analysis`
-        * Scripts to turn datasets into output products
-    * `MODULE_NAME/models`
-        * Scripts to train models and then use trained models to make predictions.
-        e.g. `predict_model.py`, `train_model.py`
+        * code to turn datasets into output products
 * `tox.ini`
     * tox file with settings for running tox; see tox.testrun.org
 
@@ -128,3 +140,8 @@ In case you need to delete the environment later:
 conda deactivate
 make delete_environment
 ```
+
+
+## History
+Early versions of Easydata were based on
+[cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/).

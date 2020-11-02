@@ -1,23 +1,42 @@
 # Setting up and Maintaining your Conda Environment (Reproducibly)
 
-The `{{ cookiecutter.repo_name }}` repo is set up with template code to make managing your conda environments easy and reproducible. Not only will future you appreciate this, but everyone else who tries to run your code will thank you.
+The `{{ cookiecutter.repo_name }}` repo is set up with template code to make managing your conda environments easy and reproducible. Not only will _future you_ appreciate this, but so will anyone else who needs to work with your code after today.
 
-If you haven't yet, get your initial environment set up.
+If you haven't yet, configure your conda environment.
 
-### Quickstart Instructions
-**WARNING FOR EXISTING CONDA USERS**: If you have conda-forge listed as a channel in your `.condarc` (or any other channels other than defaults), remove it during the course of the project. Even better, don't use a `.condarc` for managing channels, as it overrides the `environment.yml` instructions and makes things less reproducible. Make the changes to the `environment.yml` file if necessary. We've had some conda-forge related issues with version conflicts.
+## Configuring your python environment
+Easydata uses conda to manage python packages installed by both conda **and pip**.
 
-We also recommend [setting your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) to reduce package incompatibility problems. This will be default in future conda releases, but it is being rolled out gently.
+### Adjust your `.condarc`
+**WARNING FOR EXISTING CONDA USERS**: If you have `conda-forge` listed as a channel in your `.condarc` (or any other channels other than `default`), **remove them**. These channels should be specified in `environment.yml` instead.
 
+We also recommend [setting your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) to reduce package incompatibility problems. This will be the default in conda 5.0, but in order to assure reproducibility, we need to use this behavior now.
+
+```
+conda config --set channel_priority strict
+```
+Whenever possible, re-order your channels so that `default` is first.
+
+```
+conda config --prepend channels defaults
+```
+
+**Note for Jupyterhub Users**: You will need to store your conda environment in your **home directory** so that they wil be persisted across JupyterHub sessions.
+```
+conda config --prepend envs_dirs ~/.conda/envs   # Store environments in local dir for JupyterHub
+```
+
+### Fix the CONDA_EXE path
 * Make note of the path to your conda binary:
 ```
    $ which conda
    ~/miniconda3/bin/conda
 ```
-* ensure your `CONDA_EXE` environment variable is set to this value (or edit `Makefile.include` directly)
+* ensure your `CONDA_EXE` environment variable is set correctly in `Makefile.include`
 ```
     export CONDA_EXE=~/miniconda3/bin/conda
 ```
+### Create the conda environment
 * Create and switch to the virtual environment:
 ```
 cd {{ cookiecutter.repo_name }}
@@ -25,16 +44,21 @@ make create_environment
 conda activate {{ cookiecutter.repo_name }}
 make update_environment
 ```
-Note: you need to run `make update_environment` for the `{{ cookiecutter.module_name }}` module to install correctly.
+**Note**: When creating the environment the first time, you really do need to run **both** `make create_environment` and `make update_environment` for the `{{ cookiecutter.module_name }}` module to install correctly.
 
-From here on, to use the environment, simply `conda activate {{ cookiecutter.repo_name }}` and `conda deactivate` to go back to the base environment.
+To activate the environment, simply `conda activate {{ cookiecutter.repo_name }}`
 
-### Further Instructions
+To deactivate it and return to your base environment, use `conda deactivate`
 
-#### Updating your environment
-The `make` commands, `make create_environment` and `make update_environment` are wrappers that allow you to easily manage your environment using the `environment.yml` file. If you want to make changes to your environment, do so by editing the `environment.yml` file and then running `make update_environment`.
+## Maintaining your Python environment
 
-If you ever forget which make command to run, you can run `make` and it will list a magic menu of which make commands are available.
+### Updating your conda and pip environments
+The `make` commands, `make create_environment` and `make update_environment` are wrappers that allow you to easily manage your conda and pip environments using the `environment.yml` file.
+
+(If you ever forget which `make` command to run, you can run `make` by itself and it will provide a list of commands that are available.)
+
+
+When adding packages to your python environment, **do not `pip install` or `conda install` directly**. Always edit `environment.yml` and `make update_environment` instead.
 
 Your `environment.yml` file will look something like this:
 ```
@@ -64,12 +88,12 @@ name: {{ cookiecutter.repo_name }}
 ```
 To add any package available from conda, add it to the end of the list. If you have a PYPI dependency that's not avaible via conda, add it to the list of pip installable dependencies under `  - pip:`.
 
-You can include any GitHub python-based project in the `pip` section via `git+https://github.com/<github handle>/<package>`.
+You can include any {{ cookiecutter.upstream_location }} python-based project in the `pip` section via `git+https://{{ cookiecutter.upstream_location }}/<my_git_handle>/<package>`.
 
-In particular, if you're working off of a fork or a work in progress branch of a repo in GitHub (say, your personal version of <package>), you can change `git+https://github.com/<github handle>/<package>` to
+In particular, if you're working off of a fork or a work in progress branch of a repo in {{ cookiecutter.upstream_location }} (say, your personal version of <package>), you can change `git+https://{{ cookiecutter.upstream_location }}/<my_git_handle>/<package>` to
 
-* `git+https://github.com/<my github handle>/<package>.git` to point to the master branch of your fork and
-* `git+https://github.com/<my github handle>/<package>.git@<my branch>` to point to a specific branch.
+* `git+https://{{ cookiecutter.upstream_location }}/<my_git_handle>/<package>.git` to point to the {{cookiecutter.default_branch}} branch of your fork and
+* `git+https://{{ cookiecutter.upstream_location }}/<my_git_handle>/<package>.git@<my branch>` to point to a specific branch.
 
 Once you're done your edits, run `make update_environment` and voila, you're updated.
 

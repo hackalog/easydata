@@ -1,8 +1,8 @@
-# Sharing your Work
+ # Sharing your Work
 
 * [Contributor Guidelines and Checklist](#contributor-guide-and-checklist)
 * [Best Practices for Sharing](#best-practices-for-sharing)
-  * [Sharing Code Using Git and GitHub](#sharing-code-using-git-and-github)
+  * [Sharing Code Using Git and {{ cookiecutter.upstream_location }}](#sharing-code-using-git-and-github)
   * [Sharing Datasets](#sharing-datasets)
   * [Sharing Conda Environments](#sharing-conda-environments)
   * [Sharing Notebooks](#sharing-notebooks)
@@ -15,8 +15,8 @@ The main impetus of following the **recommended workflow** for this project is t
 We **want** you to share your work. We understand that your work may still be a **work-in-progress** when you first start to share it. We encourage that. There are three main ways to contribute to this repo:
 
 
-* **Filing and reporting issues:** Please don't be shy here. Chances are if you encounter an issue, someone else already has, or someone else will encounter the same issue in the future. Reporting helps us to find solutions that will work for everyone. Hacks and your personal work-arounds are not reproducible. No issue is too small. Share the love and let us solve issues as best we can for everyone. Issues include anything from "I had trouble understanding and following the documentation", to feature requests, to bugs in the main code repo.
-  1. First up, [make sure that you're working with the most up-to-date version](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) of the codebase.
+* **Filing and reporting issues:** Please don't be shy here. Chances are if you encounter an issue, someone else already has, or someone else will encounter the same issue in the future. Reporting helps us to find solutions that will work for everyone. Hacks and your personal work-arounds are not reproducible. No issue is too small. Share the love and let us solve issues as best we can for everyone. Issues include anything from "I had trouble understanding and following the documentation", to feature requests, to bugs in the shared codebase iteself.
+  1. First up, [make sure that you're working with the most up-to-date version](git-workflow.md) of the codebase.
   1. Check the [troubleshooting guide](conda-environments.md#troubleshooting) to see if a solution has already been documented.
   1. Check if the issue has been reported already. If so, make a comment on the issue to indicate that you're also having said issue.
   1. Finally, if your issue hasn't been resolved at this stage, file an issue. For bugs reports, please include reproducers.
@@ -45,8 +45,8 @@ When you are ready share your notebook or code with others, you'll be able to ti
 - [ ] At least, make sure all of the tests for your code pass. To subselect your tests you can run `pytest --pyargs {{ cookiecutter.module_name }} -k your_test_filename`.
 
 #### Final Checks
-- [ ] You've [merged the latest version](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) of `upstream/master` into your branch.
-- [ ] [Submitted a PR via GitHub](#how-to-submit-a-PR) in **Draft** status and checked the PR diff to make sure that you aren't missing anything critical, you're not adding anything extraneous, and you don't have any merge conflicts.
+- [ ] You've [merged the latest version](git-workflow.md) of `upstream/{{ cookiecutter.default_branch }}` into your branch.
+- [ ] [Submitted a PR via {{ cookiecutter.upstream_location }}](#how-to-submit-a-PR) in **Draft** status and checked the PR diff to make sure that you aren't missing anything critical, you're not adding anything extraneous, and you don't have any merge conflicts.
 
 Once this checklist is complete, take your **PR** out of **Draft** status. It's ready to go!
 
@@ -54,39 +54,39 @@ As a person who is trying to contribute and share your work with others, it may 
 
 
 ## Best Practices for Sharing
-### Sharing Code Using Git and GitHub
+### Sharing Code Using Git and {{ cookiecutter.upstream_location }}
 
 Quick References:
 
-* Keeping up-to-date: [Our GitHub Workflow](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet)
+* Keeping up-to-date: [Our Git Workflow](git-workflow.md)
 * Recommended [Git tutorial](https://github.com/hackalog/cookiecutter-easydata/wiki/Git-Tutorial)
 
 
-There are several ways to use Git and GitHub successfully, and a lot more ways to use them unsuccessfully when working with lots of other people. Here are some best practices that we suggest you use to make your life, and our lives easier. This workflow we suggest makes choosing which changes to put in a pull request easier, and helps to avoid crazy merge conflicts.
+There are several ways to use Git and {{ cookiecutter.upstream_location }} successfully, and a lot more ways to use them unsuccessfully when working with lots of other people. Here are some best practices that we suggest you use to make your life, and our lives easier. This workflow we suggest makes choosing which changes to put in a pull request easier, and helps to avoid crazy merge conflicts.
 
-First off, follow the [Getting Started](../README.md#getting-started) instructions for setting yourself up to work off of your own fork. The idea here will be to keep `upstream/master`, your local `master` and your `origin/master` all in sync with each other.
+First off, follow the [Getting Started](../README.md#getting-started) instructions for setting yourself up to work from your own fork. The idea here will be to keep `upstream/{{ cookiecutter.default_branch }}`, your local `{{ cookiecutter.default_branch }}` and your `origin/{{ cookiecutter.default_branch }}` all in sync with each other.
 
-Any changes should be made in a separate branch---**not** your `master`---that you push up to your fork. Eventually, when you're ready to submit a PR, you'll do so from the branch that you've been working on. When you push to your `origin/branch_name`, you should get prompted in the terminal by `git` with a URL you can follow to submit a PR. To do so:
+Any changes should be made in a separate branch---**not** your `{{ cookiecutter.default_branch }}`---that you push up to your fork. Eventually, when you're ready to submit a PR, you'll do so from the branch that you've been working on. When you push to your `origin/branch_name`, you should get prompted in the terminal by `git` with a URL you can follow to submit a PR. To do so:
 
-1. Make sure your `master` is up-to-date with upstream `git fetch upstream` and `git merge upstream/master`
+1. Make sure your `{{ cookiecutter.default_branch }}` is up-to-date with upstream `git fetch upstream` and `git merge upstream/{{ cookiecutter.default_branch }}`
 1. Make sure your environment is up-to-date with upstream `make update_environment`
-1. Start your work (from your up-to-date `master`) in a new branch: `git checkout -b my_new_branch`
-1. Commit all your changes to `my_new_branch` (as per the [Github Workflow](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet))
+1. Start your work (from your up-to-date `{{ cookiecutter.default_branch }}`) in a new branch: `git checkout -b my_new_branch`
+1. Commit all your changes to `my_new_branch` (as per the [Easydata git Workflow](git-workflow.md))
 
 
-You can pretty much blindly do this by following the [Github Workflow](https://github.com/hackalog/cookiecutter-easydata/wiki/Github-Workflow-Cheat-Sheet) religiously.
+You can pretty much blindly do this by following the [Easydata git Workflow](git-workflow.md) religiously.
 
 #### How to submit a PR
 
-1. Push to your GitHub fork by `git push origin my_new_branch`.
-1. If this is the first time you do this from `my_new_branch`, you'll be prompted with a URL from your terminal for how to create a PR. Otherwise, if you go to GitHub, you'll see a yellow banner at the top of the screen prompting you to submit a PR (as long as you're not out of sync with the `upstream master`, in which case, re-sync your branch).
+1. Push to your {{ cookiecutter.upstream_location }} fork by `git push origin my_new_branch`.
+1. If this is the first time you do this from `my_new_branch`, you'll be prompted with a URL from your terminal for how to create a PR. Otherwise, if you go to {{ cookiecutter.upstream_location }}, you'll see a yellow banner at the top of the screen prompting you to submit a PR (as long as you're not out of sync with the `upstream {{ cookiecutter.default_branch }}`, in which case, re-sync your branch).
 1. You have the option to submit a PR in **Draft** status. Select this if you have a work in progress. It disables the ability to merge your PR.
-1. Once you submit your PR, there may be a yellow dot or red X beside your PR. This is because we have tests set up in CircleCI. If you are working in a private repo, you need to authorize access to CircleCI on your fork for tests to run successfully. To do so, follow the link to CircleCI and **authorize github** on your fork of the repo.
+1. Once you submit your PR, there may be a yellow dot or red X beside your PR. This is because we have tests set up in CircleCI. If you are working in a private repo, you need to authorize access to CircleCI on your fork for tests to run successfully. To do so, follow the link to CircleCI and **authorize {{ cookiecutter.upstream_location }}** on your fork of the repo.
 1. When ready, take your PR out of **Draft** status.
 
 
 #### General Git Suggestions:
-* Never commit your changes to your `master` branch. Always work off of a branch. Then you always have a clean local copy of `upstream/master` to work off of.
+* Never commit your changes to your `{{ cookiecutter.default_branch }}` branch. Always work from a branch. Then you always have a clean local copy of `upstream/{{ cookiecutter.default_branch }}` to work from.
 * Stick to **basic git commands** unless you *really* know what you're doing. (e.g. use `add`, `fetch`, `merge`, `commit`, `diff`, `rm`, `mv`)
 * While sometimes convenient, avoid using `git pull` from remotes. Or just general avoid using `git pull`. Use `git fetch` then `git merge` instead.
 * Use `git add -p` instead of `git add` to break up your commits into logical pieces rather than one big snotball of changes.
@@ -106,7 +106,7 @@ In order to make sharing virtual environments easy, the repo includes `make` com
 
 If there's any chance that you added something to the conda environment needed to run your code that was **not** added via your `environment.yml`, [delete your environment, recreate it](conda-environments.md#nuke-it-from-orbit) and then make the appropriate changes to your `environment.yml` file.
 
-Remember to `make update_environment` regularly after fetching and merging the `upstream` remote to keep your conda environment up-to-date with the main repo.
+Remember to `make update_environment` regularly after fetching and merging the `upstream` remote to keep your conda environment up-to-date with the shared (team) repo.
 
 ### Sharing notebooks and code
 We're keen on sharing notebooks for sharing stories and analyses. Best practices can be found in [using notebooks for sharing your analysis](notebooks.md). A short list of reminders:

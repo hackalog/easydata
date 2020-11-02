@@ -86,10 +86,7 @@ class KVStore(MutableMapping):
         self.data = dict()
 
         if self._config_file.exists() and not overwrite:
-            self._config.read(self._config_file)
-            if not self._config.has_section(config_section):
-                # File exists but we are adding to a new section of it
-                self._config.add_section(config_section)
+            self._read()
         else:
             self._config.add_section(config_section)
             self._config.read_dict(self.data)
@@ -116,6 +113,12 @@ class KVStore(MutableMapping):
 
     def __len__(self):
         return len(self.data)
+
+    def _read(self):
+        self._config.read(self._config_file)
+        if not self._config.has_section(self._config_section):
+            # File exists but we are adding to a new section of it
+            self._config.add_section(self._config_section)
 
     def _write(self):
         if self._persistent:

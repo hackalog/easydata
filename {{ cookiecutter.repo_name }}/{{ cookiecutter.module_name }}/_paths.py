@@ -1,5 +1,6 @@
 from .decorators import SingletonDecorator
 from .kvstore import KVStore
+from .log import logger
 import pathlib
 
 class PathStore(KVStore):
@@ -58,7 +59,10 @@ class PathStore(KVStore):
             self._config_file = "config.ini"
         else:
             self._config_file = pathlib.Path(config_file)
-        super().__init__(*args, config_section=config_section, config_file=self._config_file, **kwargs)
+        self._usage_warning = False
+        super().__init__(*args, config_section=config_section,
+                         config_file=self._config_file, **kwargs)
+        self._usage_warning = True
 
     def _write(self):
         """temporarily hide protected keys when saving"""
@@ -72,12 +76,18 @@ class PathStore(KVStore):
         """Do not set a key if it is protected"""
         if key in self._protected:
             raise AttributeError(f"{key} is write-protected")
+
+        if self._usage_warning:
+            logger.warning(f"'{key}' is a local configuration variable, and for reproducibility reasons, should not set from a notebook or shared code. It is better to edit '{self._config_file}' instead. We have set it, but you have been warned.")
+
         super().__setitem__(key, value)
+
 
     def __getitem__(self, key):
         """get keys (including protected ones), converting to paths and fully resolving them"""
         if key in self._protected:
             return getattr(self, key)
+        self._read()
         return pathlib.Path(super().__getitem__(key)).resolve()
 
     @property
