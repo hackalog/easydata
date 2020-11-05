@@ -8,11 +8,12 @@ _A python framework and git gemplate for data scientists, teams, and workshop or
 aimed at making your data science **reproducible**__
 
 For most of us, data science is 5% science, 60% data cleaning, and 35%
-IT hell.  Easydata focuses on delivering
+IT hell.  Easydata focuses the 95% by helping you deliver
 * reproducible python environments,
 * reproducible datasets, and
 * reproducible workflows
-in order to get you up and running with your data science quickly, and reproducibly.
+
+In other words, Easydata is a template, library, and workflow that lets you **get up and running with your data science analysis, and reproducibly**.
 
 ## What is Easydata?
 
