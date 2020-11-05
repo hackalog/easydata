@@ -25,16 +25,14 @@ Easydata is a python cookiecutter for building custom data science git repos tha
 
 Easydata is **not**
 * an ETL tooklit
-* A data analysis pipreline
+* A data analysis pipeline
 * a containerization solution, or
 * a prescribed data format.
 
 
 ### Requirements to use this cookiecutter template:
  - anaconda (or miniconda)
-
  - python3.6+ (we use f-strings. So should you)
-
  - [Cookiecutter Python package](http://cookiecutter.readthedocs.org/en/latest/installation.html) >= 1.4.0: This can be installed with pip by or conda depending on how you manage your Python packages:
 
 once you've installed anaconda, you can install the remaining requirements (including cookiecutter) by doing:
