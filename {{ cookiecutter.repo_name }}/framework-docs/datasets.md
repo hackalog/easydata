@@ -46,6 +46,7 @@ The `metadata` is where the magic lives. It serves several purposes in terms of 
 * it includes `HASHES`, which **improve data reproducibility**, since what you download and process gets checked each step along the way to ensure the raw data matches what is stored in the `dataset_catalog`,
 * it provides easy access to **what the data is** via the `DESCR` attribute,
 * it provides easy (and continual) **access to the license / usage restrictions** for the data (the `LICENSE` attribute), which helps with knowing what you can do when [Sharing your Work](sharing-your-work.md).
+* it provides the **extra data manifest**, `EXTRA`, if your dataset includes around additional raw data (extra) files.
 
 In short, it helps you to know what data you're working with, what you can do with it, and whether something has gone wrong.
 
