@@ -13,7 +13,7 @@ IT hell.  Easydata focuses the 95% by helping you deliver
 * reproducible datasets, and
 * reproducible workflows
 
-In other words, Easydata is a template, library, and workflow that lets you **get up and running with your data science analysis, and reproducibly**.
+In other words, Easydata is a template, library, and workflow that lets you **get up and running with your data science analysis, quickly and reproducibly**.
 
 ## What is Easydata?
 
