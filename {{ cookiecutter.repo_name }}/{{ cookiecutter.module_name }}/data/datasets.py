@@ -1311,7 +1311,7 @@ class DataSource(object):
         else:
             return [key for key in self.file_dict]
 
-    def unpack(self, unpack_path=None, force=False):
+    def unpack(self, unpack_path=None, force_unpack=False):
         """Unpack fetched files to interim dir"""
         if not self.fetched_:
             logger.debug("unpack() called before fetch()")
@@ -1319,7 +1319,7 @@ class DataSource(object):
                 logger.debug(f"Fetch failed. Aborting unpack")
                 return None
 
-        if self.unpacked_ and force is False:
+        if self.unpacked_ and force_unpack is False:
             logger.debug(f'Data Source {self.name} is already unpacked. Skipping')
         else:
             if unpack_path is None:
