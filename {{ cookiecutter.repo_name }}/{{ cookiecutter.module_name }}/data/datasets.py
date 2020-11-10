@@ -553,7 +553,7 @@ class Dataset(Bunch):
             logger.debug("Fetch failed. Aborting.")
             return None
 
-        if dsrc.unpack(unpack_path=unpack_path, force=force) is None:
+        if dsrc.unpack(unpack_path=unpack_path, force_unpack=force) is None:
             logger.debug("Unpack failed. Aborting.")
             return None
         ds = dsrc.process(cache_path=cache_path, force=force, dataset_name=dataset_name, **kwargs)
