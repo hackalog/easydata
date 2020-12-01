@@ -1,10 +1,4 @@
-# Cookiecutter EasyData
-
-EasyData started life as an opinionated fork of the [cookiecutter-datascience] project.
-We obviously owe that project a great debt for the work they have done in creating
-a flexible but highly useful project template.
-
-## Opinions
+# Easydata Opinions
 
 There are some opinions implicit in the project structure that have grown out of our experience with what works and what doesn't when collaborating on data science projects. Some of the opinions are about workflows, and some of the opinions are about tools that make life easier. Here are some of the beliefs which this project is built on—if you've got thoughts, please [contribute or share them](#contributing).
 
@@ -13,6 +7,15 @@ There are some opinions implicit in the project structure that have grown out of
 Don't ever edit your raw data, especially not manually. Don't overwrite your raw data. Don't save multiple versions of the raw data. Treat the data (and its format) as immutable. The code you write should move the raw data through a pipeline to your final analysis. You shouldn't have to run all of the steps every time you want to make a new figure (see [Analysis is a DAG](#analysis-is-a-dag)), but anyone should be able to reproduce the final products with only the code in {{ cookiecutter.module_name }} and the data in `data/raw`.
 
 Also, if data is immutable, it doesn't need source control in the same way that code does. Therefore, ***by default, the data folder is included in the `.gitignore` file.*** If you have a small amount of data that rarely changes, you may want to include the data in the repository. Github currently warns if files are over 50MB and rejects files over 100MB. Some other options for storing/syncing large data include [AWS S3](https://aws.amazon.com/s3/) with a syncing tool (e.g., [`s3cmd`](http://s3tools.org/s3cmd)), [Git Large File Storage](https://git-lfs.github.com/), [Git Annex](https://git-annex.branchable.com/), and [dat](http://dat-data.com/).
+
+### Shared workflows matter
+Shared workflows matter in enabling reproducible results and smoother collaboration. That's why we include a suite of recommendeded (but lightweight) workflows that help you to collaborate with others in our `framework-docs`. Use them out-of-the-box for a workshop, or adapt them to suit your team's needs. Either way, we recommend that shared workflows stay with the project and include a few key elements:
+
+* Contributor guidelines
+* A shared git workflow
+* How to submit issues, questions, or get help
+* Where to put different types of project materials such as code, notebooks for story-telling, documentation, visualizations, other deliverables
+* Which licenses to use (aka. terms for sharing)
 
 ### Notebooks are for exploration and communication
 
@@ -51,7 +54,7 @@ One effective approach to this is use [conda](https://anaconda.org) By listing a
  1. Run `make create_environment` when creating a new project
  2. Add new requirements to `environment.yml`, either in the main section (for conda installations), or under the indented `- pip:` line, if it should be pip installed.
  3. Type `make update_environment`
- 
+
 If you have more complex requirements for recreating your environment, consider a virtual machine based approach such as [Docker](https://www.docker.com/) or [Vagrant](https://www.vagrantup.com/). Both of these tools use text-based formats (Dockerfile and Vagrantfile respectively) you can easily add to source control to describe how to create a virtual machine with the requirements you need.
 
 ### Keep secrets and configuration out of version control
@@ -92,22 +95,3 @@ other_variable = os.environ.get("OTHER_VARIABLE")
 ### Be conservative in changing the default folder structure
 
 To keep this structure broadly applicable for many different kinds of projects, we think the best approach is to be liberal in changing the folders around for _your_ project, but be conservative in changing the default structure for _all_ projects.
-
-
-## Contributing
-
-The EasyData project is opinionated, but not afraid to be wrong. Best practices change, tools evolve, and lessons are learned. **The goal of this project is to make it easier to start, structure, and share your data science.** [Pull requests](https://github.com/hackalog/cookiecutter-easydata/pulls) and [filing issues](https://github.com/hackalog/cookiecutter-easydata/issues) is encouraged. We'd love to hear what works for you, and what doesn't.
-
-If you use the Cookiecutter Data Science project, link back to this page or [give us a holler](https://twitter.com/drivendataorg) and [let us know](mailto:info@drivendata.org)!
-
-## Links to related projects and references
-
-This project started as a fork of the [cookiecutter-datascience] project, so we owe them a huge debt.
-
-[cookiecutter-datascience]: https://github.com/drivendata/cookiecutter-data-science/
-
-Also, a huge thanks to the
-[Cookiecutter](https://cookiecutter.readthedocs.org/en/latest/)
-project ([github](https://github.com/audreyr/cookiecutter)), which is
-helping us all spend less time thinking about and writing boilerplate
-and more time getting things done.

@@ -1,0 +1,13 @@
+site_name: Easydata
+site_description: A project template and directory structure for reproducible and collaborative Python-based data science projects.
+site_favicon: favicon.ico
+repo_url: https://github.com/hackalog/cookiecutter-easydata
+copyright: CCBY 4.0
+google_analytics: ['UA-54096005-4', 'auto']
+theme: cinder
+extra_css:
+  - css/extra.css
+nav:
+  - Home: index.md
+  - Opinions: opinions.md
+  - Datasets: datasets.md
