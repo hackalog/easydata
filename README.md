@@ -4,8 +4,8 @@
 
 # Cookiecutter EasyData
 
-_A python framework and git gemplate for data scientists, teams, and workshop organizers
-aimed at making your data science **reproducible**__
+_A python framework and git template for data scientists, teams, and workshop organizers
+aimed at making your data science **reproducible**_
 
 For most of us, data science is 5% science, 60% data cleaning, and 35%
 IT hell.  Easydata focuses the 95% by helping you deliver
