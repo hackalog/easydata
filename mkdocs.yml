@@ -4,7 +4,7 @@ site_favicon: favicon.ico
 repo_url: https://github.com/hackalog/cookiecutter-easydata
 copyright: CCBY 4.0
 google_analytics: ['UA-54096005-4', 'auto']
-theme: cinder
+theme: readthedocs
 extra_css:
   - css/extra.css
 nav:
