@@ -2,6 +2,8 @@
 
 [![Coverage Status](https://coveralls.io/repos/github/hackalog/cookiecutter-easydata/badge.svg?branch=master)](https://coveralls.io/github/hackalog/cookiecutter-easydata?branch=master)
 
+[![Documentation Status](https://readthedocs.org/projects/cookiecutter-easydata/badge/?version=latest)](https://cookiecutter-easydata.readthedocs.io/en/latest/?badge=latest)
+
 # Cookiecutter EasyData
 
 _A python framework and git template for data scientists, teams, and workshop organizers
