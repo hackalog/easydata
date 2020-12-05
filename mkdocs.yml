@@ -11,3 +11,9 @@ nav:
   - Home: index.md
   - Opinions: opinions.md
   - Datasets: datasets.md
+  - 'Example Notebooks':
+      - 'Basic Starter Notebook': 00-xyz-sample-notebook.ipynb
+      - 'Creating a dataset from a csv file': Add-csv-template.ipynb
+
+plugins:
+  - mkdocs-jupyter
