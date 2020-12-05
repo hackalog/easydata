@@ -1,5 +1,5 @@
 mkdocs
-mkdocs-cinder
+mkdocs-jupyter
 cookiecutter
 pytest
 ruamel.yaml
