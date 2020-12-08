@@ -26,10 +26,9 @@ jobs:
             wget -q http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh;
             chmod +x ~/miniconda.sh;
             ~/miniconda.sh -b -p ~/miniconda;
-            export PATH=PATH=~/miniconda/bin:$PATH
+            export PATH=~/miniconda/bin:$PATH
             echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
             conda update --yes --quiet conda;
-            export CONDA_EXE=/home/circleci/miniconda/bin/conda
             conda init bash
             sed -ne '/>>> conda initialize/,/<<< conda initialize/p' ~/.bashrc >> $BASH_ENV
 
@@ -46,6 +45,7 @@ jobs:
           name: Create test-env environment and contrive to always use it
           command: |
             cd test-env
+            export CONDA_EXE=/home/circleci/miniconda/bin/conda
             make create_environment
             touch environment.yml
             make update_environment
