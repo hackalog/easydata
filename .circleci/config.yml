@@ -1,0 +1,79 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
+      - image: circleci/python:3.7.0
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      - run:
+          name: Set up Anaconda
+          command: |
+            wget -q http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh;
+            chmod +x ~/miniconda.sh;
+            ~/miniconda.sh -b -p ~/miniconda;
+            echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
+            conda update --yes --quiet conda;
+            export CONDA_EXE=/home/circleci/miniconda/bin/conda
+            conda init bash
+            sed -ne '/>>> conda initialize/,/<<< conda initialize/p' ~/.bashrc >> $BASH_ENV
+
+      - run:
+          name: Build cookiecutter environment and test-env project
+          command: |
+            conda create -n cookiecutter --yes python=3.8
+            conda activate cookiecutter
+            pip install -r requirements.txt
+            cookiecutter --config-file .cookiecutter-easydata-test.yml . -f --no-input
+            conda deactivate
+
+      - run:
+          name: Create test-env environment and contrive to always use it
+          command: |
+            cd test-env
+            make create_environment
+            touch environment.yml
+            make update_environment
+            echo "conda activate test-env" >> $BASH_ENV;
+
+      - run:
+          name: Create test report directory
+          command: |
+            mkdir test-reports
+
+      # Cache dependencies
+      - save_cache:
+          key: pip-cache
+          paths:
+            - ~/.cache/pip
+
+      - restore_cache:
+          keys:
+            - pip-cache
+
+      - run:
+          name: Run tests
+          command: |
+            python src/tests/make_test_datasets.py
+            make test CI_RUNNING=yes
+
+      - store_test_results:
+          path: test-reports
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
