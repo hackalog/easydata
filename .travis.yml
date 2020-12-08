@@ -44,6 +44,8 @@ script:
   - cd src
   - export CI_RUNNING=yes
   - coverage run -m pytest --doctest-modules --doctest-continue-on-failure --verbose --pyargs src
+  # test notebooks in docs
+  - pytest -v ../docs/test_docs.py
 
 after_success:
   - conda activate test-env
