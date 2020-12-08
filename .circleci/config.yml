@@ -37,7 +37,9 @@ jobs:
           command: |
             conda create -n cookiecutter --yes python=3.8
             conda activate cookiecutter
-            pip install -r requirements.txt
+            pip install cookiecutter
+            pip install ruamel.yaml
+            pwd
             cookiecutter --config-file .cookiecutter-easydata-test.yml . -f --no-input
             conda deactivate
 
