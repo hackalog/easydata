@@ -43,7 +43,7 @@ script:
   # run tests on the src module
   - cd src
   - export CI_RUNNING=yes
-  - coverage run -m pytest --doctest-modules --doctest-continue-on-failure --verbose --pyargs src
+  - make test_with_coverage
   # test notebooks in docs
   - pytest -v ../docs/test_docs.py
 

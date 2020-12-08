@@ -91,6 +91,12 @@ test: update_environment
 		$(if $(CI_RUNNING),--ignore=$(TESTS_NO_CI)) \
 		$(MODULE_NAME)
 
+## Run all Unit Tests with coverage
+test_with_coverage: update_environment
+	coverage run pytest --pyargs --doctest-modules --doctest-continue-on-failure --verbose \
+		$(if $(CI_RUNNING),--ignore=$(TESTS_NO_CI)) \
+		$(MODULE_NAME)
+
 .PHONY: lint
 ## Lint using flake8
 lint:
