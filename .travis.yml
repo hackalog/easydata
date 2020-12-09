@@ -41,7 +41,6 @@ script:
   # create test dataset
   - python src/tests/make_test_datasets.py
   # run tests on the src module
-  - cd src
   - export CI_RUNNING=yes
   - make test_with_coverage
   # test notebooks in docs
