@@ -44,7 +44,7 @@ script:
   - export CI_RUNNING=yes
   - make test_with_coverage
   # test notebooks in docs
-  - pytest -v ../docs/test_docs.py
+  - pytest -v docs/test_docs.py
 
 after_success:
   - conda activate test-env
