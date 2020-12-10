@@ -26,9 +26,9 @@ jobs:
             wget -q http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh;
             chmod +x ~/miniconda.sh;
             ~/miniconda.sh -b -p ~/miniconda;
+            export PATH=~/miniconda/bin:$PATH
             echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
             conda update --yes --quiet conda;
-            export CONDA_EXE=/home/circleci/miniconda/bin/conda
             conda init bash
             sed -ne '/>>> conda initialize/,/<<< conda initialize/p' ~/.bashrc >> $BASH_ENV
 
@@ -37,15 +37,21 @@ jobs:
           command: |
             conda create -n cookiecutter --yes python=3.8
             conda activate cookiecutter
-            pip install -r requirements.txt
-            cookiecutter --config-file .cookiecutter-easydata-test.yml . -f --no-input
+            pip install cookiecutter
+            pip install ruamel.yaml
+            mkdir /home/circleci/.cookiecutter_replay
+            cp circleci-cookiecutter-easydata.json /home/circleci/.cookiecutter_replay/cookiecutter-easydata.json
+            pwd
+            cookiecutter --config-file .cookiecutter-easydata-test-circleci.yml . -f --no-input
             conda deactivate
 
       - run:
           name: Create test-env environment and contrive to always use it
           command: |
             cd test-env
+            export CONDA_EXE=/home/circleci/miniconda/bin/conda
             make create_environment
+            conda activate test-env
             touch environment.yml
             make update_environment
             echo "conda activate test-env" >> $BASH_ENV;
@@ -68,8 +74,15 @@ jobs:
       - run:
           name: Run tests
           command: |
+            cd test-env
             python src/tests/make_test_datasets.py
             make test CI_RUNNING=yes
+
+      - run:
+          name: Run documentation notebook tests
+          command: |
+            cd docs
+            pytest -v test_docs.py
 
       - store_test_results:
           path: test-reports
