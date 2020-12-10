@@ -51,6 +51,7 @@ jobs:
             cd test-env
             export CONDA_EXE=/home/circleci/miniconda/bin/conda
             make create_environment
+            conda activate test-env
             touch environment.yml
             make update_environment
             echo "conda activate test-env" >> $BASH_ENV;
