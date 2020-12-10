@@ -78,6 +78,7 @@ jobs:
 
       - run:
           name: Run documentation notebook tests
+          command: |
             cd docs
             pytest test_docs.py
 
