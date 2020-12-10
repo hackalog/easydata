@@ -71,8 +71,14 @@ jobs:
       - run:
           name: Run tests
           command: |
+            cd test-env
             python src/tests/make_test_datasets.py
             make test CI_RUNNING=yes
+
+      - run:
+          name: Run documentation notebook tests
+            cd docs
+            pytest test_docs.py
 
       - store_test_results:
           path: test-reports
