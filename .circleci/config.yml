@@ -82,7 +82,7 @@ jobs:
           name: Run documentation notebook tests
           command: |
             cd docs
-            pytest test_docs.py
+            pytest -v test_docs.py
 
       - store_test_results:
           path: test-reports
