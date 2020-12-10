@@ -1,0 +1,1 @@
+{"cookiecutter": {"project_name": "test-env", "repo_name": "test-env", "default_branch": "master", "module_name": "src", "author_name": "acwooding", "description": "Template for testing cookiecutter-easydata", "open_source_license": "MIT", "python_version": "latest", "conda_path": "/home/circleci/miniconda/bin", "upstream_location": "github.com", "_template": "."}}

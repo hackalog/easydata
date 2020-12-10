@@ -39,10 +39,9 @@ jobs:
             conda activate cookiecutter
             pip install cookiecutter
             pip install ruamel.yaml
+            cp circleci-cookiecutter-easydata.json /home/circleci/.cookiecutter_replay/cookiecutter-easydata.json
             pwd
-            mkdir /home/circleci/.cookiecutter_replay
-            touch /home/circleci/.cookiecutter_replay/cookiecutter-easydata.json
-            cookiecutter --config-file .cookiecutter-easydata-test.yml . -f --no-input
+            cookiecutter --config-file .cookiecutter-easydata-test-circleci.yml . -f --no-input
             conda deactivate
 
       - run:
