@@ -5,7 +5,7 @@ from tqdm.auto import tqdm
 
 from sklearn.model_selection import train_test_split
 
-from . import Dataset
+from . import Dataset, deserialize_partial
 from .. import paths
 from ..log import logger
 

@@ -7,8 +7,8 @@ from ..log import logger
 from .. import paths
 
 from . import (DataSource, Dataset, hash_file, TransformerGraph,
-               create_transformer_pipeline, dataset_catalog, add_datasource)
-from .transformer_functions import csv_to_pandas, new_dataset
+               create_transformer_pipeline, dataset_catalog, add_datasource, serialize_partial)
+from .transformer_functions import csv_to_pandas, new_dataset, apply_single_function
 from .extra import process_extra_files
 
 __all__ = [

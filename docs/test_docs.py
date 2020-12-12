@@ -39,3 +39,6 @@ class TestDocNotebooks(unittest.TestCase):
             with open(csv_dest, 'wb') as f:
                 f.write(csv_file.content)
         _exec_notebook(DOCS_DIR / "Add-csv-template.ipynb")
+
+    def test_notebook_derived(self):
+        _exec_notebook(DOCS_DIR / "Add-derived-dataset.ipynb")
