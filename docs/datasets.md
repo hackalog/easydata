@@ -69,3 +69,32 @@ To access the catalog:
 workflow.available_datasets(keys_only=True)
 ```
 If you're interested, set `keys_only=False` to see the complete contents of the metadata that is saved in the catalog.
+
+## Creating Dataset Recipes
+
+For the curious...
+
+The API for adding datasets is not yet user friendly, but we are currently working on making it so.
+
+When to create a dataset:
+
+* If you're even tempted to save some data to disk so you don't have to recompute it later,
+* If you're even tempted to save data to share with someone else,
+* If you want to access your data from another notebook/code path,
+* If you feel like it :)
+
+We have included some examples to let you look under the hood if you're interested, and have included some common examples as part of the `workflow` module to make it easier to use.
+
+Example notebooks using the built-in `workflow`:
+
+* [Creating a dataset from a csv file](../Add-csv-template)
+* [Creating a derived dataset using a single function](../Add-derived-dataset)
+
+Example notebooks for generally building datasets:
+
+* [Dataset from raw file](../New-Dataset-Template)
+* [Dataset from another dataset](../New-Edge-Template)
+
+You can also make datasets from multiple existing datasets, or make multiple datasets at once.
+
+Some datasets are trickier to include than others and may used advanced functionality. So please ask any questions that you may have. We'll attempt to explain and update the examples based on requests.

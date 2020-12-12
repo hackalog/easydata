@@ -42,3 +42,9 @@ class TestDocNotebooks(unittest.TestCase):
 
     def test_notebook_derived(self):
         _exec_notebook(DOCS_DIR / "Add-derived-dataset.ipynb")
+
+    def test_notebook_generic_dataset(self):
+        _exec_notebook(DOCS_DIR / "New-Dataset-Template.ipynb")
+
+    def test_notebook_generic_edge(self):
+        _exec_notebook(DOCS_DIR / "New-Edge-Template.ipynb")

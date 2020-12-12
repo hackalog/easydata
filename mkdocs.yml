@@ -15,5 +15,7 @@ nav:
       - 'Basic Starter Notebook': 00-xyz-sample-notebook.ipynb
       - 'Creating a dataset from a csv file': Add-csv-template.ipynb
       - 'Creating a derived dataset from a single function': Add-derived-dataset.ipynb
+      - 'Generic Raw Dataset Creation Template': New-Dataset-Template.ipynb
+      - 'Generic Derived Dataset Creation Template': New-Edge-Template.ipynb
 plugins:
   - mkdocs-jupyter
