@@ -51,7 +51,7 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
         raise KeyError(f"'{ds_name}' already in catalog")
     csv_path = pathlib.Path(csv_path)
     # Create a datasource
-    raw_ds_name = ds_name+"_raw"
+    raw_ds_name = ds_name+"-raw"
     logger.debug(f"Creating raw datasource: {raw_ds_name}")
     dsrc = DataSource(raw_ds_name)
 
