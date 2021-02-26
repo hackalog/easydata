@@ -1276,7 +1276,7 @@ class DataSource(object):
         self.fetched_files_ = []
         self.fetched_ = True
         for filename, fetch_params in self.file_dict.items():
-            fetch_kwargs = {**fetch_params, **fetch_options, 'force':force_download}
+            fetch_kwargs = {**fetch_params, **fetch_options, 'force':force_download, 'dst_dir':self.download_dir}
             status, result, hash_value = fetch_file(**fetch_kwargs)
             if status:  # True (cached) or HTTP Code (successful download)
                 fetch_params['hash_value'] = hash_value
