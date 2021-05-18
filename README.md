@@ -3,7 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/hackalog/cookiecutter-easydata/badge.svg?branch=master)](https://coveralls.io/github/hackalog/cookiecutter-easydata?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/cookiecutter-easydata/badge/?version=latest)](https://cookiecutter-easydata.readthedocs.io/en/latest/?badge=latest)
 
-# Cookiecutter EasyData
+# EasyData
 
 _A python framework and git template for data scientists, teams, and workshop organizers
 aimed at making your data science **reproducible**_
@@ -18,8 +18,8 @@ In other words, Easydata is a template, library, and workflow that lets you **ge
 
 ## What is Easydata?
 
-Easydata is a python cookiecutter for building custom data science git repos that provides:
-* An **opinionated workflow** for collaboration, storytelling,
+Easydata is a framework for building custom data science git repos that provides:
+* An **prescribed workflow** for collaboration, storytelling,
 * A **python framework** to support this workflow
 * A **makefile wrapper** for conda and pip environment management
 * prebuilt **dataset recipes**, and
@@ -32,7 +32,7 @@ Easydata is **not**
 * a prescribed data format.
 
 
-### Requirements to use this cookiecutter template:
+### Requirements to use this framework:
  - anaconda (or miniconda)
  - python3.6+ (we use f-strings. So should you)
  - [Cookiecutter Python package](http://cookiecutter.readthedocs.org/en/latest/installation.html) >= 1.4.0: This can be installed with pip by or conda depending on how you manage your Python packages:
@@ -49,7 +49,7 @@ python -m pip install -f requirements.txt
 ### To start a new project, run:
 ------------
 
-    cookiecutter https://github.com/hackalog/cookiecutter-easydata
+    cookiecutter https://github.com/hackalog/easydata
 
 
 ### The resulting directory structure
@@ -59,8 +59,13 @@ The directory structure of your new project looks like this:
 
 
 * `LICENSE`
+    * Terms of use for this repo
 * `Makefile`
     * top-level makefile. Type `make` for a list of valid commands
+* `Makefile.include`
+    * Global includes for makefile routines. Included by `Makefile`.
+* `Makefile.env`
+    * Command for maintaining reproducible conda environment. Included by `Makefile`.
 * `README.md`
     * this file
 * `catalog`
@@ -80,12 +85,6 @@ The directory structure of your new project looks like this:
     * A default Sphinx project; see sphinx-doc.org for details
 * `framework-docs`
     * Markdown documentation for using Easydata
-* `models`
-    * Trained and serialized models, model predictions, or model summaries
-    * `models/trained`
-        * Trained models
-    * `models/output`
-        * predictions and transformations from the trained models
 * `notebooks`
     *  Jupyter notebooks. Naming convention is a number (for ordering),
     the creator's initials, and a short `-` delimited description,
@@ -96,13 +95,9 @@ The directory structure of your new project looks like this:
     * Generated analysis as HTML, PDF, LaTeX, etc.
     * `reports/figures`
         * Generated graphics and figures to be used in reporting
-    * `reports/tables`
-        * Generated data tables to be used in reporting
-    * `reports/summary`
-        * Generated summary information to be used in reporting
 * `environment.yml`
-    * (if using conda) The YAML file for reproducing the analysis environment
-* `environment.(platform).lock.yml`
+    * The user-readable YAML file for reproducing the conda/pip environment.
+* `environment.(platform).lock.1yml`
     * resolved versions, result of processing `environment.yml`
 * `setup.py`
     * Turns contents of `MODULE_NAME` into a
@@ -116,9 +111,6 @@ The directory structure of your new project looks like this:
         * code to fetch raw data and generate Datasets from them
     * `MODULE_NAME/analysis`
         * code to turn datasets into output products
-* `tox.ini`
-    * tox file with settings for running tox; see tox.testrun.org
-
 
 ### Installing development requirements
 The first time:
@@ -142,6 +134,8 @@ make delete_environment
 ```
 
 
-## History
-Early versions of Easydata were based on
-[cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/).
+## Credits and Thanks
+* Early versions of Easydata were based on the excellent
+[cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/)
+template.
+* Thanks to the [Tutte Institute](https://github.com/TutteInstitute) for supporting the development of this framework.
