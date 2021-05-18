@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/hackalog/cookiecutter-easydata.svg?branch=master)](https://travis-ci.org/hackalog/cookiecutter-easydata)
-[![CircleCI](https://circleci.com/gh/hackalog/cookiecutter-easydata.svg?style=shield)](https://app.circleci.com/pipelines/github/hackalog/cookiecutter-easydata)
+[![CircleCI](https://circleci.com/gh/hackalog/easydata.svg?style=shield)](https://app.circleci.com/pipelines/github/hackalog/cookiecutter-easydata)
 [![Coverage Status](https://coveralls.io/repos/github/hackalog/cookiecutter-easydata/badge.svg?branch=master)](https://coveralls.io/github/hackalog/cookiecutter-easydata?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/cookiecutter-easydata/badge/?version=latest)](https://cookiecutter-easydata.readthedocs.io/en/latest/?badge=latest)
 
