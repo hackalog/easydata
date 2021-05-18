@@ -35,7 +35,7 @@ delete_environment:
 ifeq (conda,$(VIRTUALENV))
 	@echo "Deleting conda environment."
 	$(CONDA_EXE) env remove -n $(PROJECT_NAME)
-	rm environment.$(ARCH).lock.yml
+	rm -f environment.$(ARCH).lock.yml
 ifneq ("X$(wildcard .post-delete-environment.txt)","X")
 	@cat .post-delete-environment.txt
 endif
