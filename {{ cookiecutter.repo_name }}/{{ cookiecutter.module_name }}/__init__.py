@@ -9,6 +9,9 @@ _path_defaults = {
     'interim_data_path': '${data_path}/interim',
     'processed_data_path': '${data_path}/processed',
     'project_path': '${catalog_path}/..',
+    'output_path': '${project_path}/reports',
+    'figures_path': '${output_path}/figures'
+
 }
 _catalog_file = _module_dir.parent / "catalog" / "config.ini"
 
