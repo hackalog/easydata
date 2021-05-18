@@ -12,26 +12,29 @@ from cookiecutter.config import get_user_config
 logger = logging.getLogger(__name__)
 
 
-def copy_cookiecutter_resume(template_name='cookiecutter-easydata'):
+def copy_cookiecutter_resume(template_name='easydata'):
     """Make a copy of the cookiecutter replay file in the generated project.
 
-    By default, cookiecutter creates a replay directory in a user's ~/.cookiecutter
-    directory. This hook creates a YAML version of those values in the generated project.
-    This can be used to regenerate the project by doing a:
-    >>> cookiecutter --config_file path/to/cookiecutter-easydata.yaml cookiecutter-easydata
+    By default, cookiecutter creates a replay directory in a user's
+    ~/.cookiecutter directory. This is largely useless. Easydata dumps
+    this data to the generated project (also as json) using a jsonify
+    call, but this doesn't yet help us regenerate the project
+    automatically.  This hook creates a YAML version of those values
+    in the generated project.  This can be used to regenerate the
+    project by doing a:
+
+    >>> cookiecutter --config_file path/to/.easydata.yaml easydata
 
     """
-    config_obj = get_user_config()
-    config_dir = pathlib.Path(config_obj['replay_dir'])
-
-    src_path = config_dir / f'{template_name}.json'
-    yml_path = f'.{template_name}.yml'  # relative to root of generated project
+    # relative to root of generated project
+    src_path = f'.{template_name}.json'
+    yml_path = f'.{template_name}.yml'
 
     logger.debug(f"Reading cookiecutter replay data from {src_path}")
     with open(src_path) as f:
         cookiecutter_opts = json.load(f)
         yaml_opts = {k:v
-                     for k,v in sorted(cookiecutter_opts['cookiecutter'].items())
+                     for k,v in sorted(cookiecutter_opts.items())
                      if not k.startswith('_')}
     yaml = YAML()
     yaml.default_flow_style=False
