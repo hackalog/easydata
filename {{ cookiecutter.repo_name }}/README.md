@@ -4,7 +4,7 @@ _Author: {{ cookiecutter.author_name }}_
 
 {{cookiecutter.description}}
 
-This repo is build on the cookiecutter-easydata template and workflow for making it easy to share your work with others and
+This repo is build on the easydata template and workflow for making it easy to share your work with others and
 to build on the work of others. This includes:
 
 * managing conda environments in a consistent and reproducible way,
@@ -27,7 +27,7 @@ in [Setting up git and Checking Out the Repo](framework-docs/git-configuration.m
 order to check-out the code and set-up your remote branches
 
 Note: These instructions assume you are using SSH keys (and not HTTPS authentication) with {{ cookiecutter.upstream_location }}.
-If you haven't set up SSH access to {{ cookiecutter.upstream_location }}, see [Configuring SSH Access to {{cookiecutter.upstream_location}}](https://github.com/hackalog/cookiecutter-easydata/wiki/Configuring-SSH-Access-to-Github). This also includes instuctions for using more than one account with SSH keys.
+If you haven't set up SSH access to {{ cookiecutter.upstream_location }}, see [Configuring SSH Access to {{cookiecutter.upstream_location}}](https://github.com/hackalog/easydata/wiki/Configuring-SSH-Access-to-Github). This also includes instuctions for using more than one account with SSH keys.
 
 Once you've got your local, `origin`, and `upstream` branches configured, you can follow the instructions in this handy [Git Workflow Cheat Sheet](framework-docs/git-workflow.md) to keep your working copy of the repo in sync with the others.
 
@@ -158,4 +158,4 @@ Project Organization
 
 --------
 
-<p><small>This project was built using <a target="_blank" href="https://github.com/hackalog/cookiecutter-easydata">cookiecutter-easydata</a>, a python template aimed at making your data science workflow reproducible.</small></p>
+<p><small>This project was built using <a target="_blank" href="https://github.com/hackalog/easydata">Easydata</a>, a python template aimed at making your data science workflow reproducible.</small></p>

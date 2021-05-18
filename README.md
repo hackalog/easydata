@@ -3,7 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/hackalog/cookiecutter-easydata/badge.svg?branch=master)](https://coveralls.io/github/hackalog/cookiecutter-easydata?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/cookiecutter-easydata/badge/?version=latest)](https://cookiecutter-easydata.readthedocs.io/en/latest/?badge=latest)
 
-# Cookiecutter EasyData
+# EasyData
 
 _A python framework and git template for data scientists, teams, and workshop organizers
 aimed at making your data science **reproducible**_
@@ -18,8 +18,8 @@ In other words, Easydata is a template, library, and workflow that lets you **ge
 
 ## What is Easydata?
 
-Easydata is a python cookiecutter for building custom data science git repos that provides:
-* An **opinionated workflow** for collaboration, storytelling,
+Easydata is a framework for building custom data science git repos that provides:
+* An **prescribed workflow** for collaboration, storytelling,
 * A **python framework** to support this workflow
 * A **makefile wrapper** for conda and pip environment management
 * prebuilt **dataset recipes**, and
@@ -32,7 +32,7 @@ Easydata is **not**
 * a prescribed data format.
 
 
-### Requirements to use this cookiecutter template:
+### Requirements to use this framework:
  - anaconda (or miniconda)
  - python3.6+ (we use f-strings. So should you)
  - [Cookiecutter Python package](http://cookiecutter.readthedocs.org/en/latest/installation.html) >= 1.4.0: This can be installed with pip by or conda depending on how you manage your Python packages:
@@ -49,7 +49,7 @@ python -m pip install -f requirements.txt
 ### To start a new project, run:
 ------------
 
-    cookiecutter https://github.com/hackalog/cookiecutter-easydata
+    cookiecutter https://github.com/hackalog/easydata
 
 
 ### The resulting directory structure
@@ -134,6 +134,8 @@ make delete_environment
 ```
 
 
-## History
-Early versions of Easydata were based on
-[cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/).
+## Credits and Thanks
+* Early versions of Easydata were based on the excellent
+[cookiecutter-data-science](http://drivendata.github.io/cookiecutter-data-science/)
+template.
+* Thanks to the [Tutte Institute](https://github.com/TutteInstitute) for supporting the development of this framework.
