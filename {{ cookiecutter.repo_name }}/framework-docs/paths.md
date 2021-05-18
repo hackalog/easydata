@@ -50,11 +50,11 @@ Notice that paths are automatically resolved to absolute filenames (in [pathlib]
 ```python
 >>> for name, location in paths.items():
 >>>     print(f"{name}: {location}")
-data_path: /path/to/repo/ReproAllTheThings/data
-raw_data_path: /path/to/repo/ReproAllTheThings/data/raw
-interim_data_path: /path/to/repo/ReproAllTheThings/data/interim
-processed_data_path: /path/to/repo/ReproAllTheThings/data/processed
-project_path: /path/to/repo/ReproAllTheThings
+data_path: /path/to/repo/{{ cookiecutter.repo_name }}/data
+raw_data_path: /path/to/repo/{{ cookiecutter.repo_name }}/data/raw
+interim_data_path: /path/to/repo/{{ cookiecutter.repo_name }}/data/interim
+processed_data_path: /path/to/repo/{{ cookiecutter.repo_name }}/data/processed
+project_path: /path/to/repo/{{ cookiecutter.repo_name }}
 ```
 [pathlib]: https://docs.python.org/3/library/pathlib.html
 
@@ -74,11 +74,11 @@ When accessed from Python, you'll immediately see the paths have all changed:
 ```python
 >>> for name, location in paths.items():
 >>>     print(f"{name}: {location}")
-data_path: /alternate/bigdata/path/ReproAllTheThings/data
-raw_data_path: /alternate/bigdata/path/ReproAllTheThings/data/raw
-interim_data_path: /alternate/bigdata/path/ReproAllTheThings/data/interim
-processed_data_path: /alternate/bigdata/path/ReproAllTheThings/data/processed
-project_path: /alternate/bigdata/path/ReproAllTheThings
+data_path: /alternate/bigdata/path/{{ cookiecutter.repo_name }}/data
+raw_data_path: /alternate/bigdata/path/{{ cookiecutter.repo_name }}/data/raw
+interim_data_path: /alternate/bigdata/path/{{ cookiecutter.repo_name }}/data/interim
+processed_data_path: /alternate/bigdata/path/{{ cookiecutter.repo_name }}/data/processed
+project_path: /alternate/bigdata/path/{{ cookiecutter.repo_name }}
 ```
 as has `config.ini`:
 
