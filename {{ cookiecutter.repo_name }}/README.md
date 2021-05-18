@@ -115,6 +115,8 @@ Project Organization
 * `catalog`
   * Data catalog. This is where config information such as data sources
     and data transformations are saved.
+  * `catalog/config.ini`
+     * Local Data Store. This configuration file is for local data only, and is never checked into the repo.
 * `data`
     * Data directory. Often symlinked to a filesystem with lots of space.
     * `data/raw`
@@ -138,7 +140,9 @@ Project Organization
     * `reports/figures`
         * Generated graphics and figures to be used in reporting.
 * `environment.yml`
-    * The YAML file for reproducing the conda/pip environment.
+    * The user-readable YAML file for reproducing the conda/pip environment.
+* `environment.(platform).lock.yml`
+    * resolved versions, result of processing `environment.yml`
 * `setup.py`
     * Turns contents of `{{ cookiecutter.module_name }}` into a
     pip-installable python module  (`pip install -e .`) so it can be

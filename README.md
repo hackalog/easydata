@@ -59,8 +59,13 @@ The directory structure of your new project looks like this:
 
 
 * `LICENSE`
+    * Terms of use for this repo
 * `Makefile`
     * top-level makefile. Type `make` for a list of valid commands
+* `Makefile.include`
+    * Global includes for makefile routines. Included by `Makefile`.
+* `Makefile.env`
+    * Command for maintaining reproducible conda environment. Included by `Makefile`.
 * `README.md`
     * this file
 * `catalog`
@@ -80,12 +85,6 @@ The directory structure of your new project looks like this:
     * A default Sphinx project; see sphinx-doc.org for details
 * `framework-docs`
     * Markdown documentation for using Easydata
-* `models`
-    * Trained and serialized models, model predictions, or model summaries
-    * `models/trained`
-        * Trained models
-    * `models/output`
-        * predictions and transformations from the trained models
 * `notebooks`
     *  Jupyter notebooks. Naming convention is a number (for ordering),
     the creator's initials, and a short `-` delimited description,
@@ -96,13 +95,9 @@ The directory structure of your new project looks like this:
     * Generated analysis as HTML, PDF, LaTeX, etc.
     * `reports/figures`
         * Generated graphics and figures to be used in reporting
-    * `reports/tables`
-        * Generated data tables to be used in reporting
-    * `reports/summary`
-        * Generated summary information to be used in reporting
 * `environment.yml`
-    * (if using conda) The YAML file for reproducing the analysis environment
-* `environment.(platform).lock.yml`
+    * The user-readable YAML file for reproducing the conda/pip environment.
+* `environment.(platform).lock.1yml`
     * resolved versions, result of processing `environment.yml`
 * `setup.py`
     * Turns contents of `MODULE_NAME` into a
@@ -116,9 +111,6 @@ The directory structure of your new project looks like this:
         * code to fetch raw data and generate Datasets from them
     * `MODULE_NAME/analysis`
         * code to turn datasets into output products
-* `tox.ini`
-    * tox file with settings for running tox; see tox.testrun.org
-
 
 ### Installing development requirements
 The first time:
