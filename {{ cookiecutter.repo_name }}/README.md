@@ -4,8 +4,8 @@ _Author: {{ cookiecutter.author_name }}_
 
 {{cookiecutter.description}}
 
-ABOUT THIS REPO
----------------
+ABOUT EASYDATA
+--------------
 This git repository is build from the [Easydata](https://github.com/hackalog/easydata) framework, which aims to make
 your data science workflow reproducible. The Easydata framework includes:
 
@@ -22,7 +22,7 @@ EASYDATA REQUIREMENTS
 
 GETTING STARTED
 ---------------
-### Git Configuration and Checking Out the Repo
+### Initial Git Configuration and Checking Out the Repo
 
 If you haven't yet done so, please follow the instrucitons
 in [Setting up git and Checking Out the Repo](framework-docs/git-configuration.md) in
@@ -34,9 +34,16 @@ If you haven't set up SSH access to {{ cookiecutter.upstream_location }}, see [C
 Once you've got your local, `origin`, and `upstream` branches configured, you can follow the instructions in this handy [Git Workflow Cheat Sheet](framework-docs/git-workflow.md) to keep your working copy of the repo in sync with the others.
 
 ### Setting up your environment
-**WARNING**: If you have conda-forge listed as a channel in your `.condarc` (or any other channels other than defaults), remove it during the course of the workshop. Even better, don't use a `.condarc` for managing channels, as it overrides the `environment.yml` instructions and makes things less reproducible. Make the changes to the `environment.yml` file if necessary. We've had some conda-forge related issues with version conflicts. We also recommend [setting your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) to reduce package incompatibility problems.
+**WARNING**: If you have conda-forge listed as a channel in your `.condarc` (or any other channels other than defaults), you may experience great difficulty generating reproducible conda environments.
 
-Initial setup:
+We recommend you remove conda-forge (and all other non-default channels) from your `.condarc` file and [set your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html). Alternate channels can be specified explicitly in your your `environment.yml` by prefixing your package name with `channel-name::`; e.g.
+```
+  - wheel                    # install from the default (anaconda) channel
+  - pytorch::pytorch         # install this from the `pytorch` channel
+  - conda-forge::tokenizers  # install this from conda-forge
+
+
+### Initial setup
 
 * Make note of the path to your conda binary:
 ```
@@ -54,7 +61,7 @@ make create_environment
 conda activate {{cookiecutter.repo_name}}
 ```
 
-Now you're ready to run `jupyter notebook` and explore the notebooks in the `notebooks` directory.
+Now you're ready to run `jupyter notebook` (or jupyterlab) and explore the notebooks in the `notebooks` directory.
 
 For more instructions on setting up and maintaining your environment (including how to point your environment at your custom forks and work in progress) see [Setting up and Maintaining your Conda Environment Reproducibly](framework-docs/conda-environments.md).
 
@@ -160,4 +167,4 @@ Project Organization
 
 --------
 
-<p><small>This project was built using <a target="_blank" href="https://github.com/hackalog/easydata">Easydata</a>, a python template aimed at making your data science workflow reproducible.</small></p>
+<p><small>This project was built using <a target="_blank" href="https://github.com/hackalog/easydata">Easydata</a>, a python framework aimed at making your data science workflow reproducible.</small></p>
