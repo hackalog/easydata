@@ -7,3 +7,4 @@ PROJECT_NAME := {{ cookiecutter.repo_name }}
 PYTHON_INTERPRETER := python3
 ARCH := $(shell $(PYTHON_INTERPRETER) -c "import platform; print(platform.platform())")
 VIRTUALENV := conda
+EASYDATA_LOCKFILE := environment.$(ARCH).lock.yml

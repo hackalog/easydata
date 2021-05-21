@@ -4,15 +4,17 @@ _Author: {{ cookiecutter.author_name }}_
 
 {{cookiecutter.description}}
 
-This repo is build on the easydata template and workflow for making it easy to share your work with others and
-to build on the work of others. This includes:
+ABOUT THIS REPO
+---------------
+This git repository is build from the [Easydata](https://github.com/hackalog/easydata) framework, which aims to make
+your data science workflow reproducible. The Easydata framework includes:
 
-* managing conda environments in a consistent and reproducible way,
-* built in dataset management (including tracking of licenses),
-* pre-established project structure,
+* tools for managing conda environments in a consistent and reproducible way,
+* built-in dataset management (including tracking of metadata such as LICENSES and READMEs),
+* a prescribed project directory structure,
 * workflows and conventions for contributing notebooks and other code.
 
-REQUIREMENTS
+EASYDATA REQUIREMENTS
 ------------
 * Make
 * conda >= 4.8 (via Anaconda or Miniconda)

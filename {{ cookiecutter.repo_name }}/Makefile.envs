@@ -4,7 +4,7 @@
 
 include Makefile.include
 
-environment.$(ARCH).lock.yml: environment.yml
+$(EASYDATA_LOCKFILE): environment.yml
 ifeq (conda, $(VIRTUALENV))
 	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f $<
 	$(CONDA_EXE) env export -n $(PROJECT_NAME) -f $@
@@ -15,9 +15,9 @@ endif
 
 .PHONY: create_environment
 ## Set up virtual (conda) environment for this project
-create_environment: environment.$(ARCH).lock.yml
+create_environment: $(EASYDATA_LOCKFILE)
 ifeq (conda,$(VIRTUALENV))
-	@touch environment.yml
+	@rm -f $(EASYDATA_LOCKFILE)
 	@echo
 	@echo "New conda env created. Activate with:"
 	@echo ">>> conda activate $(PROJECT_NAME)"
@@ -35,7 +35,7 @@ delete_environment:
 ifeq (conda,$(VIRTUALENV))
 	@echo "Deleting conda environment."
 	$(CONDA_EXE) env remove -n $(PROJECT_NAME)
-	rm -f environment.$(ARCH).lock.yml
+	rm -f $(EASYDATA_LOCKFILE)
 ifneq ("X$(wildcard .post-delete-environment.txt)","X")
 	@cat .post-delete-environment.txt
 endif
@@ -45,17 +45,29 @@ endif
 
 .PHONY: update_environment
 ## Install or update Python Dependencies in the virtual (conda) environment
-update_environment: test_environment environment.$(ARCH).lock.yml
+update_environment: environment_enabled $(EASYDATA_LOCKFILE)
 ifneq ("X$(wildcard .post-update-environment.txt)","X")
 	@cat .post-update-environment.txt
 endif
 
-.PHONY: test_environment
-test_environment:
+.PHONY: environment_enabled
+# Checks that the conda environment is active
+environment_enabled:
 ifeq (conda,$(VIRTUALENV))
 ifneq ($(notdir ${CONDA_DEFAULT_ENV}), $(PROJECT_NAME))
-	$(error Must activate `$(PROJECT_NAME)` environment before proceeding)
+	$(error Run "$(VIRTUALENV) activate $(PROJECT_NAME)" before proceeding...)
 endif
 else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
+
+.PHONY: check_lockfile
+# Test that an environment lockfile exists
+check_lockfile:
+ifeq (X,X$(wildcard $(EASYDATA_LOCKFILE)))
+	$(error Run "make update_environment" before proceeding...)
+endif
+
+.PHONY: check_environment
+## Check if environment is enabled and correctly configured
+check_environment: environment_enabled check_lockfile $(EASYDATA_LOCKFILE)
