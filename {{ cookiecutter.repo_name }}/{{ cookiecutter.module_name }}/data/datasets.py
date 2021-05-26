@@ -1073,7 +1073,7 @@ def process_datasources(datasources=None, action='process'):
 def add_datasource(rawds):
     """Add a data source to the list of available data sources"""
 
-    rawds_list, rds_file_fq = datasource_catalog(include_filename=True)
+    rawds_list, rds_file_fq = datasource_catalog(include_filename=True, keys_only=False)
     rawds_list[rawds.name] = rawds.to_dict()
     save_json(rds_file_fq, rawds_list)
 
