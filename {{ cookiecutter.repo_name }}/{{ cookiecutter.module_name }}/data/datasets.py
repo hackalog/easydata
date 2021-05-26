@@ -415,7 +415,7 @@ class Dataset(Bunch):
             dataset catalog file. relative to `catalog_path`. Default 'datasets.json'
         """
         dataset_name = self["metadata"]["dataset_name"]
-        catalog, catalog_file_fq = dataset_catalog(catalog_path=catalog_path, catalog_file=catalog_file, include_filename=True)
+        catalog, catalog_file_fq = dataset_catalog(catalog_path=catalog_path, catalog_file=catalog_file, include_filename=True, keys_only=False)
         catalog[dataset_name] = self['metadata']
         logger.debug(f"Updating dataset catalog with '{dataset_name}' metadata")
         save_json(catalog_file_fq, catalog)
@@ -1701,7 +1701,8 @@ class DataSource(object):
 
         """
         datasources = datasource_catalog(catalog_file=datasource_file,
-                                         catalog_path=datasource_path)
+                                         catalog_path=datasource_path,
+                                         keys_only=False)
         return cls.from_dict(datasources[datasource_name])
 
     @classmethod
@@ -1769,8 +1770,8 @@ class TransformerGraph:
         else:
             catalog_path = pathlib.Path(catalog_path)
 
-        self.transformers, self._transformer_catalog_fq = transformer_catalog(catalog_path=catalog_path, catalog_file=transformer_file, include_filename=True)
-        self.datasets, self._dataset_catalog_fq = dataset_catalog(catalog_path=catalog_path, catalog_file=dataset_file, include_filename=True)
+        self.transformers, self._transformer_catalog_fq = transformer_catalog(catalog_path=catalog_path, catalog_file=transformer_file, include_filename=True, keys_only=False)
+        self.datasets, self._dataset_catalog_fq = dataset_catalog(catalog_path=catalog_path, catalog_file=dataset_file, include_filename=True, keys_only=False)
 
         self._validate_hypergraph()
         self._update_degrees()
@@ -2334,7 +2335,7 @@ def add_dataset(dataset=None, dataset_name=None, datasource_name=None, datasourc
             dataset_name = datasource_name
         dataset = Dataset.from_datasource(datasource_name=datasource_name, dataset_name=dataset_name, **datasource_opts)
 
-    catalog, catalog_fq = dataset_catalog(include_filename=True)
+    catalog, catalog_fq = dataset_catalog(include_filename=True, keys_only=False)
     catalog[dataset_name] = dataset.metadata
     save_json(catalog_fq, catalog)
 
