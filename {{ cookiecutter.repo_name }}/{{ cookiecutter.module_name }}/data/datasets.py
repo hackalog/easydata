@@ -338,7 +338,6 @@ def load_catalog(catalog_path=None, catalog_file='catalog.json', include_filenam
 
 dataset_catalog = partial(load_catalog, catalog_file='datasets.json')
 datasource_catalog = partial(load_catalog, catalog_file='datasources.json')
-transformer_catalog = partial(load_catalog, catalog_file='transformers.json')
 
 def del_from_catalog(key, catalog_path=None, catalog_file=None):
     """Delete an entry from the catalog file
@@ -754,7 +753,7 @@ class Dataset(Bunch):
             cache_path = paths['interim_data_path']
         else:
             cache_path = pathlib.Path(cache_path)
-        dsrc_dict = datasource_catalog()
+        dsrc_dict = datasource_catalog(keys_only=False)
         if datasource_name not in dsrc_dict:
             raise Exception(f'Unknown Datasource={datasource_name} specified for datset={dataset_name}')
         dsrc = DataSource.from_dict(dsrc_dict[datasource_name])
@@ -1770,7 +1769,7 @@ class TransformerGraph:
         else:
             catalog_path = pathlib.Path(catalog_path)
 
-        self.transformers, self._transformer_catalog_fq = transformer_catalog(catalog_path=catalog_path, catalog_file=transformer_file, include_filename=True, keys_only=False)
+        self.transformers, self._transformer_catalog_fq = transformer_catalog(catalog_path=catalog_path, catalog_file=transformer_file, include_filename=True)
         self.datasets, self._dataset_catalog_fq = dataset_catalog(catalog_path=catalog_path, catalog_file=dataset_file, include_filename=True, keys_only=False)
 
         self._validate_hypergraph()
