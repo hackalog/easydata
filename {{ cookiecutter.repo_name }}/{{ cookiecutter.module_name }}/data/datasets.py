@@ -1520,7 +1520,21 @@ class DataSource(object):
             return [key for key in self.file_dict]
 
     def unpack(self, unpack_path=None, force_unpack=False):
-        """Unpack fetched files to interim dir"""
+        """Unpack fetched files
+
+        Parameters
+        ----------
+        unpack_pack: optional
+            if None, unpack to {interim_data_path}/{datasource_name}
+
+        force_unpack: boolean
+            if True, always perform the unpack
+
+        Returns
+        -------
+        directory where the file was unpacked
+
+        """
         if not self.fetched_:
             logger.debug("unpack() called before fetch()")
             if not self.fetch():
@@ -1534,6 +1548,7 @@ class DataSource(object):
                 unpack_path = paths['interim_data_path'] / self.name
             else:
                 unpack_path = pathlib.Path(unpack_path)
+
             for filename, item in self.file_dict.items():
                 unpack(filename, dst_dir=unpack_path, unpack_action=item.get('unpack_action', None))
             self.unpacked_ = True
