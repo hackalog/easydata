@@ -14,3 +14,10 @@ class SingletonDecorator:
         if self.instance == None:
             self.instance = self.klass(*args,**kwds)
         return self.instance
+
+    # https://softwareengineering.stackexchange.com/questions/386755/sharing-docstrings-between-similar-functions
+def is_documented_by(original):
+  def wrapper(target):
+    target.__doc__ = original.__doc__
+    return target
+  return wrapper
