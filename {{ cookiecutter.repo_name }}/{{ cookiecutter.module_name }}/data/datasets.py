@@ -314,7 +314,8 @@ def load_catalog(catalog_path=None, catalog_file='catalog.json', include_filenam
         catalog_dict
     """
     if keys_only and include_filename:
-        raise Exception("include_filenames=True implies keys_only=False")
+        logger.warning("include_filename=True implies keys_only=False. Ignoring keys_only.")
+        keys_only=False
 
     if catalog_path is None:
         catalog_path = paths['catalog_path']
