@@ -4,7 +4,6 @@ import pathlib
 import sys
 from functools import partial
 from collections import Counter, defaultdict
-from collections.abc import MutableMapping
 
 import joblib
 import fsspec
@@ -12,14 +11,15 @@ from sklearn.utils import Bunch
 from sklearn.model_selection import train_test_split
 
 from .. import paths
+from ..exceptions import ParameterError, EasydataError, NotFoundError, ObjectCollision
 from ..log import logger
 from ..utils import load_json, save_json, normalize_to_list
 from .utils import partial_call_signature, serialize_partial, deserialize_partial, process_dataset_default
 from .fetch import fetch_file,  get_dataset_filename, hash_file, unpack, infer_filename
+from .catalog import Catalog
 
 
 __all__ = [
-    'Catalog',
     'Dataset',
     'add_dataset',
     'dataset_catalog',
@@ -85,212 +85,6 @@ def cached_datasets(dataset_path=None, keys_only=True):
         return set(ds_dict.keys())
     return ds_dict
 
-class Catalog(MutableMapping):
-    """A catalog is a disk-backed dictionary of objects, each serializable as JSON.
-
-    On disk, a Catalog is stored as a directory of JSON files, one file per object
-    The stem of the filename (e.g. stem.json) is the key (name) of the catalog entry
-    in the dictionary, so `catalog/key.json` is accessible via catalog['key'].
-    """
-
-    def __init__(self,
-                 catalog_data=None,
-                 catalog_dir="catalog",
-                 catalog_path=None,
-                 create=True,
-                 entry_extension="json",
-                 overwrite=False,
-                 merge_priority=None,
-                 ):
-        """
-        catalog_data: Dict-like object containing data to be merged into the catalog
-        catalog_dir: str, default 'catalog'
-            Name of directory containing JSON catalog files. relative to `catalog_path`
-        catalog_path: path. (default: paths['catalog_dir'])
-            Location of `catalog_dir`
-        create: Boolean
-            if True, create the catalog if needed
-        entry_extension: string
-            file extension to use for serialized JSON files.
-        overwrite: boolean
-            If catalog exists on disk, delete and recreate it.
-            If false, load existing data from disk
-        merge_priority: None, {"disk", "data"}
-            If using `catalog_data` with an existing repo, this must be either "disk" or "data".
-            If disk, values already stored in the catalog will be retained
-            If data, contents of `catalog_data` will override existing items on disk.
-
-        """
-        if catalog_path is None:
-            self.catalog_path = paths['catalog_path']
-        else:
-            self.catalog_path = pathlib.Path(catalog_path)
-
-        if overwrite is True and  merge_priority is not None:
-            raise AttributeError("You can use only one of 'overwrite' and 'merge_priority'")
-
-        self.catalog_dir = catalog_dir
-        self.extension = entry_extension
-        self.create = create
-        self.overwrite = overwrite
-        self.merge_priority = "disk"
-
-        if self.catalog_dir_fq.exists():
-            # Catalog exists on disk
-            if catalog_data is not None and merge_priority is None and overwrite is False:
-                raise AttributeError("Must specity `merge_priority` or `overwrite=True` if using `catalog_data` with an existing Catalog")
-            if overwrite is True:
-                logger.debug(f"Catalog {self.catalog_dir} found on-disk. Overwriting...")
-
-        else: # Catalog not on disk
-            logger.debug(f"Catalog dir: {self.catalog_dir} missing.")
-            if self.create is True or self.overwrite is True:
-                logger.debug(f"Creating {self.catalog_dir}")
-                os.makedirs(self.catalog_dir_fq)
-            else:
-                raise AttributeError(f"Catalog: {self.catalog_dir} does not exist but `create/overwrite` is False")
-
-        if catalog_data is None:
-            catalog_data = {}
-            if merge_priority is None:
-                merge_priority = "disk"
-
-        on_disk_catalog = self.load(return_dict=True)
-        logger.debug(f"on_disk:{on_disk_catalog}")
-        if overwrite is True:
-            self.data = catalog_data
-        else:
-            if catalog_data is None:
-                self.data = on_disk_catalog
-            else:
-                logger.debug(f"Merging catalog_data with {merge_priority} priority")
-                if merge_priority == "disk":
-                    self.data = {**catalog_data, **on_disk_catalog}
-                elif merge_priority == "data":
-                    self.data = {**on_disk_catalog, **catalog_data}
-                else:
-                    raise AttributeError(f"Unknown merge_priority:{merge_priority}")
-        self.save()
-
-    @property
-    def file_glob(self):
-        """glob string that will match all key files in this catalog directory.
-        """
-        return f"*.{self.extension}"
-
-    @property
-    def catalog_dir_fq(self):
-        """pathlib.Path returning fully qualified path to catalog directory.
-        """
-        return self.catalog_path / self.catalog_dir
-
-    def __getitem__(self, key):
-        return self.data[key]
-
-    def __setitem__(self, key, value):
-        self.data[key] = value
-        self.save_item(key)
-
-    def __delitem__(self, key):
-        del self.data[key]
-        self.del_item(key)
-
-    def __iter__(self):
-        return iter(self.data)
-
-    def __len__(self):
-        return len(self.data)
-
-    def __repr__(self):
-        return f"<Catalog:{list(self.data.keys())}>"
-
-    def __eq__(self, other):
-        """Two catalogs are equal if they have the same contents,
-        regardless of where or how they are stored on-disk.
-        """
-        return self.data == other.data
-
-    def load(self, return_dict=False):
-        """reload an entire catalog from its on-disk serialization.
-
-        if return_dict is True, return the data that would have been loaded,
-        but do not change the contents of the catalog.
-
-        """
-        catalog_dict = {}
-        for catalog_file in self.catalog_dir_fq.glob(self.file_glob):
-            catalog_dict[catalog_file.stem] = load_json(catalog_file)
-
-        if return_dict is True:
-            return catalog_dict
-
-        self.data = catalog_dict
-
-    def del_item(self, key):
-        """Delete the on-disk serialization of a catalog entry"""
-        filename = self.catalog_dir_fq / f"{key}.{self.extension}"
-        logger.debug(f"Deleting catalog entry: '{key}.{self.extension}'...")
-        filename.unlink()
-
-    def save_item(self, key):
-        """serialize a catalog entry to disk"""
-        value = self.data[key]
-        logger.debug(f"Writing catalog entry: '{key}.{self.extension}'...")
-        save_json(self.catalog_dir_fq / f"{key}.{self.extension}", value)
-
-    def save(self, paranoid=True):
-        """Save all catalog entries to disk
-
-        if paranoid=True, verify serialization is equal to in-memory copy
-        """
-        for key in self.data:
-            self.save_item(key)
-        if paranoid:
-            old = self.data
-            self.load()
-            if old != self.data:
-                logger.error("Save failed. On-disk serialization differs from in-memory catalog")
-                self.data = old
-
-    @classmethod
-    def from_disk(cls, name, create=False, catalog_data=None, overwrite=None, **kwargs):
-        """Load a catalog from disk.
-
-        Parameters are a subset of Catalog.__init__
-        as `catalog_data`, `overwrite` are not permitted."""
-        if catalog_data is not None:
-            raise AttributeError("'catalog_data' may not be specified using 'from_disk'")
-        if overwrite is not None:
-            raise AttributeError("'overwrite' may not be specified using 'from_disk'")
-        catalog = cls(catalog_dir=name, create=create, catalog_data=None, overwrite=False, **kwargs)
-        catalog.load()
-        return catalog
-
-
-    @classmethod
-    def from_old_catalog(cls, catalog_path=None, catalog_file='catalog.json', write_data=True):
-        """Create a catalog from an old combined-format JSON file
-        """
-        if catalog_path is None:
-            catalog_path = paths['catalog_path']
-        else:
-            catalog_path = pathlib.Path(catalog_path)
-
-        catalog_file_fq = catalog_path / catalog_file
-
-        if catalog_file_fq.exists():
-            catalog_dict = load_json(catalog_file_fq)
-        else:
-            logger.warning(f"Catalog '{catalog_file}' does not exist.")
-            catalog_dict = {}
-        catalog = cls(catalog_path=catalog_path,
-                      catalog_dir=catalog_file_fq.stem,
-                      catalog_data=catalog_dict)
-        if write_data is True:
-            logger.debug(f"Writing catalog data to disk")
-            catalog.save()
-
-
 def load_catalog(catalog_path=None, catalog_file='catalog.json', include_filename=False, keys_only=True):
     """Get the set of available datasets from the catalog (nodes in the transformer graph).
 
@@ -336,8 +130,11 @@ def load_catalog(catalog_path=None, catalog_file='catalog.json', include_filenam
         return list(catalog_dict.keys())
     return catalog_dict
 
-dataset_catalog = partial(load_catalog, catalog_file='datasets.json')
+
+#dataset_catalog = partial(load_catalog, catalog_file='datasets.json')
 datasource_catalog = partial(load_catalog, catalog_file='datasources.json')
+transformer_catalog = partial(Catalog.load, 'transformers')
+dataset_catalog = partial(Catalog.load, 'datasets')
 
 def del_from_catalog(key, catalog_path=None, catalog_file=None):
     """Delete an entry from the catalog file
@@ -388,7 +185,7 @@ class Dataset(Bunch):
             if metadata is not None and metadata.get("dataset_name", None) is not None:
                 dataset_name = metadata['dataset_name']
             else:
-                raise Exception('dataset_name is required')
+                raise ParameterError('dataset_name is required')
 
         if metadata is not None:
             self['metadata'] = metadata
@@ -450,7 +247,7 @@ class Dataset(Bunch):
         if key.isupper():
             del self['metadata'][key.lower()]
         elif key == 'name':
-            raise Exception("name is mandatory")
+            raise ParameterError("name is mandatory")
         elif key == 'extra_base':
             if paths._config.has_section(self.name) and paths._config.has_option(self.name, key):
                 paths._config.remove_option(self.name, key)
@@ -504,7 +301,7 @@ class Dataset(Bunch):
         elif kind == "json":
             return json.loads(local_config)
         else:
-            raise Exception(f"Unknown kind: {kind}")
+            raise ParameterError(f"Unknown kind: {kind}")
 
     @property
     def extra_base(self):
@@ -585,8 +382,8 @@ class Dataset(Bunch):
          metadata_only=False,
          dataset_cache_path=None,
          catalog_path=None,
-         dataset_file='datasets.json',
-         transformer_file='transformers.json',
+         dataset_path='datasets',
+         transformer_path='transformers',
         ):
         """
         Load a dataset (or its metadata) from the dataset catalog.
@@ -609,10 +406,10 @@ class Dataset(Bunch):
         catalog_path: str or None:
             path to data catalog (containing dataset_file and transformer_file)
             Default `paths['catalog_path']`
-        dataset_file: str. default 'datasets.json'
-            name of dataset catalog file. Relative to `catalog_path`.
-        transformer_file: str. default 'transformers.json'
-            name of dataset cache file. Relative to `catalog_path`.
+        dataset_path: str.
+            name of dataset catalog directory. Relative to `catalog_path`.
+        transformer_path: str.
+            name of transformers catalog directory. Relative to `catalog_path`.
         """
         if dataset_cache_path is None:
             dataset_cache_path = paths['processed_data_path']
@@ -620,10 +417,10 @@ class Dataset(Bunch):
             dataset_cache_path = pathlib.Path(dataset_cache_path)
 
         xform_graph = TransformerGraph(catalog_path=catalog_path,
-                                       transformer_file=transformer_file,
-                                       dataset_file=dataset_file)
+                                       transformer_path=transformer_path,
+                                       dataset_path=dataset_path)
         if dataset_name not in xform_graph.datasets:
-            raise AttributeError(f"'{dataset_name}' not found in dataset catalog.")
+            raise NotFoundError(f"'{dataset_name}' not found in dataset catalog.")
         meta = xform_graph.datasets[dataset_name]
         catalog_hashes = meta.get('hashes')
 
@@ -641,7 +438,7 @@ class Dataset(Bunch):
                 if not ds.verify_hashes(catalog_hashes):
                     msg = (f"Dataset '{dataset_name}' hashes {generated_hashes} do not match catalog: {catalog_hashes}")
                     logger.warning(msg)
-                    raise Exception(msg)
+                    raise ValidationError(msg)
         except:
             logger.debug(f"Falling back to loading {dataset_name} from catalog.")
             ds = cls.from_catalog(
@@ -649,8 +446,8 @@ class Dataset(Bunch):
                 metadata_only=metadata_only,
                 dataset_cache_path=dataset_cache_path,
                 catalog_path=catalog_path,
-                dataset_file=dataset_file,
-                transformer_file=transformer_file
+                dataset_path=dataset_path,
+                transformer_path=transformer_path
             )
 
         return ds
@@ -660,9 +457,9 @@ class Dataset(Bunch):
          metadata_only=False,
          dataset_cache_path=None,
          catalog_path=None,
-         dataset_file='datasets.json',
-         transformer_file='transformers.json',
-         force=False
+         dataset_path='datasets',
+         transformer_path='transformers',
+         force_regenerate=False
         ):
         """Load a dataset (or its metadata) from the dataset catalog.
 
@@ -681,11 +478,11 @@ class Dataset(Bunch):
         catalog_path: str or None:
             path to data catalog (containing dataset_file and transformer_file)
             Default `paths['catalog_path']`
-        dataset_file: str. default 'datasets.json'
-            name of dataset catalog file. Relative to `catalog_path`.
-        transformer_file: str. default 'transformers.json'
-            name of dataset cache file. Relative to `catalog_path`.
-        force: Boolean
+        dataset_path: str.
+            name of dataset catalog path. Relative to `catalog_path`.
+        transformer_path: str.
+            name of transformer catalog path. Relative to `catalog_path`.
+        force_regenerate: Boolean
             if True, ignore any Dataset cache and always regenerate
         """
         if dataset_cache_path is None:
@@ -694,8 +491,8 @@ class Dataset(Bunch):
             dataset_cache_path = pathlib.Path(dataset_cache_path)
 
         xform_graph = TransformerGraph(catalog_path=catalog_path,
-                                       transformer_file=transformer_file,
-                                       dataset_file=dataset_file)
+                                       transformer_path=transformer_path,
+                                       dataset_path=dataset_path)
         if dataset_name not in xform_graph.datasets:
             raise AttributeError(f"'{dataset_name}' not found in datset catalog.")
         meta = xform_graph.datasets[dataset_name]
@@ -705,14 +502,14 @@ class Dataset(Bunch):
         if metadata_only:
             return meta
 
-        ds = xform_graph.generate(dataset_name, force=force)
+        ds = xform_graph.generate(dataset_name, force=force_regenerate)
         if ds is None:
             return None
 
         generated_hashes = ds.metadata['hashes']
         if catalog_hashes is not None:
             if not ds.verify_hashes(catalog_hashes):
-                raise Exception(f"Dataset '{dataset_name}' hashes {generated_hashes} do not match catalog: {catalog_hashes}")
+                raise ValidationError(f"Dataset '{dataset_name}' hashes {generated_hashes} do not match catalog: {catalog_hashes}")
 
         return ds
 
@@ -755,7 +552,7 @@ class Dataset(Bunch):
             cache_path = pathlib.Path(cache_path)
         dsrc_dict = datasource_catalog(keys_only=False)
         if datasource_name not in dsrc_dict:
-            raise Exception(f'Unknown Datasource={datasource_name} specified for datset={dataset_name}')
+            raise NotFoundError(f'Unknown Datasource={datasource_name} specified for datset={dataset_name}')
         dsrc = DataSource.from_dict(dsrc_dict[datasource_name])
         if not dsrc.fetch(fetch_path=fetch_path, force_download=force):
             logger.debug("Fetch failed. Aborting.")
@@ -901,7 +698,7 @@ class Dataset(Bunch):
             try:
                 hashlist = self.EXTRA[str(rel_path.parent)][rel_path.name]
             except KeyError:
-                raise KeyError(f"Not in EXTRA: {rel_file_path}") from None
+                raise NotFoundError(f"Not in EXTRA: {rel_file_path}") from None
             extra_dict[str(rel_path.parent)][rel_path.name] = hashlist
         return dict(extra_dict)
 
@@ -1017,14 +814,14 @@ class Dataset(Bunch):
             cached_metadata = joblib.load(metadata_fq)
             # are we a subset of the cached metadata? (Py3+ only)
             if metadata.items() <= cached_metadata.items():
-                raise Exception(f'Dataset with matching metadata exists already. '
-                                'Use `force=True` to overwrite, or change one of '
-                                '`dataset.metadata` or `file_base`')
+                raise ObjectCollision(f'Dataset with matching metadata exists already. '
+                                      'Use `force=True` to overwrite, or change one of '
+                                      '`dataset.metadata` or `file_base`')
             else:
-                raise Exception(f'Metadata file {metadata_filename} exists '
-                                'but metadata has changed. '
-                                'Use `force=True` to overwrite, or change '
-                                '`file_base`')
+                raise ObjectCollision(f'Metadata file {metadata_filename} exists '
+                                      'but metadata has changed. '
+                                      'Use `force=True` to overwrite, or change '
+                                      '`file_base`')
 
         if create_dirs:
             os.makedirs(metadata_fq.parent, exist_ok=True)
@@ -1172,7 +969,7 @@ class DataSource(object):
             'LICENSE': f'{self.name}.license',
         }
         if kind not in filename_map:
-            raise Exception(f'Unknown kind: {kind}. Must be one of {filename_map.keys()}')
+            raise ParameterError(f'Unknown kind: {kind}. Must be one of {filename_map.keys()}')
 
         if filename is not None:
             filename = pathlib.Path(filename)
@@ -1193,14 +990,14 @@ class DataSource(object):
                 'name': kind,
             }
         else:
-            raise Exception(f'One of `filename` or `contents` is required')
+            raise ParameterError(f'One of `filename` or `contents` is required')
 
         if unpack_action:
             filelist_entry.update({'unpack_action': unpack_action})
 
         fn = filelist_entry['file_name']
         if fn in self.file_dict and not force:
-            raise Exception(f"{fn} already exists in file_dict. Set `force=True` to overwrite.")
+            raise ObjectCollision(f"{fn} already exists in file_dict. Set `force=True` to overwrite.")
         self.file_dict[fn] = filelist_entry
         self.fetched_ = False
 
@@ -1231,13 +1028,13 @@ class DataSource(object):
             action to take in order to unpack this file. If None, infers from file type.
         """
         if hash_value is None:
-            raise Exception("You must specify a `hash_value` "
+            raise ParameterError("You must specify a `hash_value` "
                             "for a manual download")
         if file_name is None:
-            raise Exception("You must specify a file_name for a manual download")
+            raise ParameterError("You must specify a file_name for a manual download")
 
         if file_name in self.file_dict and not force:
-            raise Exception(f"{file_name} already in file_dict. Use `force=True` to overwrite")
+            raise ObjectCollision(f"{file_name} already in file_dict. Use `force=True` to overwrite")
 
         fetch_dict = {
             'fetch_action': 'message',
@@ -1277,7 +1074,7 @@ class DataSource(object):
             action to take in order to unpack this file. If None, infers from file type.
         """
         if source_file is None:
-            raise Exception("`source_file` is required")
+            raise ParameterError("`source_file` is required")
         source_file = pathlib.Path(source_file)
 
         if not source_file.exists():
@@ -1303,11 +1100,11 @@ class DataSource(object):
         existing_files = [f['source_file'] for k,f in self.file_dict.items()]
         existing_hashes = [f['hash_value'] for k,f in self.file_dict.items() if f['hash_value']]
         if file_name in self.file_dict and not force:
-            raise Exception(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
+            raise ObjectCollision(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
         if str(source_file.name) in existing_files and not force:
-            raise Exception(f"source file: {source_file} already in file list. Use `force=True` to add anyway.")
+            raise ObjectCollision(f"source file: {source_file} already in file list. Use `force=True` to add anyway.")
         if hash_value in existing_hashes and not force:
-            raise Exception(f"file with hash {hash_value} already in file list. Use `force=True` to add anyway.")
+            raise ObjectCollision(f"file with hash {hash_value} already in file list. Use `force=True` to add anyway.")
 
         logger.warning("Reproducibility Issue: add_file is often not reproducible. If possible, use add_manual_download instead")
         self.file_dict[file_name] = fetch_dict
@@ -1336,7 +1133,7 @@ class DataSource(object):
             made when fetching.
         """
         if url is None:
-            raise Exception("`url` is required")
+            raise ParameterError("`url` is required")
 
         file_name = infer_filename(file_name=file_name, url=url)
 
@@ -1354,7 +1151,7 @@ class DataSource(object):
             fetch_dict.update({'url_options': url_options})
 
         if file_name in self.file_dict and not force:
-            raise Exception(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
+            raise ObjectCollision(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
         self.file_dict[file_name] = fetch_dict
         self.fetched_ = False
 
@@ -1379,7 +1176,7 @@ class DataSource(object):
             action to take in order to unpack this file. If None, infers from file type.
         """
         if file_id is None:
-            raise Exception("`file_id` is required")
+            raise ParameterError("`file_id` is required")
 
         file_name = infer_filename(file_name=file_name, url=file_id)
 
@@ -1395,7 +1192,7 @@ class DataSource(object):
             fetch_dict.update({'unpack_action': unpack_action})
 
         if file_name in self.file_dict and not force:
-            raise Exception(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
+            raise ObjectCollision(f"{file_name} already in file_dict. Use `force=True` to add anyway.")
         self.file_dict[file_name] = fetch_dict
         self.fetched_ = False
 
@@ -1752,40 +1549,52 @@ class TransformerGraph:
     * takes in zero or more `Dataset` objects (the `input_datasets`),
     * produces one or more `Dataset` objects (the `output_datasets`).
 
-    Edges in this graph are directed, indicating the direction the direction of data dependencies.
-    e.g. `output_datasets` depend on `input_datasets`.
+    Edges in this graph are directed, indicating the direction of data dependencies
+    as viewed from the transformer.
+
+    e.g. `output_datasets` depend on `input_datasets`, so arrows are
+    directed from input_datsets to output_datasets.
 
 
-    While the functions themselves are stores in the source module (default `src/user/transformers.py`),
-    metadata describing these functions and which `Dataset` objects are generated are
-    serialzed to `paths['catalog_path']/transformers.json`.
+    While the functions themselves are stored in the source module
+    (default `src/user/transformers.py`), metadata describing these
+    functions and the `Dataset` object dependencies are serialzed to
+    `paths['catalog_path']/transformers`.
 
     Properties
     ----------
     nodes: set of dataset nodes (nodes in the hypergraph)
     edges: set of transformer nodes (edges in the hypergraph)
+
     """
 
-    def __init__(self, catalog_path=None, transformer_file='transformers.json', dataset_file='datasets.json'):
+    def __init__(self,
+                 catalog_path=None,
+                 dataset_path='datasets',
+                 transformer_path='transformers',
+                 ):
         """Create the Transformer (Dataset Dependency) Graph
 
-        This can be thought of as a bipartite graph (node sets are datasets and transformers respectively), or a hypergraph,
-        (nodes=datasets, edges=transformers) depending on your preference.
+        This can be thought of as a bipartite graph (where the two node sets are
+        `datasets` and `transformers` respectively), or a hypergraph, where
+        (nodes=datasets, edges=transformers), depending on your mathematical
+        preference.
 
-        catalog_path:
+        catalog_path: Path
             Location of catalog files. Default paths['catalog_path']
-        transformer_file:
-            Catalog file. default 'transformers.json'. Relative to catalog_path
-        dataset_file:
-            Default 'transformers.json'. Relative to `catalog_path`
+        dataset_path: String
+            Path to dataset catalog. Relative to `catalog_path`
+        transformer_path: String
+            Path to transformer catalog. Relative to `catalog_path`
+
         """
         if catalog_path is None:
             catalog_path = paths['catalog_path']
         else:
             catalog_path = pathlib.Path(catalog_path)
 
-        self.transformers, self._transformer_catalog_fq = transformer_catalog(catalog_path=catalog_path, catalog_file=transformer_file, include_filename=True)
-        self.datasets, self._dataset_catalog_fq = dataset_catalog(catalog_path=catalog_path, catalog_file=dataset_file, include_filename=True, keys_only=False)
+        self.transformers = Catalog.load(transformer_path, catalog_path=catalog_path)
+        self.datasets = Catalog.load(dataset_path, catalog_path=catalog_path)
 
         self._validate_hypergraph()
         self._update_degrees()
@@ -1896,17 +1705,17 @@ class TransformerGraph:
         >>> dag.add_source(datasource_opts={'foo':'bar'}, write_catalog=False)
         Traceback (most recent call last):
         ...
-        Exception: `datasource_opts` requires a `datasource_name`
+        ParameterError: `datasource_opts` requires a `datasource_name`
 
         >>> dag.add_source(output_dataset='bar', output_datasets=['foo', 'quux'], write_catalog=False)
         Traceback (most recent call last):
         ...
-        Exception: Must specify at most one of `output_dataset` or `output_datasets`
+        ParameterError: Must specify at most one of `output_dataset` or `output_datasets`
 
         >>> dag.add_source(edge_name='foo', write_catalog=False)
         Traceback (most recent call last):
         ...
-        Exception: At least one `output_dataset` or `datasource_name` is required
+        ParameterError: At least one `output_dataset` or `datasource_name` is required
 
         Returns
         -------
@@ -1914,18 +1723,18 @@ class TransformerGraph:
             where `catalog_entry` is the entry recorded in the transformer catalog
         """
         if datasource_opts and not datasource_name:
-            raise Exception("`datasource_opts` requires a `datasource_name`")
+            raise ParameterError("`datasource_opts` requires a `datasource_name`")
         if output_dataset:
             if output_datasets:
-                raise Exception("Must specify at most one of `output_dataset` or `output_datasets`")
+                raise ParameterError("Must specify at most one of `output_dataset` or `output_datasets`")
             output_datasets = [output_dataset]
         if output_datasets is None:
             if datasource_name:
                 output_datasets = [datasource_name]
             else:
-                raise Exception("At least one `output_dataset` or `datasource_name` is required")
+                raise ParameterError("At least one `output_dataset` or `datasource_name` is required")
         if datasource_name and transformer_pipeline:
-            raise Exception("Must specify either `datasource_name` or `transformer_pipeline`, not both")
+            raise ParameterError("Must specify either `datasource_name` or `transformer_pipeline`, not both")
 
         if datasource_name:  # special case. Convert this to a transformer call
             if not output_datasets:  # Default output_datasets
@@ -2011,12 +1820,12 @@ class TransformerGraph:
         >>> dag.add_edge(output_dataset="foo", write_catalog=False)
         Traceback (most recent call last):
         ...
-        Exception: Must specify either `input_datasets` or `transformer_pipeline`
+        ParameterError: Must specify either `input_datasets` or `transformer_pipeline`
 
         >>> dag.add_edge(input_dataset="foo", write_catalog=False)
         Traceback (most recent call last):
         ...
-        Exception: At least one `output_dataset` is required
+        ParameterError: At least one `output_dataset` is required
 
 
         Returns
@@ -2026,15 +1835,15 @@ class TransformerGraph:
         """
         if output_dataset:
             if output_datasets:
-                raise Exception("Must specify at most one of `output_dataset` or `output_datasets`")
+                raise ParameterError("Must specify at most one of `output_dataset` or `output_datasets`")
             output_datasets = [output_dataset]
         if input_dataset:
             if input_datasets:
-                raise Exception("Must specify at most one of `input_dataset` or `input_datasets`")
+                raise ParameterError("Must specify at most one of `input_dataset` or `input_datasets`")
             input_datasets = [input_dataset]
 
         if output_datasets is None:
-            raise Exception("At least one `output_dataset` is required")
+            raise ParameterError("At least one `output_dataset` is required")
 
         input_datasets = normalize_to_list(input_datasets)
         output_datasets = normalize_to_list(output_datasets)
@@ -2044,7 +1853,7 @@ class TransformerGraph:
 
         if transformer_pipeline is None:
             if not input_datasets:
-                raise Exception("Must specify either `input_datasets` or `transformer_pipeline`")
+                raise ParameterError("Must specify either `input_datasets` or `transformer_pipeline`")
             transformer_pipeline = []
 
         catalog_entry = {}
@@ -2055,7 +1864,7 @@ class TransformerGraph:
         catalog_entry['output_datasets'] = output_datasets
 
         if edge_name in self.transformers and not force:
-            raise Exception(f"Transformer '{edge_name}' already in catalog. Use force=True to overwrite")
+            raise ParameterError(f"Transformer '{edge_name}' already in catalog. Use force=True to overwrite")
         if write_catalog:
             self.transformers[edge_name] = catalog_entry
         for ds in set(output_datasets + input_datasets):
@@ -2069,10 +1878,6 @@ class TransformerGraph:
                     self.datasets[ds] = {'dataset_name': ds}
                 else:
                     logger.debug(f"Dataset '{ds}' already in catalog. Skipping")
-        if write_catalog:
-            logger.debug(f'Writing new catalog files')
-            save_json(self._transformer_catalog_fq, self.transformers)
-            save_json(self._dataset_catalog_fq, self.datasets)
 
         self._update_degrees()
         return {edge_name:catalog_entry}
@@ -2100,7 +1905,7 @@ class TransformerGraph:
         for hename, he in self.transformers.items():
             if node in he['output_datasets']:
                 return set(he.get('input_datasets', [])), hename, set(he['output_datasets'])
-        raise KeyError(f"Node '{node}' not found in transformer graph")
+        raise NotFoundError(f"Node '{node}' not found in transformer graph")
 
     def is_source(self, edge):
         """Is this a source?
@@ -2143,7 +1948,7 @@ class TransformerGraph:
         elif kind == 'depth-first':
             pop_loc = -1
         else:
-            raise Exception(f"Unknown kind: {kind}")
+            raise ParameterError(f"Unknown kind: {kind}")
         visited = []
         edges = []
         queue = [node]
@@ -2181,10 +1986,10 @@ class TransformerGraph:
             dict {dataset_name: Dataset}
         """
         if force is True and write_catalog is False:
-            raise Exception("Force=True requires write_catalog=True")
+            raise ParameterError("Force=True requires write_catalog=True")
 
         if not self.fully_satisfied(edge_name):
-            raise Exception(f"Edge '{edge_name}' has unsatisfied dependencies.")
+            raise EasydataError(f"Edge '{edge_name}' has unsatisfied dependencies.")
 
         # All input datasets are on-disk and have valid caches
 
@@ -2194,13 +1999,13 @@ class TransformerGraph:
         for in_ds in edge.get('input_datasets', []):  # sources have no inputs
             logger.debug(f"Loading Input Dataset '{in_ds}'")
             if in_ds not in self.datasets:
-                raise Exception(f"Edge '{edge_name}' specifies an input dataset, '{in_ds}' that is not in the dataset catalog")
+                raise NotFoundError(f"Edge '{edge_name}' specifies an input dataset, '{in_ds}' that is not in the dataset catalog")
             ds = Dataset.from_disk(in_ds)
             if not self.check_dataset_hashes(in_ds, ds.HASHES):
                 if force and write_catalog:
                     logger.debug(f"Dataset Hash mismatch for {in_ds} but force=True. Writing new hash to catalog")
                 else:
-                    raise Exception(f"Cached Dataset '{in_ds}' hashes {self.datasets[in_ds]['hashes']} do not match catalog {ds.HASHES}")
+                    raise ValidationError(f"Cached Dataset '{in_ds}' hashes {self.datasets[in_ds]['hashes']} do not match catalog {ds.HASHES}")
             dsdict[in_ds] = ds
 
         for xform_dict in edge.get('transformations', ()):
@@ -2221,8 +2026,6 @@ class TransformerGraph:
                 if write_catalog and (force or ds_name not in cached_dsdicts): # XXX and check hashes
                     logger.debug(f"Writing '{ds_name}' to processed data cache")
                     ds.dump(dump_path=dataset_path, force=force, update_catalog=False)
-                logger.debug("Writing updated Dataset catalog")
-                save_json(self._dataset_catalog_fq, self.datasets)
             if success is False:
                 return None
         return dsdict
@@ -2272,7 +2075,7 @@ class TransformerGraph:
                 logger.debug(f"No cached dataset found for dataset '{ds_name}'.")
                 return False
             if ds_name not in self.datasets:
-                raise Exception(f"Missing '{ds_name}' in dataset catalog")
+                raise NotFoundError(f"Missing '{ds_name}' in dataset catalog")
             if not self.check_dataset_hashes(ds_name, ds_meta['hashes']):
                 return False
 
@@ -2339,11 +2142,11 @@ def add_dataset(dataset=None, dataset_name=None, datasource_name=None, datasourc
 
     """
     if dataset is not None and dataset_name is not None:
-        raise Exception('Cannot use `dataset_name` if passing a `dataset` directly')
+        raise ParameterError('Cannot use `dataset_name` if passing a `dataset` directly')
 
     if (dataset is None and datasource_name is None) or (dataset is not None and datasource_name is not None):
 
-        raise Exception('Must specify exactly one of `dataset` or `datasource_name`')
+        raise ParameterError('Must specify exactly one of `dataset` or `datasource_name`')
     if datasource_name is not None:
         if dataset_name is None:
             dataset_name = datasource_name
@@ -2381,59 +2184,13 @@ def dataset_from_datasource(dsdict, *, datasource_name, dataset_name=None, **dsr
     ds = Dataset.from_datasource(dataset_name=dataset_name, datasource_name=datasource_name, **dsrc_args)
     return {dataset_name: ds}
 
-def transformer_catalog(
-        catalog_path=None,
-        catalog_file=None,
-        include_filename=False,
-    ):
-    """Get the dictionary of transformers (edges in the transformer graph)
-
-    Parameters
-    ----------
-    include_filename: boolean
-        if True, returns a tuple: (list, filename)
-    catalog_path: path. (default: paths['catalog_dir'])
-        Location of `catalog_file`
-    catalog_file: str, default 'transformers.json'
-        Name of json file that contains the transformer pipeline
-
-    Returns
-    -------
-    If include_filename is True:
-        A tuple: (catalog_dict, catalog_file_fq)
-    else:
-        catalog_dict
-    """
-    if catalog_path is None:
-        catalog_path = paths['catalog_path']
-    else:
-        catalog_path = pathlib.Path(catalog_path)
-    if catalog_file is None:
-        catalog_file = 'transformers.json'
-
-    catalog_file_fq = catalog_path / catalog_file
-
-    if catalog_file_fq.exists():
-        catalog_dict = load_json(catalog_file_fq)
-    else:
-        logger.warning(f"Catalog '{catalog_file}' does not exist.")
-        catalog_dict = {}
-
-    if not isinstance(catalog_dict, dict):
-        raise Exception(f"Obsolete file format: {transformer_file} must contain a dict.")
-
-    if include_filename:
-        return catalog_dict, catalog_file_fq
-    return catalog_dict
-
-
-def apply_transforms(datasets=None, transformer_path=None, transformer_file='transformer_list.json', output_dir=None):
+def apply_transforms(datasets=None, catalog_path=None, transformer_path=None, output_dir=None):
     """Apply all data transforms to generate the specified datasets.
 
-    transformer_file: string, default "transformer_list.json"
-        Name of transformer file.
-    transformer_path: path
-        Path containing `transformer_file`. Default paths['catalog_path']
+    transformer_path: string
+        Name of transformer catalog dir. relative to catalog_dir
+    catalog_path: path
+        Path containing `transformer_path`. Default paths['catalog_path']
     output_dir: path
         Path to write the generated datasets. Default paths['processed_data_path']
 
@@ -2444,7 +2201,7 @@ def apply_transforms(datasets=None, transformer_path=None, transformer_file='tra
     else:
         output_dir = pathlib.Path(output_dir)
 
-    if transformer_path is None:
+    if catalog_path is None:
         transformer_path = paths['catalog_path']
     else:
         transformer_path = pathlib.Path(transformer_path)
@@ -2452,7 +2209,7 @@ def apply_transforms(datasets=None, transformer_path=None, transformer_file='tra
     transformer_list = transformer_list(transformer_path=transformer_path,
                                             transformer_file=transformer_file)
     datasources = available_datasources()
-    transformers = transformer_catalog()
+    transformers = Catalog.load('transformers')
 
     for tdict in transformer_list:
         datasource_opts = tdict.get('datasource_opts', {})
@@ -2462,7 +2219,7 @@ def apply_transforms(datasets=None, transformer_path=None, transformer_file='tra
         transformations = tdict.get('transformations', [])
         if datasource_name is not None:
             if datasource_name not in datasources:
-                raise Exception(f"Unknown DataSource: {datasource_name}")
+                raise NotFoundError(f"Unknown DataSource: {datasource_name}")
             logger.debug(f"Creating Dataset from Raw: {datasource_name} with opts {datasource_opts}")
             rds = DataSource.from_catalog(datasource_name)
             ds = rds.process(**datasource_opts)
@@ -2473,7 +2230,7 @@ def apply_transforms(datasets=None, transformer_path=None, transformer_file='tra
         for tname, topts in transformations:
             tfunc = transformers.get(tname, None)
             if tfunc is None:
-                raise Exception(f"Unknwon transformer: {tname}")
+                raise NotFoundError(f"Unknown transformer: {tname}")
             logger.debug(f"Applying {tname} to {ds.name} with opts {topts}")
             ds = tfunc(ds, **topts)
 
