@@ -50,41 +50,6 @@ def default_transformer(dsdict, **kwargs):
     logger.error(f"'{transformer_name}()' function not found. Define it add it to the `user` namespace for correct behavior")
     return dsdict
 
-def cached_datasets(dataset_path=None, keys_only=True):
-    """Get the set of datasets currently cached to disk.
-
-    Does not check whether the hashes of these cached datasets are valid / present in the catalog
-
-    Parameters
-    ----------
-    dataset_path: path
-        location of saved dataset files
-    keys_only: Boolean
-        if True, return a set of dataset names
-        if False, return dictionary mapping dataset names to their stored metadata
-
-    Returns
-    -------
-    if (keys_only is False):
-        dictionary mapping cached dataset name to its metadata
-    else (keys_only is True):
-        set of cached dataset names
-    """
-    if dataset_path is None:
-        dataset_path = paths['processed_data_path']
-    else:
-        dataset_path = pathlib.Path(dataset_path)
-
-    ds_dict = {}
-    for dsfile in dataset_path.glob("*.metadata"):
-        ds_stem = str(dsfile.stem)
-        ds_meta = Dataset.from_disk(ds_stem, data_path=dataset_path, metadata_only=True)
-        ds_dict[ds_stem] = ds_meta
-
-    if keys_only:
-        return set(ds_dict.keys())
-    return ds_dict
-
 def load_catalog(catalog_path=None, catalog_file='catalog.json', include_filename=False, keys_only=True):
     """Get the set of available datasets from the catalog (nodes in the transformer graph).
 
@@ -129,6 +94,41 @@ def load_catalog(catalog_path=None, catalog_file='catalog.json', include_filenam
     if keys_only:
         return list(catalog_dict.keys())
     return catalog_dict
+
+def cached_datasets(dataset_path=None, keys_only=True):
+    """Get the set of datasets currently cached to disk.
+
+    Does not check whether the hashes of these cached datasets are valid / present in the catalog
+
+    Parameters
+    ----------
+    dataset_path: path
+        location of saved dataset files
+    keys_only: Boolean
+        if True, return a set of dataset names
+        if False, return dictionary mapping dataset names to their stored metadata
+
+    Returns
+    -------
+    if (keys_only is False):
+        dictionary mapping cached dataset name to its metadata
+    else (keys_only is True):
+        set of cached dataset names
+    """
+    if dataset_path is None:
+        dataset_path = paths['processed_data_path']
+    else:
+        dataset_path = pathlib.Path(dataset_path)
+
+    ds_dict = {}
+    for dsfile in dataset_path.glob("*.metadata"):
+        ds_stem = str(dsfile.stem)
+        ds_meta = Dataset.from_disk(ds_stem, data_path=dataset_path, metadata_only=True)
+        ds_dict[ds_stem] = ds_meta
+
+    if keys_only:
+        return set(ds_dict.keys())
+    return ds_dict
 
 
 #dataset_catalog = partial(load_catalog, catalog_file='datasets.json')
