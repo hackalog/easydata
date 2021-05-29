@@ -187,7 +187,7 @@ class Catalog(MutableMapping):
     def __getitem__(self, key):
         return self.data[key]
 
-    def __setitem__(self, key, valuee):
+    def __setitem__(self, key, value):
         self.data[key] = value
         self.save_item(key)
 
