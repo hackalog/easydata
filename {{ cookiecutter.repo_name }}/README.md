@@ -26,13 +26,13 @@ GETTING STARTED
 ### Initial Git Configuration and Checking Out the Repo
 
 If you haven't yet done so, please follow the instrucitons
-in [Setting up git and Checking Out the Repo](framework-docs/git-configuration.md) in
+in [Setting up git and Checking Out the Repo](reference/easydata/git-configuration.md) in
 order to check-out the code and set-up your remote branches
 
 Note: These instructions assume you are using SSH keys (and not HTTPS authentication) with {{ cookiecutter.upstream_location }}.
 If you haven't set up SSH access to {{ cookiecutter.upstream_location }}, see [Configuring SSH Access to {{cookiecutter.upstream_location}}](https://github.com/hackalog/easydata/wiki/Configuring-SSH-Access-to-Github). This also includes instuctions for using more than one account with SSH keys.
 
-Once you've got your local, `origin`, and `upstream` branches configured, you can follow the instructions in this handy [Git Workflow Cheat Sheet](framework-docs/git-workflow.md) to keep your working copy of the repo in sync with the others.
+Once you've got your local, `origin`, and `upstream` branches configured, you can follow the instructions in this handy [Git Workflow Cheat Sheet](reference/easydata/git-workflow.md) to keep your working copy of the repo in sync with the others.
 
 ### Setting up your environment
 **WARNING**: If you have conda-forge listed as a channel in your `.condarc` (or any other channels other than defaults), you may experience great difficulty generating reproducible conda environments.
@@ -64,7 +64,7 @@ conda activate {{cookiecutter.repo_name}}
 
 Now you're ready to run `jupyter notebook` (or jupyterlab) and explore the notebooks in the `notebooks` directory.
 
-For more instructions on setting up and maintaining your environment (including how to point your environment at your custom forks and work in progress) see [Setting up and Maintaining your Conda Environment Reproducibly](framework-docs/conda-environments.md).
+For more instructions on setting up and maintaining your environment (including how to point your environment at your custom forks and work in progress) see [Setting up and Maintaining your Conda Environment Reproducibly](reference/easydata/conda-environments.md).
 
 ### Loading Datasets
 
@@ -85,7 +85,7 @@ workflow.available_datasets(keys_only=True)
 
 Note: sometimes datasets can be quite large. If you want to store your data externally, we recommend symlinking your data directory (that is `{{cookiecutter.repo_name}}/data`) to somewhere with more room.
 
-For more on Datasets, see [Getting and Using Datasets](framework-docs/datasets.md).
+For more on Datasets, see [Getting and Using Datasets](reference/easydata/datasets.md).
 
 ### Using Notebooks and Sharing your Work
 This repo has been set up in such a way as to make:
@@ -93,7 +93,7 @@ This repo has been set up in such a way as to make:
 * environment management easy and reproducible
 * sharing analyses via notebooks easy and reproducible
 
-There are some tricks, hacks, and built in utilities that you'll want to check out: [Using Notebooks for Analysis](framework-docs/notebooks.md).
+There are some tricks, hacks, and built in utilities that you'll want to check out: [Using Notebooks for Analysis](reference/easydata/notebooks.md).
 
 Here are some best practices for sharing using this repo:
 
@@ -102,13 +102,13 @@ Here are some best practices for sharing using this repo:
 * Put any scripts or other code in the `{{ cookiecutter.module_name }}` module. We suggest you create a directory using the same initials you put in your notebook titles (e.g. `{{ cookiecutter.module_name }}/xyz`) You will be able to import it into your notebooks via `from {{ cookiecutter.module_name }}.xyz import ...`.
 * See the Project Organization section below to see where other materials should go, such as reports, figures, and references.
 
-For more on sharing your work, including using git, submitting PRs and the like, see [Sharing your Work](framework-docs/sharing-your-work.md).
+For more on sharing your work, including using git, submitting PRs and the like, see [Sharing your Work](reference/easydata/sharing-your-work.md).
 
 ### Quick References
-* [Setting up and Maintaining your Conda Environment Reproducibly](framework-docs/conda-environments.md)
-* [Getting and Using Datasets](framework-docs/datasets.md)
-* [Using Notebooks for Analysis](framework-docs/notebooks.md)
-* [Sharing your Work](framework-docs/sharing-your-work.md)
+* [Setting up and Maintaining your Conda Environment Reproducibly](reference/easydata/conda-environments.md)
+* [Getting and Using Datasets](reference/easydata/datasets.md)
+* [Using Notebooks for Analysis](reference/easydata/notebooks.md)
+* [Sharing your Work](reference/easydata/sharing-your-work.md)
 
 
 Project Organization
@@ -133,18 +133,22 @@ Project Organization
         * Raw (immutable) hash-verified downloads.
     * `data/interim`
         * Extracted and interim data representations.
+    * `data/interim/cache`
+        * Dataset cache
     * `data/processed`
         * The final, canonical data sets ready for analysis.
 * `docs`
-    * Documentation files for this project.
-* `framework-docs`
-    * Basic documentation on how to use the framework and workflows associated with this project.
+    * Sphinx-format documentation files for this project.
+    * `docs/Makefile`: Makefile for generating HTML/Latex/other formats from Sphinx-format documentation.
 * `notebooks`
     *  Jupyter notebooks. Naming convention is a number (for ordering),
     the creator's initials, and a short `-` delimited description,
     e.g. `1.0-jqp-initial-data-exploration`.
-* `references`
-    * Data dictionaries, manuals, papers, or other explanatory materials.
+* `reference`
+    * Data dictionaries, documentation, manuals, scripts, papers, or other explanatory materials.
+    * `reference/easydata`: Easydata framework and workflow documentation.
+    * `reference/templates`: Templates and code snippets for Jupyter
+    * `reference/dataset`: resources related to datasets; e.g. dataset creation notebooks and scripts
 * `reports`
     * Generated analysis as HTML, PDF, LaTeX, etc.
     * `reports/figures`
