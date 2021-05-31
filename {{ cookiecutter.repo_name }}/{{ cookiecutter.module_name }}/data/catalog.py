@@ -173,7 +173,7 @@ class Catalog(MutableMapping):
                 self.data = old
 
     @classmethod
-    def load(cls, name, create=False, ignore_errors=False, catalog_path=None):
+    def load(cls, name, create=True, ignore_errors=True, catalog_path=None):
         """Load a Catalog from disk.
 
         Parameters
