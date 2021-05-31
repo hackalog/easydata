@@ -152,7 +152,7 @@ def apply_single_function(ds_dict, *, source_dataset_name, dataset_name, seriali
     added_descr_txt: Default None
         new description text to be appended to the metadata descr
     serialized_function:
-        function (serialized by src.utils.serialize_partial) to run on .data to produce the new .data
+        function (serialized by {{ cookiecutter.module_name }}.utils.serialize_partial) to run on .data to produce the new .data
     drop_extra: boolean
         drop the .extra part of the metadata
     **opts:

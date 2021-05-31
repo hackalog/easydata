@@ -1,8 +1,8 @@
 import pytest
 import pathlib
 
-from src.data import Catalog
-from src.log import logger
+from {{ cookiecutter.module_name }}.data import Catalog
+from {{ cookiecutter.module_name }}.log import logger
 
 @pytest.fixture
 def catalog(tmpdir):

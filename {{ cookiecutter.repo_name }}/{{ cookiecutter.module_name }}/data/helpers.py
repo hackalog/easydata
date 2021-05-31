@@ -6,10 +6,11 @@ import pathlib
 from ..log import logger
 from .. import paths
 
-from . import (DataSource, Dataset, hash_file, TransformerGraph,
-               create_transformer_pipeline, dataset_catalog, add_datasource, serialize_partial)
+from . import (DataSource, Dataset, hash_file, DatasetGraph, Catalog,
+               serialize_transformer_pipeline)
 from .transformer_functions import csv_to_pandas, new_dataset, apply_single_function
 from .extra import process_extra_files
+from .utils import serialize_partial
 
 __all__ = [
     'dataset_from_csv_manual_download',
@@ -47,7 +48,8 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
     Dataset that was added to the Transformer graph
     """
 
-    if ds_name in dataset_catalog() and not overwrite_catalog:
+    dataset_catalog = Catalog.load('datasets')
+    if ds_name in dataset_catalog and not overwrite_catalog:
         raise KeyError(f"'{ds_name}' already in catalog")
     csv_path = pathlib.Path(csv_path)
     # Create a datasource
@@ -74,10 +76,11 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
                                'extra_dir': raw_ds_name+'.extra',
                                'extract_dir': raw_ds_name}
     dsrc.process_function = partial(process_function, **process_function_kwargs)
-    add_datasource(dsrc)
+    datasource_catalog = Catalog.load('datasources')
+    datasource_catalog[dsrc.name] = dsrc.to_dict()
 
     # Add a dataset from the datasource
-    dag = TransformerGraph(catalog_path=paths['catalog_path'])
+    dag = DatasetGraph(catalog_path=paths['catalog_path'])
     dag.add_source(output_dataset=raw_ds_name, datasource_name=raw_ds_name, force=True)
     # Run the dataset creation code to add it to the catalog
     ds = Dataset.from_catalog(raw_ds_name)
@@ -88,7 +91,7 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
 
     dag.add_edge(input_dataset=raw_ds_name,
                  output_dataset=ds_name,
-                 transformer_pipeline=create_transformer_pipeline(transformers),
+                 transformer_pipeline=serialize_transformer_pipeline(transformers),
                  force=True)
 
     ds = Dataset.from_catalog(ds_name)
@@ -114,15 +117,16 @@ def dataset_from_metadata(dataset_name, metadata=None, overwrite_catalog=False):
     Dataset that was added to the Transformer graph
 
     """
-    if dataset_name in dataset_catalog() and not overwrite_catalog:
+    dataset_catalog = Catalog.load('datasets')
+    if dataset_name in dataset_catalog and not overwrite_catalog:
         raise KeyError(f"'{dataset_name}' already in catalog")
     if metadata is None:
         metadata = {}
-    dag = TransformerGraph()
+    dag = DatasetGraph()
     ds_opts = {'metadata': metadata}
     transformers = [partial(new_dataset, dataset_name=dataset_name, dataset_opts=ds_opts)]
     dag.add_source(output_dataset=dataset_name,
-               transformer_pipeline=create_transformer_pipeline(transformers),
+               transformer_pipeline=serialize_transformer_pipeline(transformers),
                force=overwrite_catalog)
     ds = Dataset.from_catalog(dataset_name)
     return ds
@@ -146,13 +150,13 @@ def dataset_from_single_function(*, source_dataset_name, dataset_name, data_func
     overwrite_catalog: boolean
         if True, existing entries in datasets and transformers catalogs will be overwritten
     """
-    dag = TransformerGraph(catalog_path=paths['catalog_path'])
+    dag = DatasetGraph(catalog_path=paths['catalog_path'])
     serialized_function = serialize_partial(data_function)
     transformers = [partial(apply_single_function, source_dataset_name=source_dataset_name, dataset_name=dataset_name,
                             serialized_function=serialized_function, added_descr_txt=added_descr_txt, drop_extra=drop_extra)]
     dag.add_edge(input_dataset=source_dataset_name,
                  output_dataset=dataset_name,
-                 transformer_pipeline=create_transformer_pipeline(transformers),
+                 transformer_pipeline=serialize_transformer_pipeline(transformers),
                  force=overwrite_catalog)
     ds = Dataset.from_catalog(dataset_name)
     logger.debug(f"{dataset_name} added to catalog")

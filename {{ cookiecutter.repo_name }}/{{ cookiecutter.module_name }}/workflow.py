@@ -28,24 +28,17 @@ Other relevant commands are:
 
 XXX
 '''
-from .data import (cached_datasets, dataset_catalog,
-                   datasource_catalog, add_datasource, load_catalog, del_from_catalog,
+from .data import (cached_datasets, Catalog,
                    process_datasources as make_sources)
-from .data import (transformer_catalog, add_dataset, dataset_from_csv_manual_download,
+from .data import (add_dataset, dataset_from_csv_manual_download,
                    apply_transforms as make_data, dataset_from_metadata, dataset_from_single_function)
 
 __all__ = [
     'add_dataset',
-    'add_datasource',
     'cached_datasets',
-    'dataset_catalog',
-    'datasource_catalog',
     'dataset_from_csv_manual_download',
     'dataset_from_metadata',
     'dataset_from_single_function',
-    'del_from_catalog',
-    'load_catalog',
     'make_data',
     'make_sources',
-    'transformer_catalog',
 ]

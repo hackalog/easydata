@@ -2,12 +2,6 @@ class EasydataError(Exception):
     """General Easydata Error. Further error types are subclassed from this Exception"""
     pass
 
-class ParameterError(EasydataError):
-    """Parameter(s) to a function or method are invalid
-
-    This can be used instead of a ValueError or TypeError"""
-    pass
-
 class ValidationError(EasydataError):
     """Hash check failed"""
     pass
