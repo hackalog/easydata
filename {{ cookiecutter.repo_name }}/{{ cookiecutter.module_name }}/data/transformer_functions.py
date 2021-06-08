@@ -8,14 +8,54 @@ from sklearn.model_selection import train_test_split
 from . import Dataset, deserialize_partial
 from .. import paths
 from ..log import logger
+from .utils import deserialize_partial
+from ..utils import run_notebook
 
 __all__ = [
+    'run_notebook_transformer',
     'apply_single_function',
     'csv_to_pandas',
     'new_dataset',
     'sklearn_train_test_split',
     'sklearn_transform',
 ]
+
+def run_notebook_transformer(dsdict, *,
+                             notebook_name,
+                             notebook_path,
+                             output_dataset_names,
+                             ):
+    """
+    Use a notebook as a transformer function in the dataset graph.
+    The notebook *must* write the output datasets to disk; i.e. once their
+    notebook has run, this function assumes Dataset.from_disk() will succeed
+    for all output datasets listed in `output_dataset_names`
+
+    Parameters
+    ----------
+    dsdict: Ignored
+        Needed to conform to transformer API, but ignored, as these will need
+        to be loaded in the notebook itself.
+    notebook_name: None or str
+        Name of current notebook. If None, an attempt will be made to infer it.
+    notebook_path: None or str or Path
+        If None, paths['notebook_path'] will be used
+    output_dataset_names: List(str)
+        List of datasets that were created (and saved to disk) by the notebook.
+        These will be loaded from disk and returned by the transformer
+    """
+    if notebook_path == 'None':
+        logger.error("JSON encoding problem with notebook_path. Please regenerate transformer")
+
+    logger.debug(f"Using notebook:{notebook_name} as transformer to generate {output_dataset_names}")
+    output_notebook = run_notebook(notebook_path=notebook_path, notebook_name=notebook_name)
+    logger.debug(f"See {output_notebook} for output of this process")
+    ods_dict = {}
+    for ods in output_dataset_names:
+        logger.debug(f"Loading output dataset:{ods} from disk")
+        ods_dict[ods] = Dataset.from_disk(ods)
+    return ods_dict
+
 
 def new_dataset(dsdict, *, dataset_name, dataset_opts=None):
     """
@@ -152,7 +192,7 @@ def apply_single_function(ds_dict, *, source_dataset_name, dataset_name, seriali
     added_descr_txt: Default None
         new description text to be appended to the metadata descr
     serialized_function:
-        function (serialized by {{ cookiecutter.module_name }}.utils.serialize_partial) to run on .data to produce the new .data
+        function (serialized by src.utils.serialize_partial) to run on .data to produce the new .data
     drop_extra: boolean
         drop the .extra part of the metadata
     **opts:
@@ -187,3 +227,31 @@ def apply_single_function(ds_dict, *, source_dataset_name, dataset_name, seriali
 
     new_ds[new_dsname] = Dataset(dataset_name=new_dsname, data=preprocessed_corpus, metadata=new_metadata)
     return new_ds
+
+def limit_to_common_varietals(df, min_reviews=25):
+    '''
+    Take the subselection of the wine reviews dataset (df) that only contains varietals with at least
+    min_reviews reviews. All entries in the final dataframe must have a variety.
+
+    Parameters
+    ----------
+    df: DataFrame
+        wine reviews dataframe with 'variety' as  a column
+    min_reviews: int
+        minimum number of reviews needed to keep a varietal
+
+    Returns
+    -------
+    df_common_variety:
+        dataframe that only includes reviews with a variety that appears at least min_reviews times.
+    '''
+    df_variety = df.dropna(axis=0, subset=['variety']).copy()
+
+    varietal_counts = df_variety.variety.value_counts()
+    df_variety['common_varietal'] = df_variety.variety.apply(lambda x: varietal_counts[x] > min_reviews)
+
+    df_common_variety = df_variety[df_variety.common_varietal].copy()
+    df_common_variety.reset_index(inplace=True)
+    df_common_variety.drop(columns=['index', 'common_varietal'], inplace=True)
+
+    return df_common_variety

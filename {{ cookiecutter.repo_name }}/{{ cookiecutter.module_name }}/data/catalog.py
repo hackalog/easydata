@@ -17,11 +17,11 @@ __all__ = [
 class Catalog(MutableMapping):
     """A catalog is a serializable, disk-backed git-friendly dict-like object for storing a data catalog.
 
-    + "serializable" means anything stored in the catalog must be serializable to/from JSON.
-    + "disk-backed" means all changes are reflected immediately in the on-disk serialization.
-    + "git-friendly"* means this on-disk format can be easily maintained in a git repo (with minimal
+    * "serializable" means anything stored in the catalog must be serializable to/from JSON.
+    * "disk-backed" means all changes are reflected immediately in the on-disk serialization.
+    * "git-friendly" means this on-disk format can be easily maintained in a git repo (with minimal
      issues around merge conflicts), and
-    + "dict-like" means programmatically, it acts like a Python `dict`.
+    * "dict-like" means programmatically, it acts like a Python `dict`.
 
     On disk, a Catalog is stored as a directory of JSON files, one file per object
     The stem of the filename (e.g. stem.json) is the key (name) of the catalog entry
@@ -76,21 +76,29 @@ class Catalog(MutableMapping):
                 shutil.rmtree(self.catalog_dir_fq, ignore_errors=ignore_errors)
 
         # Load existing data (if it exists)
+        self.data = {}
         disk_data = self._load(return_dict=True)
-        logger.debug(f"Loaded {len(data)} existing records from catalog:{self.name}")
+        logger.debug(f"Loaded {len(disk_data)} records from '{self.name}' Catalog.")
 
         if create:
-            logger.debug(f"Creating new catalog:{self.name}")
-            os.makedirs(self.catalog_dir_fq, exist_ok=ignore_errors)
+            if not self.catalog_dir_fq.exists():  # Catalog exists on disk
+                logger.debug(f"Creating new catalog:{self.name}")
+                os.makedirs(self.catalog_dir_fq, exist_ok=ignore_errors)
 
-        if merge_priority == "disk":
-            self.data = {**data, **disk_data}
-        elif merge_priority == "data":
-            self.data = {**disk_data, **data}
+        if data:
+            logger.debug(f"Merging {len(disk_data)} on-disk and {len(data)} off-disk parameters")
+            if merge_priority == "disk":
+                self.data = {**data, **disk_data}
+            elif merge_priority == "data":
+                self.data = {**disk_data, **data}
+            else:
+                raise ValueError(f"Unknown merge_priority:{merge_priority}")
         else:
-            raise ValueError("Unknown merge_priority:{merge_priority}")
+            self.__setitem__ = self._memory_setitem
+            self.data = disk_data
+            self.__setitem__ = self._disk_setitem
 
-        self._save()
+        self._verify_save()
 
     @property
     def file_glob(self):
@@ -107,9 +115,15 @@ class Catalog(MutableMapping):
     def __getitem__(self, key):
         return self.data[key]
 
-    def __setitem__(self, key, value):
+    def _disk_setitem(self, key, value):
         self.data[key] = value
         self._save_item(key)
+
+    def _memory_setitem(self, key, value):
+        self.data[key] = value
+
+    # So we can swap between behaviors
+    __setitem__ = _disk_setitem
 
     def __delitem__(self, key):
         del self.data[key]
@@ -138,13 +152,16 @@ class Catalog(MutableMapping):
 
         """
         catalog_dict = {}
+        logger.debug(f"Scanning on-disk catalog:'{self.name}'")
         for catalog_file in self.catalog_dir_fq.glob(self.file_glob):
             catalog_dict[catalog_file.stem] = load_json(catalog_file)
 
         if return_dict is True:
             return catalog_dict
-
+        self.__setitem__ = self._memory_setitem
         self.data = catalog_dict
+        self.__setitem__ = self._disk_setitem
+        logger.debug(f"{len(self.data)} records loaded.")
 
     def _del_item(self, key):
         """Delete the on-disk serialization of a catalog entry"""
@@ -155,7 +172,7 @@ class Catalog(MutableMapping):
     def _save_item(self, key):
         """serialize a catalog entry to disk"""
         value = self.data[key]
-        logger.debug(f"Writing catalog entry: '{key}.{self.extension}'")
+        logger.debug(f"Writing entry:'{key}' to catalog:'{self.name}'.")
         save_json(self.catalog_dir_fq / f"{key}.{self.extension}", value)
 
     def _save(self, paranoid=True):
@@ -163,14 +180,17 @@ class Catalog(MutableMapping):
 
         if paranoid=True, verify serialization is equal to in-memory copy
         """
+        logger.debug(f"Saving {len(self.data)} records to catalog '{self.name}'")
         for key in self.data:
             self._save_item(key)
         if paranoid:
-            old = self.data
-            self._load()
-            if old != self.data:
-                logger.error("Save failed. On-disk serialization differs from in-memory catalog")
-                self.data = old
+            _verify_save()
+
+    def _verify_save(self):
+        logger.debug(f"Verifying serialization for catalog '{self.name}'")
+        new = self._load(return_dict=True)
+        if new != self.data:
+            logger.error("Serialization failed. On-disk catalog differs from in-memory catalog")
 
     @classmethod
     def load(cls, name, create=True, ignore_errors=True, catalog_path=None):

@@ -5,18 +5,91 @@ import pathlib
 
 from ..log import logger
 from .. import paths
+from ..exceptions import EasydataError
 
 from . import (DataSource, Dataset, hash_file, DatasetGraph, Catalog,
                serialize_transformer_pipeline)
-from .transformer_functions import csv_to_pandas, new_dataset, apply_single_function
+from .transformer_functions import csv_to_pandas, new_dataset, apply_single_function, run_notebook_transformer
 from .extra import process_extra_files
 from .utils import serialize_partial
 
 __all__ = [
+    'notebook_as_transformer',
     'dataset_from_csv_manual_download',
     'dataset_from_metadata',
     'dataset_from_single_function',
 ]
+
+
+def notebook_as_transformer(notebook_name, *,
+                            input_datasets=None,
+                            output_datasets,
+                            overwrite_catalog=False,
+                            notebook_path=None,
+                            transformer_name=None
+                            ):
+    """Use a Jupyter notebook as a Dataset transformer funtion.
+
+    This helper simplifies the process of using a jupyter notebook as a transformer function
+    in the DatasetGraph.
+
+    Parameters
+    ----------
+    notebook_name: string
+        filename of notebook. relative to `notebook_path`. Obviously, notebook must exist
+
+    """
+
+    if notebook_path is None:
+        notebook_path = paths['notebook_path']
+    else:
+        notebook_path = pathlib.Path(notebook_path)
+
+    dag = DatasetGraph()
+    write_dataset_to_catalog = write_transformer_to_catalog = overwrite_catalog
+
+    notebook_fq = notebook_path / notebook_name
+    if not notebook_fq.exists():
+        raise EasydataError(f"Notebook {notebook_fq} does not exist. Cannot be used as transformer.")
+
+    dsdict = {}
+    for ods in output_datasets:
+        ods.update_hashes()
+        if ods.name in dag.datasets:
+            logger.debug(f"dataset:{ods.name} already in catalog")
+
+            if dag.check_dataset_hashes(ods.name, ods.HASHES):
+                logger.debug(f"Hashes match for {ods.name}. Skipping Overwrite.")
+                write_dataset_to_catalog = False
+            else:
+                logger.warning(f"Hashes do not match for {ods.name}")
+                if overwrite_catalog is False:
+                    raise ValidationError(f"Hashes for Dataset:{ods.name} differ from catalog, but overwrite_catalog is False")
+        else:
+            logger.debug(f"dataset:{ods.name} not in catalog. Adding...")
+            write_dataset_to_catalog=True
+        if write_dataset_to_catalog:
+            logger.debug(f"Writing dataset:{ods.name} to catalog")
+            dag.datasets[ods.name] = ods.metadata
+
+        logger.debug(f"Generating Transformer")
+        transformers = [partial(run_notebook_transformer,
+                                notebook_path=str(notebook_path),
+                                notebook_name=notebook_name,
+                                output_dataset_names=[ds.name for ds in output_datasets])]
+
+        transformer = dag.add_edge(input_datasets=[ds.name for ds in input_datasets],
+                                   output_datasets=[ds.name for ds in output_datasets],
+                                   transformer_pipeline=serialize_transformer_pipeline(transformers),
+                                   overwrite_catalog=write_transformer_to_catalog,
+                                   edge_name=transformer_name)
+
+        logger.debug(f"Writing dataset:{ods.name} to disk")
+        ods.dump(exists_ok=True)
+        dsdict[ods.name] = ods
+    return dsdict
+
+
 
 # Create a Dataset from a single csv file
 def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
@@ -81,7 +154,7 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
 
     # Add a dataset from the datasource
     dag = DatasetGraph(catalog_path=paths['catalog_path'])
-    dag.add_source(output_dataset=raw_ds_name, datasource_name=raw_ds_name, force=True)
+    dag.add_source(output_dataset=raw_ds_name, datasource_name=raw_ds_name, overwrite_catalog=True)
     # Run the dataset creation code to add it to the catalog
     ds = Dataset.from_catalog(raw_ds_name)
 
@@ -92,7 +165,7 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
     dag.add_edge(input_dataset=raw_ds_name,
                  output_dataset=ds_name,
                  transformer_pipeline=serialize_transformer_pipeline(transformers),
-                 force=True)
+                 overwrite_catalog=True)
 
     ds = Dataset.from_catalog(ds_name)
     return ds
@@ -127,7 +200,7 @@ def dataset_from_metadata(dataset_name, metadata=None, overwrite_catalog=False):
     transformers = [partial(new_dataset, dataset_name=dataset_name, dataset_opts=ds_opts)]
     dag.add_source(output_dataset=dataset_name,
                transformer_pipeline=serialize_transformer_pipeline(transformers),
-               force=overwrite_catalog)
+               overwrite_catalog=overwrite_catalog)
     ds = Dataset.from_catalog(dataset_name)
     return ds
 
@@ -157,7 +230,7 @@ def dataset_from_single_function(*, source_dataset_name, dataset_name, data_func
     dag.add_edge(input_dataset=source_dataset_name,
                  output_dataset=dataset_name,
                  transformer_pipeline=serialize_transformer_pipeline(transformers),
-                 force=overwrite_catalog)
+                 overwrite_catalog=overwrite_catalog)
     ds = Dataset.from_catalog(dataset_name)
     logger.debug(f"{dataset_name} added to catalog")
     return ds
