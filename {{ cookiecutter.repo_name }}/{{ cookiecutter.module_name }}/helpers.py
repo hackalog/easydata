@@ -3,15 +3,15 @@
 from functools import partial
 import pathlib
 
-from ..log import logger
-from .. import paths
-from ..exceptions import EasydataError
+from .log import logger
+from . import paths
+from .exceptions import EasydataError
 
-from . import (DataSource, Dataset, hash_file, DatasetGraph, Catalog,
+from .data import (DataSource, Dataset, hash_file, DatasetGraph, Catalog,
                serialize_transformer_pipeline)
-from .transformer_functions import csv_to_pandas, new_dataset, apply_single_function, run_notebook_transformer
-from .extra import process_extra_files
-from .utils import serialize_partial
+from .data.transformer_functions import csv_to_pandas, new_dataset, apply_single_function, run_notebook_transformer
+from .data.extra import process_extra_files
+from .data.utils import serialize_partial
 
 __all__ = [
     'notebook_as_transformer',
