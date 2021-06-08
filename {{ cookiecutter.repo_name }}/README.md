@@ -4,15 +4,14 @@ _Author: {{ cookiecutter.author_name }}_
 
 {{cookiecutter.description}}
 
-
 ABOUT EASYDATA
----------------
+--------------
+This git repository is build from the [Easydata](https://github.com/hackalog/easydata) framework, which aims to make
+your data science workflow reproducible. The Easydata framework includes:
 
-This git repository is build on the [Easydata](https://github.com/hackalog/easydata) framework, making it easy to share your work with others andto build on the work of others. Easydata includes:
-
-* managing conda environments in a consistent and reproducible way,
-* built in dataset management (including tracking of licenses),
-* pre-established project structure,
+* tools for managing conda environments in a consistent and reproducible way,
+* built-in dataset management (including tracking of metadata such as LICENSES and READMEs),
+* a prescribed project directory structure,
 * workflows and conventions for contributing notebooks and other code.
 
 EASYDATA REQUIREMENTS
