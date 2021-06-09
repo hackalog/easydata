@@ -2,7 +2,6 @@
 import unittest
 
 from {{ cookiecutter.module_name }}.data import Dataset
-import {{ cookiecutter.module_name }}.log.debug
 
 
 class TestDatasets(unittest.TestCase):

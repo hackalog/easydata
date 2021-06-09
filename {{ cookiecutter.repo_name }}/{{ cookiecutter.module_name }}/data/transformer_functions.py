@@ -49,7 +49,7 @@ def run_notebook_transformer(dsdict, *,
 
     logger.debug(f"Using notebook:{notebook_name} as transformer to generate {output_dataset_names}")
     output_notebook = run_notebook(notebook_path=notebook_path, notebook_name=notebook_name)
-    logger.debug(f"See {output_notebook} for output of this process")
+    logger.debug(f"See {paths['interim_data_path']/output_notebook} for output of this process")
     ods_dict = {}
     for ods in output_dataset_names:
         logger.debug(f"Loading output dataset:{ods} from disk")

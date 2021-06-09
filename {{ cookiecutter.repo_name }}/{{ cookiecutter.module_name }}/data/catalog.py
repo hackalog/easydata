@@ -152,7 +152,6 @@ class Catalog(MutableMapping):
 
         """
         catalog_dict = {}
-        logger.debug(f"Scanning on-disk catalog:'{self.name}'")
         for catalog_file in self.catalog_dir_fq.glob(self.file_glob):
             catalog_dict[catalog_file.stem] = load_json(catalog_file)
 
@@ -161,7 +160,6 @@ class Catalog(MutableMapping):
         self.__setitem__ = self._memory_setitem
         self.data = catalog_dict
         self.__setitem__ = self._disk_setitem
-        logger.debug(f"{len(self.data)} records loaded.")
 
     def _del_item(self, key):
         """Delete the on-disk serialization of a catalog entry"""

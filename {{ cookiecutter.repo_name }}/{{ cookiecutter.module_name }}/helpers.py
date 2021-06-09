@@ -68,11 +68,11 @@ def notebook_as_transformer(notebook_name, *,
         else:
             logger.debug(f"dataset:{ods.name} not in catalog. Adding...")
             write_dataset_to_catalog=True
-        if write_dataset_to_catalog:
-            logger.debug(f"Writing dataset:{ods.name} to catalog")
-            dag.datasets[ods.name] = ods.metadata
 
-        logger.debug(f"Generating Transformer")
+        logger.debug(f"Writing dataset:{ods.name} to disk")
+        ods.dump(exists_ok=True, update_catalog=write_dataset_to_catalog)
+
+        logger.debug(f"Generating Transformer edge")
         transformers = [partial(run_notebook_transformer,
                                 notebook_path=str(notebook_path),
                                 notebook_name=notebook_name,
@@ -82,14 +82,11 @@ def notebook_as_transformer(notebook_name, *,
                                    output_datasets=[ds.name for ds in output_datasets],
                                    transformer_pipeline=serialize_transformer_pipeline(transformers),
                                    overwrite_catalog=write_transformer_to_catalog,
-                                   edge_name=transformer_name)
+                                   edge_name=transformer_name,
+                                   generate=False)
 
-        logger.debug(f"Writing dataset:{ods.name} to disk")
-        ods.dump(exists_ok=True)
         dsdict[ods.name] = ods
     return dsdict
-
-
 
 # Create a Dataset from a single csv file
 def dataset_from_csv_manual_download(ds_name, csv_path, download_message,

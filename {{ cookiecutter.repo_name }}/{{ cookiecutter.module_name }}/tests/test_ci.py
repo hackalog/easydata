@@ -5,7 +5,6 @@ import unittest
 from {{ cookiecutter.module_name }}.data import Dataset
 from {{ cookiecutter.module_name }} import workflow
 from {{ cookiecutter.module_name }}.log import logger
-import {{ cookiecutter.module_name }}.log.debug
 
 
 class TestDatasetsSmall(unittest.TestCase):

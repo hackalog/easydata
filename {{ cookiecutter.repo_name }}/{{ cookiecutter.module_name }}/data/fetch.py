@@ -1,9 +1,12 @@
-import hashlib
 import gzip
+import hashlib
+import joblib
 import os
 import pathlib
+import requests
 import shutil
 import tarfile
+import tempfile
 import zipfile
 import zlib
 import requests
@@ -32,6 +35,45 @@ _HASH_FUNCTION_MAP = {
     'sha1': hashlib.sha1,
     'size': os.path.getsize,
 }
+
+def safe_symlink(target, link_name, overwrite=False):
+    '''
+    Create a symbolic link named link_name pointing to target.
+    If link_name exists then FileExistsError is raised, unless overwrite=True.
+    When trying to overwrite a directory, IsADirectoryError is raised.
+    '''
+
+    if not overwrite:
+        os.symlink(target, link_name)
+        return
+
+    # os.replace() may fail if files are on different filesystems
+    link_dir = os.path.dirname(link_name)
+
+    # Create link to target with temporary filename
+    while True:
+        temp_link_name = tempfile.mktemp(dir=link_dir)
+
+        # os.* functions mimic as closely as possible system functions
+        # The POSIX symlink() returns EEXIST if link_name already exists
+        # https://pubs.opengroup.org/onlinepubs/9699919799/functions/symlink.html
+        try:
+            os.symlink(target, temp_link_name)
+            break
+        except FileExistsError:
+            pass
+
+    # Replace link_name with temp_link_name
+    try:
+        # Pre-empt os.replace on a directory with a nicer message
+        if not os.path.islink(link_name) and os.path.isdir(link_name):
+            raise IsADirectoryError(f"Cannot symlink over existing directory: '{link_name}'")
+        os.replace(temp_link_name, link_name)
+    except:
+        if os.path.islink(temp_link_name):
+            os.remove(temp_link_name)
+        raise
+
 
 def available_hashes():
     """Valid Hash Functions
@@ -422,7 +464,7 @@ def fetch_file(url=None, url_options=None, contents=None,
         if contents is None:
             raise Exception(f"fetch_action == 'create' but `contents` unspecified")
         if hash_value is not None:
-            logger.warning(f"Hash value ({hash_value}) ignored for fetch_action=='create'")
+            logger.debug(f"Hash value ({hash_value}) ignored for fetch_action=='create'")
         with open(raw_data_file, 'w') as fw:
             fw.write(contents)
         logger.debug(f"Generating {file_name} hash...")
@@ -496,7 +538,14 @@ def unpack(filename, dst_dir=None, src_dir=None, create_dst=True, unpack_action=
 
     archive = False
     verb = "Copying"
-    if unpack_action == 'copy':
+    if unpack_action == 'none':
+        logger.debug(f"Skipping unpack for {filename.name}")
+        return
+    elif unpack_action == 'symlink':
+        logger.debug(f"Linking {filename.name}...")
+        safe_symlink(pathlib.Path(dst_dir) / path, path, overwrite=True)
+        return
+    elif unpack_action == 'copy':
         opener, mode = open, 'rb'
         outfile, outmode = path, 'wb'
     elif unpack_action == 'zip':
