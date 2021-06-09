@@ -2148,8 +2148,10 @@ class DatasetGraph:
         exhaustive:
             If True, regenerate all Datasets from their catalog entries (back to sources)
             If False, skip regeneration if Dataset is present on-disk (with valid hashes)
-        write_catalog: xxx
-        overwrite_catalog: xxx
+        write_datasets: Boolean
+            If True, and hashes match, write updated Datasets to processed_data_path
+        overwrite_catalog: Boolean
+            If True, write updated metadata to Catalog files. Requires write_datasets=True
         """
         logger.debug(f"Generating edge traversal list for Dataset:'{dataset_name}'")
         _, edge_list = self.traverse(dataset_name, exhaustive=exhaustive)

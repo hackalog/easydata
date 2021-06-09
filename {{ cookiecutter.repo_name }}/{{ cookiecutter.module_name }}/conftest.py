@@ -4,7 +4,7 @@ import pytest
 import shutil
 import tempfile as tf
 
-from src.log import logger
+from {{ cookiecutter.module_name }}.log import logger
 
 
 @pytest.fixture
