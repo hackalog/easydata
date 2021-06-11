@@ -40,15 +40,15 @@ def notebook_as_transformer(notebook_name, *,
 
     """
 
-    if notebook_path is None:
-        notebook_path = paths['notebook_path']
+    if notebook_path is not None:
+        notebook_fq = pathlib.Path(notebook_path) / notebook_name
+        notebook_path = str(notebook_path)
     else:
-        notebook_path = pathlib.Path(notebook_path)
+        notebook_fq = paths['notebook_path'] / notebook_name
 
     dag = DatasetGraph()
     write_dataset_to_catalog = write_transformer_to_catalog = overwrite_catalog
 
-    notebook_fq = notebook_path / notebook_name
     if not notebook_fq.exists():
         raise EasydataError(f"Notebook {notebook_fq} does not exist. Cannot be used as transformer.")
 
@@ -74,7 +74,7 @@ def notebook_as_transformer(notebook_name, *,
 
         logger.debug(f"Generating Transformer edge")
         transformers = [partial(run_notebook_transformer,
-                                notebook_path=str(notebook_path),
+                                notebook_path=notebook_path,
                                 notebook_name=notebook_name,
                                 output_dataset_names=[ds.name for ds in output_datasets])]
 
