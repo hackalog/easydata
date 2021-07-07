@@ -30,7 +30,7 @@ dependencies:
   - scikit-learn
   - scipy
   - joblib
-  - nb_conda_kernels<2.2.0  # nb_conda_kernels issue #158
+  - nb_conda_kernels   # Try <2.2.0  if you hit nb_conda_kernels issue #158
   - pandas
   - requests
   - pathlib
