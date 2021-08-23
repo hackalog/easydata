@@ -1,8 +1,16 @@
-import time
-import pathlib
-import numpy as np
 import json
-from .log import logger
+import numpy as np
+import pathlib
+import time
+
+import nbformat
+from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
+
+
+from ..log import logger
+from .ipynbname import name as ipynb_name, path as ipynb_path
+from .. import paths
+
 # Timing and Performance
 
 def timing_info(method):
@@ -52,8 +60,10 @@ def save_json(filename, obj, indent=2, sort_keys=True):
         Whether to sort keys before writing. Should be True if you ever use revision control
         on the resulting json file.
     """
+    blob = json.dumps(obj, indent=indent, sort_keys=sort_keys)
+
     with open(filename, 'w') as fw:
-        json.dump(obj, fw, indent=indent, sort_keys=sort_keys)
+        fw.write(blob)
 
 def load_json(filename):
     """Read a json file from disk"""
@@ -97,3 +107,52 @@ def normalize_to_list(str_or_iterable):
     if str_or_iterable is None:
         return []
     return str_or_iterable
+
+
+def run_notebook(*,
+                notebook_name=None,
+                notebook_path=None,
+                output_notebook_name=None,
+                output_notebook_path=None,
+                timeout=-1,
+                notebook_version=4,
+                kernel='python3',
+                ):
+    """Execute a jupyter notebook
+
+    kernel name is an issue: https://github.com/jupyter/nbconvert/issues/515
+
+    """
+    if notebook_path is None:
+        notebook_path = paths['notebook_path']
+    else:
+        notebook_path = pathlib.Path(notebook_path)
+
+    if output_notebook_path is None:
+        output_notebook_path = paths['interim_data_path']
+    else:
+        output_notebook_path = pathlib.Path(output_notebook_path)
+
+    if output_notebook_name is None:
+        output_notebook_name = notebook_name
+
+    output_notebook_fq = output_notebook_path / output_notebook_name
+
+    with open(notebook_path / notebook_name) as f:
+        nb = nbformat.read(f, as_version=notebook_version)
+
+    ep = ExecutePreprocessor(timeout=timeout, kernel_name=kernel)
+    try:
+        out = ep.preprocess(nb, {'metadata': {'path': notebook_path}})
+    except CellExecutionError:
+        out = None
+        msg = f"""Error executing the notebook "{notebook_name}".
+
+        See notebook "{str(output_notebook_fq)}" for the traceback.'
+        """
+        logger.error(msg)
+        raise
+    finally:
+        with open(output_notebook_fq, mode='w', encoding='utf-8') as f:
+            nbformat.write(nb, f)
+    return output_notebook_name

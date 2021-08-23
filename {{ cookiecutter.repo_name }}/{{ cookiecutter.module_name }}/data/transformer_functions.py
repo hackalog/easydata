@@ -8,14 +8,54 @@ from sklearn.model_selection import train_test_split
 from . import Dataset, deserialize_partial
 from .. import paths
 from ..log import logger
+from .utils import deserialize_partial
+from ..utils import run_notebook
 
 __all__ = [
+    'run_notebook_transformer',
     'apply_single_function',
     'csv_to_pandas',
     'new_dataset',
     'sklearn_train_test_split',
     'sklearn_transform',
 ]
+
+def run_notebook_transformer(dsdict, *,
+                             notebook_name,
+                             notebook_path,
+                             output_dataset_names,
+                             ):
+    """
+    Use a notebook as a transformer function in the dataset graph.
+    The notebook *must* write the output datasets to disk; i.e. once their
+    notebook has run, this function assumes Dataset.from_disk() will succeed
+    for all output datasets listed in `output_dataset_names`
+
+    Parameters
+    ----------
+    dsdict: Ignored
+        Needed to conform to transformer API, but ignored, as these will need
+        to be loaded in the notebook itself.
+    notebook_name: None or str
+        Name of current notebook. If None, an attempt will be made to infer it.
+    notebook_path: None or str or Path
+        If None, paths['notebook_path'] will be used
+    output_dataset_names: List(str)
+        List of datasets that were created (and saved to disk) by the notebook.
+        These will be loaded from disk and returned by the transformer
+    """
+    if notebook_path == 'None':
+        logger.error("JSON encoding problem with notebook_path. Please regenerate transformer")
+
+    logger.debug(f"Using notebook:{notebook_name} as transformer to generate {output_dataset_names}")
+    output_notebook = run_notebook(notebook_path=notebook_path, notebook_name=notebook_name)
+    logger.debug(f"See {paths['interim_data_path']/output_notebook} for output of this process")
+    ods_dict = {}
+    for ods in output_dataset_names:
+        logger.debug(f"Loading output dataset:{ods} from disk")
+        ods_dict[ods] = Dataset.from_disk(ods)
+    return ods_dict
+
 
 def new_dataset(dsdict, *, dataset_name, dataset_opts=None):
     """

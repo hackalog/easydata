@@ -62,7 +62,6 @@ def process_extra_files(*, extract_dir=None, metadata=None, unpack_dir=None, fil
         unpack_dir = pathlib.Path(unpack_dir)
     if extract_dir is not None:
         unpack_dir /= extract_dir
-    logger.info(unpack_dir)
 
     extra_dir = pathlib.Path(extra_dir)
     extra_dir_fq = dataset_dir / extra_dir

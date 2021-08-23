@@ -79,18 +79,22 @@ The directory structure of your new project looks like this:
         * Raw (immutable) hash-verified downloads
     * `data/interim`
         * Extracted and interim data representations
+    * `data/interim/cache`
+        * Dataset cache
     * `data/processed`
         * The final, canonical data sets for modeling.
 * `docs`
-    * A default Sphinx project; see sphinx-doc.org for details
-* `framework-docs`
-    * Markdown documentation for using Easydata
+    * Sphinx-format documentation files for this project.
+    * `docs/Makefile`: Makefile for generating HTML/Latex/other formats from Sphinx-format documentation.
 * `notebooks`
     *  Jupyter notebooks. Naming convention is a number (for ordering),
     the creator's initials, and a short `-` delimited description,
     e.g. `1.0-jqp-initial-data-exploration`.
-* `references`
-    * Data dictionaries, manuals, and all other explanatory materials.
+* `reference`
+    * Data dictionaries, documentation, manuals, scripts, papers, or other explanatory materials.
+    * `reference/easydata`: Easydata framework and workflow documentation.
+    * `reference/templates`: Templates and code snippets for Jupyter
+    * `reference/dataset`: resources related to datasets; e.g. dataset creation notebooks and scripts
 * `reports`
     * Generated analysis as HTML, PDF, LaTeX, etc.
     * `reports/figures`

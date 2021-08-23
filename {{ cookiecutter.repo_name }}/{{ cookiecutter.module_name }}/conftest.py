@@ -5,7 +5,6 @@ import shutil
 import tempfile as tf
 
 from {{ cookiecutter.module_name }}.log import logger
-import {{ cookiecutter.module_name }}.log.debug
 
 
 @pytest.fixture
