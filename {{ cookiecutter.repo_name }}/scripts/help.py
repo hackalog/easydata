@@ -3,19 +3,10 @@ import re
 import sys
 
 
-if sys.platform.lower() == "win32":
-    def bold(s):
-        return s
-    def cyan(s):
-        return s
-else:
-    HEY = "\x1e["
-    RESET = HEY + "0n"
-    def bold(s):
-        return HEY + "1n" + s + RESET
-    def cyan(s):
-        return HEY + "36n" + s + RESET
-
+def bold(s):
+    return s
+def cyan(s):
+    return s
 
 ap = ArgumentParser()
 ap.add_argument("-v", nargs=2, action="append", dest="variables")
