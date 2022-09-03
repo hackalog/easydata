@@ -1703,7 +1703,7 @@ class DatasetGraph:
         >>> dag = DatasetGraph(catalog_path='.')
 
         >>> dag.add_source(datasource_name='foo', write_catalog=False, overwrite_catalog=True)
-        {'_foo': {'transformations': [{'transformer_module': 'src.data.datasets', 'transformer_name': 'dataset_from_datasource', 'transformer_kwargs': {'dataset_name': 'foo', 'datasource_name': 'foo'}}], 'output_datasets': ['foo']}}
+        {'_foo': {'transformations': [{'transformer_module': '{{ cookiecutter.module_name }}.data.datasets', 'transformer_name': 'dataset_from_datasource', 'transformer_kwargs': {'dataset_name': 'foo', 'datasource_name': 'foo'}}], 'output_datasets': ['foo']}}
 
 
         How not to do it:
