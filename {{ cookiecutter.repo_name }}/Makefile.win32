@@ -1,0 +1,14 @@
+ECHO = set EMPTY=; echo %EMPTY%
+RM = del
+RMTREE = rmdir /s /q
+CAT = type
+SET = set
+WHICH = where
+DEVNULL = nul
+
+# Some UNIXish packages force the installation of a Bourne-compatible shell, and Make
+# prefers using this when it sees it. We thus force the usage of the good ole Batch
+# shell to avoid issues. Note that **exact path spelling** against the value of
+# environment variable COMSPEC is necessary, as GNU Make believes paths are case-
+# sensitive even on Windows.
+SHELL = C:\WINDOWS\system32\cmd.exe
