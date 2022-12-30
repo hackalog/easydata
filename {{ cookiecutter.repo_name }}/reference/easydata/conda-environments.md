@@ -4,13 +4,19 @@ The `{{ cookiecutter.repo_name }}` repo is set up with template code to make man
 
 If you haven't yet, configure your conda environment.
 
+**WARNING**: If you have conda-forge listed as a channel in your `.condarc` (or any other channels other than defaults), you may experience great difficulty generating reproducible conda environments.
+
+We recommend you remove conda-forge (and all other non-default channels) from your `.condarc` file and [set your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html). You can still use conda-forge (or any other conda channel), just specify it explicitly in your `environment.yml` by prefixing your package name with `channel-name::`; e.g.
+```
+  - wheel                    # install from the default (anaconda) channel
+  - pytorch::pytorch         # install this from the `pytorch` channel
+  - conda-forge::tokenizers  # install this from conda-forge
+```
+
 ## Configuring your python environment
 Easydata uses conda to manage python packages installed by both conda **and pip**.
 
 ### Adjust your `.condarc`
-**WARNING FOR EXISTING CONDA USERS**: If you have `conda-forge` listed as a channel in your `.condarc` (or any other channels other than `default`), **remove them**. These channels should be specified in `environment.yml` instead.
-
-We also recommend [setting your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) to reduce package incompatibility problems. This will be the default in conda 5.0, but in order to assure reproducibility, we need to use this behavior now.
 
 ```
 conda config --set channel_priority strict
@@ -26,18 +32,30 @@ conda config --prepend channels defaults
 conda config --prepend envs_dirs ~/.conda/envs   # Store environments in local dir for JupyterHub
 ```
 
-### Fix the CONDA_EXE path
-* Make note of the path to your conda binary:
+#### Locating the `conda` binary
+Ensure the Makefile can find your conda binary, either by setting the `CONDA_EXE` environment variable, or by modifying `Makefile.include` directly.
+
+First, check if `CONDA_EXE` is already set
 ```
-   $ which conda
+   >>> export | grep CONDA_EXE
+   CONDA_EXE=/Users/your_username/miniconda3/bin/conda
+```
+
+If `CONDA_EXE` is not set, you will need to set it manually in `Makefile.include`; i.e.
+
+* Make note of the path to your conda binary. It should be in the `bin` subdirectory of your Anaconda (or miniconda) installation directory:
+```
+   >>>  which conda         # this will only work if conda is in your PATH, otherwise, verify manually
    ~/miniconda3/bin/conda
 ```
-* ensure your `CONDA_EXE` environment variable is set correctly in `Makefile.include`
+* ensure your `CONDA_EXE` environment variable is set to this value; i.e.
 ```
-    export CONDA_EXE=~/miniconda3/bin/conda
+    >>> export CONDA_EXE=~/miniconda3/bin/conda
 ```
+or edit `Makefile.include` directly.
+
 ### Create the conda environment
-* Create and switch to the virtual environment:
+Create and switch to the virtual environment:
 ```
 cd {{ cookiecutter.repo_name }}
 make create_environment
