@@ -38,11 +38,13 @@ jobs:
             mkdir -p /home/circleci/.cookiecutter_replay
             cp circleci-cookiecutter-easydata.json /home/circleci/.cookiecutter_replay/cookiecutter-easydata.json
             pwd
+            which make
             cookiecutter --config-file .cookiecutter-easydata-test-circleci.yml . -f --no-input
             
       - run:
           name: Create test-env environment and contrive to always use it
           command: |
+            conda activate cookiecutter
             cd test-env
             export CONDA_EXE=/home/circleci/miniconda/bin/conda
             make create_environment
