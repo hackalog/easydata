@@ -1,7 +1,7 @@
 from .decorators import SingletonDecorator
 from .kvstore import KVStore
 from .log import logger
-import pathlib
+import pathlib import Path
 
 class PathStore(KVStore):
     """Persistent Key-Value store for project-level paths
@@ -13,15 +13,16 @@ class PathStore(KVStore):
 
     By default, the project directory is the parent of the directory containing the `config_file`:
 
-    >>> b['project_path']
-    PosixPath('/tmpx/project')
-    >>> b['data_path']
-    PosixPath('/tmpx/project/data')
+
+    >>> b['project_path'] == Path('/tmpx/project').resolve()
+    True
+    >>> b['data_path'] == Path('/tmpx/project/data').resolve()
+    True
 
     The `catalog_path` is set upon instantiation and is read-only:
 
-    >>> b['catalog_path']
-    PosixPath('/tmpx/project/catalog')
+    >>> b['catalog_path'] == Path('/tmpx/project/catalog').resolve()
+    True
     >>> b['catalog_path'] = '/tmp'
     Traceback (most recent call last):
      ...
@@ -30,21 +31,21 @@ class PathStore(KVStore):
     Changing a value changes all values that expand to contain it:
 
     >>> b['project_path'] = '/tmpy'
-    >>> b['project_path']
-    PosixPath('/tmpy')
-    >>> b['data_path']
-    PosixPath('/tmpy/data')
+    >>> b['project_path'] ==  Path('/tmpy').resolve()
+    True
+    >>> b['data_path'] == Path('/tmpy/data').resolve()
+    True
 
     We can have multiple levels of expansion:
 
     >>> b['raw_data_path'] = "${data_path}/raw"
-    >>> b['raw_data_path']
-    PosixPath('/tmpy/data/raw')
+    >>> b['raw_data_path'] == Path('/tmpy/data/raw').resolve()
+    True
     >>> b['project_path'] = '/tmp3'
-    >>> b['data_path']
-    PosixPath('/tmp3/data')
-    >>> b['raw_data_path']
-    PosixPath('/tmp3/data/raw')
+    >>> b['data_path'] == Path('/tmp3/data').resolve()
+    True
+    >>> b['raw_data_path'] == Path('/tmp3/data/raw').resolve()
+    True
     """
 
     # These keys should never be written to disk, though they may be used
@@ -58,7 +59,7 @@ class PathStore(KVStore):
         if config_file is None:
             self._config_file = "config.ini"
         else:
-            self._config_file = pathlib.Path(config_file)
+            self._config_file = Path(config_file)
         self._usage_warning = False
         super().__init__(*args, config_section=config_section,
                          config_file=self._config_file, **kwargs)
@@ -88,7 +89,7 @@ class PathStore(KVStore):
         if key in self._protected:
             return getattr(self, key)
         self._read()
-        return pathlib.Path(super().__getitem__(key)).resolve()
+        return Path(super().__getitem__(key)).resolve()
 
     @property
     def catalog_path(self):

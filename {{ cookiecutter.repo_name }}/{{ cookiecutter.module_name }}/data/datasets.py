@@ -88,8 +88,10 @@ class Dataset(Bunch):
                  catalog_file='datasets.json',
                  **kwargs):
         """
-        Object representing a dataset object.
-        Notionally compatible with scikit-learn's Bunch object
+        EasyData Dataset container Object.
+
+        Contains metadata (README, LICENSE), associated file list (FILESET), and
+        optionally a data object.
 
         dataset_name: string (required)
             key to use for this dataset
@@ -99,7 +101,7 @@ class Dataset(Bunch):
             Either classification target or label to be used. for each of the points
             in `data`
         metadata: dict
-            Data about the object. Key fields include `license_txt`, `descr`, and `hashes`
+            Data about the object. Key fields include `license`, `readme`, and `hashes`
         update_hashes: Boolean
             If True, recompute the data/target hashes in the Metadata
         """
@@ -118,7 +120,7 @@ class Dataset(Bunch):
         self['metadata']['dataset_name'] = dataset_name
         self['data'] = data
         self['target'] = target
-        #self['extra'] = Extra.from_dict(metadata.get('extra', None))
+        #self['fileset'] = Fileset.from_dict(metadata.get('fileset', None))
         data_hashes = self._generate_data_hashes()
 
         if update_hashes:
@@ -153,10 +155,10 @@ class Dataset(Bunch):
             self['metadata'][key.lower()] = value
         elif key == 'name':
             self['metadata']['dataset_name'] = value
-        elif key in ['extra_base', 'extra_auth_kwargs']:
+        elif key in ['fileset_base', 'fileset_auth']:
             if self.name not in paths._config.sections():
                 paths._config.add_section(self.name)
-            if key == 'extra_auth_kwargs':
+            if key == 'fileset_auth':
                 paths._config.set(self.name, key, json.dumps(value, sort_keys=True))
             else:
                 paths._config.set(self.name, key, value)
@@ -170,7 +172,7 @@ class Dataset(Bunch):
             del self['metadata'][key.lower()]
         elif key == 'name':
             raise ValueError("name is mandatory")
-        elif key == 'extra_base':
+        elif key == 'fileset_base':
             if paths._config.has_section(self.name) and paths._config.has_option(self.name, key):
                 paths._config.remove_option(self.name, key)
                 paths._write()
@@ -226,26 +228,67 @@ class Dataset(Bunch):
             raise ValueError(f"Unknown kind: {kind}")
 
     @property
-    def extra_base(self):
-        return self.resolve_local_config("extra_base", paths['processed_data_path'] / f"{self.name}.extra")
+    def fileset_base(self):
+        return self.resolve_local_config("fileset_base", paths['processed_data_path'] / f"{self.name}.fileset")
 
     @property
-    def extra_auth_kwargs(self):
-        return self.resolve_local_config("extra_auth_kwargs", "{}", kind="json")
+    def fileset_auth(self):
+        return self.resolve_local_config("fileset_auth", "{}", kind="json")
+
+    def filesystem(self):
+        """Return an fsspec filesystem object associated with this fileset_base.
+
+        If present, the kwargs specified in 'Dataset.fileset_auth' will be used to authenticate the connection. These must be valid
+        parameters to 'fsspec.open()'
+
+        returns: fsspec.FileSystem object
+
+        """
+        f = fsspec.open(self.fileset_base, **self.fileset_auth)
+        return f.fs
+
+    def fileset(self, dirs_only=False):
+        """Enumerate contents of fileset.
+
+        Automatically prepends `fileset_base`
+
+        Parameters::
+            dirs_only: Boolean
+                if True, returns only directory names containing files
+                if False, returns files and their associated hashes
+
+                Useful for file formats that are actually directories, like parquet
+
+        Returns:
+            if dirs_only is True:
+                list of directories containing files in the fileset
+            else
+                tuples of filenames, hashlists for every file in the fileset
+        """
+        eb = self.fileset_base
+        sep = "/"
+        ret = []
+        for subdir, filedict in self.FILESET.items():
+            if dirs_only:
+                ret.append(sep.join([eb, subdir]))
+            else: # returns all files
+                for f, hashlist in filedict.items():
+                    ret.append((sep.join([eb, subdir, f]), hashlist))
+        return ret
 
     # Note: won't work because of set/setattr magic above
-    #@extra_base.deleter
-    #def extra_base(self):
-    #    if paths._config.has_section(self.name) and paths._config.has_option(self.name, "extra_base"):
-    #        paths._config.remove_option("extra_base")
+    #@fileset_base.deleter
+    #def fileset_base(self):
+    #    if paths._config.has_section(self.name) and paths._config.has_option(self.name, "fileset_base"):
+    #        paths._config.remove_option("fileset_base")
 
 
     # Note: Won't work because of setattr magic above
-    #@extra_base.setter
-    #def extra_base(self, val):
+    #@fileset_base.setter
+    #def fileset_base(self, val):
     #    if self.name not in paths._config.sections():
     #        paths._config.add_section(self.name)
-    #    paths._config.set(self.name, "extra_base", val)
+    #    paths._config.set(self.name, "fileset_base", val)
     #    paths._write()
     #    logger.debug(f"Writing {paths._config_file}")
 
@@ -579,22 +622,22 @@ class Dataset(Bunch):
             hashdict = c[self.name]["hashes"]
         return hashdict.items() <= self.metadata['hashes'].items()
 
-    def verify_extra(self, extra_base=None, file_dict=None, return_filelists=False, hash_types=['size']):
+    def verify_fileset(self, fileset_base=None, file_dict=None, return_filelists=False, hash_types=['size']):
         """
-        Verify that all files listed in the metadata EXTRA dict are accessible and have good hashes.
+        Verify that all files listed in the metadata FILESET dict are accessible and have good hashes.
 
         Returns boolean - True if all files are accessible and have good hashes - and optional
         file lists.
 
         Parameters
         ----------
-        extra_base: path or None
-           base for the EXTRA filenames.
+        fileset_base: path or None
+           base for the FILESET filenames.
            if passed as explicit parameter, this location will be used
-           if omitted, the dataset `extra_base` will be read (which checks the local_config,
-           or self.EXTRA_BASE, in that order)
-        file_dict: sub-dict of extra dict
-           if None, default to the whole extra dict
+           if omitted, the dataset `fileset_base` will be read (which checks the local_config,
+           or self.FILESET_BASE, in that order)
+        file_dict: sub-dict of fileset dict
+           if None, default to the whole fileset dict
         return_filelists: boolean, default False
            if True, returns triple (good_hashes, bad_hashes, missing_files)
            else, returns Boolean (all files good)
@@ -617,19 +660,19 @@ class Dataset(Bunch):
             files that are inaccessible
 
         """
-        if extra_base is None:
-            extra_base = self.extra_base
-        extra_base = pathlib.Path(extra_base)
-        extra_dict = self.metadata.get('extra', None)
+        if fileset_base is None:
+            fileset_base = self.fileset_base
+        fileset_base = pathlib.Path(fileset_base)
+        fileset_dict = self.metadata.get('fileset', None)
         if file_dict is None:
-            file_dict = extra_dict
+            file_dict = fileset_dict
         else:
-            if not (file_dict.keys() <= extra_dict.keys()):
-                raise ValueError(f"file_dict must be a subset of the metadata['extra'] dict")
+            if not (file_dict.keys() <= fileset_dict.keys()):
+                raise ValueError(f"file_dict must be a subset of the metadata['fileset'] dict")
             else:
                 for key in file_dict.keys():
-                    if not (file_dict[key].items() <= extra_dict[key].items()):
-                        raise ValueError(f"file_dict must be a subset of the metadata['extra'] dict")
+                    if not (file_dict[key].items() <= fileset_dict[key].items()):
+                        raise ValueError(f"file_dict must be a subset of the metadata['fileset'] dict")
 
         retval = False
         bad_hash = []
@@ -641,7 +684,7 @@ class Dataset(Bunch):
         else:
             for directory in file_dict.keys():
                 for file, meta_hash_list in file_dict[directory].items():
-                    path = extra_base / directory / file
+                    path = fileset_base / directory / file
                     rel_path = pathlib.Path(directory) / file
                     if path.exists():
                         disk_hash_list = []
@@ -660,52 +703,52 @@ class Dataset(Bunch):
         else:
             return retval
 
-    def subselect_extra(self, rel_files):
-        """Convert a (relative) pathname to an EXTRA dict
+    def subselect_fileset(self, rel_files):
+        """Convert a (relative) pathname to an FILESET dict
 
-        Suitable for passing to verify_extra()
+        Suitable for passing to verify_fileset()
         """
-        extra_dict = defaultdict(dict)
+        fileset_dict = defaultdict(dict)
         for rel_file_path in rel_files:
             rel_path = pathlib.Path(rel_file_path)
             try:
-                hashlist = self.EXTRA[str(rel_path.parent)][rel_path.name]
+                hashlist = self.FILESET[str(rel_path.parent)][rel_path.name]
             except KeyError:
-                raise NotFoundError(f"Not in EXTRA: {rel_file_path}") from None
-            extra_dict[str(rel_path.parent)][rel_path.name] = hashlist
-        return dict(extra_dict)
+                raise NotFoundError(f"Not in FILESET: {rel_file_path}") from None
+            fileset_dict[str(rel_path.parent)][rel_path.name] = hashlist
+        return dict(fileset_dict)
 
-    def extra_file(self, relative_path):
-        """Convert a relative path (relative to extra_base) to a fully qualified location
+    def fileset_file(self, relative_path):
+        """Convert a relative path (relative to fileset_base) to a fully qualified location
 
-        extra_base may be prefixed with optional protocol like `s3://` and
+        fileset_base may be prefixed with optional protocol like `s3://` and
         is suitable for passing to fsspec.open_files()
 
         Parameters
         ----------
         relative_path: string or list
-            Relative filepath. Will be appended to extra_base (and an intervening '/' added as needed)
-            extra_base can be prefixed with a protocol like `s3://` to read from alternate filesystems.
+            Relative filepath. Will be appended to fileset_base (and an intervening '/' added as needed)
+            fileset_base can be prefixed with a protocol like `s3://` to read from alternate filesystems.
             To read from multiple files you can pass a globstring or a list of paths, with the caveat
             that they must all have the same protocol.
         """
-        extra_base = self.extra_base
-        if extra_base.startswith("/"):
-            fqpath =  str(pathlib.Path(extra_base) / relative_path)
-        elif extra_base.endswith('/'):
-            fqpath = f"{extra_base}{relative_path}"
+        fileset_base = self.fileset_base
+        if fileset_base.startswith("/"):
+            fqpath =  str(pathlib.Path(fileset_base) / relative_path)
+        elif fileset_base.endswith('/'):
+            fqpath = f"{fileset_base}{relative_path}"
         else:
-            fqpath = f"{extra_base}/{relative_path}"
+            fqpath = f"{fileset_base}/{relative_path}"
         return fqpath
 
-    def open_extra(self, relative_path, auth_kwargs=None, **kwargs):
-        """Given a path (relative to extra_base), return an fsspec.OpenFile object
+    def open_fileset(self, relative_path, auth_kwargs=None, **kwargs):
+        """Given a path (relative to fileset_base), return an fsspec.OpenFile object
 
         Parameters
         ----------
         relative_path: string or list
-            Relative filepath. Will be appended to extra_base (and an intervening '/' added as needed)
-            extra_base can be prefixed with a protocol like `s3://` to read from alternate filesystems.
+            Relative filepath. Will be appended to fileset_base (and an intervening '/' added as needed)
+            fileset_base can be prefixed with a protocol like `s3://` to read from alternate filesystems.
             To read from multiple files you can pass a globstring or a list of paths, with the caveat
             that they must all have the same protocol.
         auth_kwargs: dict or None
@@ -717,7 +760,7 @@ class Dataset(Bunch):
 
         Examples
         --------
-        >>> with ds.open_extra('2020-01-*.csv') as f:
+        >>> with ds.open_fileset('2020-01-*.csv') as f:
         ...    df = pd.read_csv(f)   # doctest: +SKIP
 
         Returns
@@ -726,11 +769,11 @@ class Dataset(Bunch):
         be used as a single context
         """
         if auth_kwargs is None:
-            auth_kwargs = self.extra_auth_kwargs
+            auth_kwargs = self.fileset_auth
         if auth_kwargs:
             logger.debug(f"Passing authentication information via auth_kwargs")
 
-        return fsspec.open(self.extra_file(relative_path), **auth_kwargs, **kwargs)
+        return fsspec.open(self.fileset_file(relative_path), **auth_kwargs, **kwargs)
 
     def dump(self, file_base=None, dump_path=None, hash_type='sha1',
              exists_ok=False, create_dirs=True, dump_metadata=True, update_catalog=True,
@@ -867,8 +910,8 @@ class DataSource(object):
                     Value of hash used to verify file integrity
                 file_name: string (optional)
                     filename to use when saving file locally. If omitted, it will be inferred from url or source_file
-                name: string or {'DESCR', 'LICENSE'} (optional)
-                    description of the file. of DESCR or LICENSE, will be used as metadata
+                name: string or {'README', 'LICENSE'} (optional)
+                    description of the file. of README or LICENSE, will be used as metadata
                 unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
                     action to take in order to unpack this file. If None, infers from file type.
 
@@ -909,14 +952,14 @@ class DataSource(object):
         logger.warning("file_list is deprecated. Use file_dict instead")
         return list(self.file_dict.values())
 
-    def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='DESCR', unpack_action='copy', force=False):
+    def add_metadata(self, filename=None, contents=None, metadata_path=None, kind='README', unpack_action='copy', force=False):
         """Add metadata to a DataSource
 
         filename: create metadata entry from contents of this file. Relative to `metadata_path`
         contents: create metadata entry from this string
         metadata_path: (default `paths['raw_data_path']`)
             where to store metadata files
-        kind: {'DESCR', 'LICENSE'}
+        kind: {'README', 'LICENSE'}
         unpack_action: {'zip', 'tgz', 'tbz2', 'tar', 'gzip', 'compress', 'copy'} or None
             action to take in order to unpack this file. If None, infers from file type.
         force: boolean (default False)
@@ -928,7 +971,7 @@ class DataSource(object):
             metadata_path = pathlib.Path(metadata_path)
 
         filename_map = {
-            'DESCR': f'{self.name}.readme',
+            'README': f'{self.name}.readme',
             'LICENSE': f'{self.name}.license',
         }
         if kind not in filename_map:
@@ -1337,7 +1380,7 @@ class DataSource(object):
         return_X_y: boolean
             if True, returns (data, target) instead of a `Dataset` object.
         use_docstring: boolean
-            If True, the docstring of `self.process_function` is used as the Dataset DESCR text.
+            If True, the docstring of `self.process_function` is used as the Dataset README text.
         """
         if not self.unpacked_:
             logger.debug("process() called before unpack()")
@@ -1373,13 +1416,13 @@ class DataSource(object):
     def default_metadata(self, use_docstring=False):
         """Returns default metadata derived from this DataSource
 
-        This sets the dataset_name, and fills in `license` and `descr`
+        This sets the dataset_name, and fills in `license` and `readme`
         fields if they are present, either on disk, or in the file list
 
         Parameters
         ----------
         use_docstring: boolean
-            If True, the docstring of `self.process_function` is used as the Dataset DESCR text.
+            If True, the docstring of `self.process_function` is used as the Dataset README text.
 
         Returns
         -------
@@ -1388,12 +1431,12 @@ class DataSource(object):
 
         metadata = {}
         optmap = {
-            'DESCR': 'descr',
+            'README': 'readme',
             'LICENSE': 'license',
         }
         filemap = {
             'license': f'{self.name}.license',
-            'descr': f'{self.name}.readme'
+            'readme': f'{self.name}.readme'
         }
 
         for key, fetch_dict in self.file_dict.items():
@@ -1406,7 +1449,7 @@ class DataSource(object):
         if use_docstring:
             func = partial(self.process_function)
             fqfunc, invocation =  partial_call_signature(func)
-            metadata['descr'] =  f'Data processed by: {fqfunc}\n\n>>> ' + \
+            metadata['readme'] =  f'Data processed by: {fqfunc}\n\n>>> ' + \
               f'{invocation}\n\n>>> help({func.func.__name__})\n\n' + \
               f'{func.func.__doc__}'
 

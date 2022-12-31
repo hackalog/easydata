@@ -1,6 +1,11 @@
-# Workflow is where we patch around API issues in between releases.
-# Nothing in this file is intended to be a stable API. use at your own risk,
-# as its contents will be regularly deprecated
+"""A module where we temporarily smooth our way around API issues in Easydata.
+
+This is a place where we temporarily address UX and API issues in Easydata, usually by writing convenient wrappers around existing functionality.
+
+Nothing in here is intended to be a stable API, so use at your own risk, as these contents are regularly deprecated.
+
+"""
+
 import sys
 import logging
 from .data import Catalog, Dataset, DataSource
