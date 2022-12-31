@@ -31,7 +31,7 @@ jobs:
       - run:
           name: Build cookiecutter environment and test-env project
           command: |
-            conda create -n cookiecutter --yes python=3.8
+            conda create -n cookiecutter --yes python=3.8 make
             conda activate cookiecutter
             pip install cookiecutter
             pip install ruamel.yaml
@@ -48,6 +48,7 @@ jobs:
             export CONDA_EXE=/home/circleci/miniconda/bin/conda
             make create_environment
             conda activate test-env
+            conda install -c anaconda make
             touch environment.yml
             make update_environment
             echo "conda activate test-env" >> $BASH_ENV;
