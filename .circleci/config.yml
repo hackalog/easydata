@@ -25,8 +25,7 @@ jobs:
           command: |
             conda init bash
             conda update --yes --quiet conda;
-            which conda
-            export CONDA_EXE=/home/circleci/miniconda/bin/conda
+            export CONDA_EXE=/opt/conda/bin/conda
             sed -ne '/>>> conda initialize/,/<<< conda initialize/p' ~/.bashrc >> $BASH_ENV 
       
       - run:
@@ -36,8 +35,8 @@ jobs:
             conda activate cookiecutter
             pip install cookiecutter
             pip install ruamel.yaml
-            mkdir -p /home/circleci/.cookiecutter_replay
-            cp circleci-cookiecutter-easydata.json /home/circleci/.cookiecutter_replay/cookiecutter-easydata.json
+            mkdir -p /root/repo/.cookiecutter_replay
+            cp circleci-cookiecutter-easydata.json /root/repo/.cookiecutter_replay/cookiecutter-easydata.json
             pwd
             which make
             cookiecutter --config-file .cookiecutter-easydata-test-circleci.yml . -f --no-input
@@ -47,7 +46,7 @@ jobs:
           command: |
             conda activate cookiecutter
             cd test-env
-            export CONDA_EXE=/home/circleci/miniconda/bin/conda
+            export CONDA_EXE=/opt/conda/bin/conda
             make create_environment
             conda activate test-env
             conda install -c anaconda make
