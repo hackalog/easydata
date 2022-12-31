@@ -1,7 +1,7 @@
 from .decorators import SingletonDecorator
 from .kvstore import KVStore
 from .log import logger
-import pathlib import Path
+from pathlib import Path
 
 class PathStore(KVStore):
     """Persistent Key-Value store for project-level paths

@@ -178,8 +178,6 @@ def csv_to_pandas(ds_dict, *, output_map, **opts):
                         new_ds[new_dsname] = Dataset(dataset_name=new_dsname, data=df, metadata=new_metadata)
     return new_ds
 
-
-
 def apply_single_function(ds_dict, *, source_dataset_name, dataset_name, serialized_function, added_readme_txt, drop_fileset, **opts):
     """
     Parameters
@@ -221,12 +219,6 @@ def apply_single_function(ds_dict, *, source_dataset_name, dataset_name, seriali
         new_target = None
 
     new_ds[dataset_name] = Dataset(dataset_name=dataset_name, data=new_data, target=new_target, metadata=new_metadata)
-    return new_ds
-
-
-    new_metadata = ds.metadata.copy()
-
-    new_ds[new_dsname] = Dataset(dataset_name=new_dsname, data=preprocessed_corpus, metadata=new_metadata)
     return new_ds
 
 def copy_dataset(ds_dict, *, source_dataset_name, dataset_name, added_readme_txt, drop_fileset=True, **opts):

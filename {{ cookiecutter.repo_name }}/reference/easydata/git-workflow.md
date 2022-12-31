@@ -1,5 +1,5 @@
 # The EasyData Git Workflow
-Here's our suggestion for a reliable git workflow that works well in small team settings using [Easydata][easydata].
+Here's our suggestion for a reliable git workflow that works well in **small team settings**; e.g. when using [Easydata][easydata] in a group setting.
 
 ## Git configuration
 

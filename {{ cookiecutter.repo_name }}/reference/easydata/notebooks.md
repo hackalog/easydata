@@ -96,7 +96,7 @@ There is a whole world of cell magics. These are bits of code that you can put a
 ### Quick References
 
 * [README](../README.md)
-* [Setting up and Maintaining your Conda Environment Reproducibly](conda-environments.md)
+* [Setting up and Maintaining your Conda Environment, Reproducibly](conda-environments.md)
 * [Getting and Using Datasets](datasets.md)
 * [Specifying Paths in Easydata](paths.md)
 * [Using Notebooks for Analysis](notebooks.md)

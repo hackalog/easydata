@@ -49,7 +49,7 @@ The `metadata` is where the magic lives. It serves several purposes in terms of 
 * it includes `HASHES`, which **improve data reproducibility**, since what you download and process gets checked each step along the way to ensure the raw data matches what is stored in the `dataset_catalog`,
 * it provides easy access to **what the data is** via the `README` attribute,
 * it provides easy (and continual) **access to the license / usage restrictions** for the data (the `LICENSE` attribute), which helps with knowing what you can do when [Sharing your Work](sharing-your-work.md).
-* it provides the **fileset data manifest**, `FILESET`, if your dataset includes around additional raw data (extra) files.
+* it provides the **fileset data manifest**, `FILESET`, if your dataset includes around additional raw data (fileset) files.
 
 In short, it helps you to know what data you're working with, what you can do with it, and whether something has gone wrong.
 
@@ -76,7 +76,7 @@ ds.metadata
 
 To access the most common metadata fields:
 ```python
-ds.README          # or ds.metadata['descr']
+ds.README          # or ds.metadata['readme']
 ds.LICENSE        # or ds.metadata['license']
 ds.HASHES         # or ds.metadata['hashes']
 ```
@@ -87,7 +87,7 @@ To access the catalog:
 
 ```python
 from {{ cookiecutter.module_name }}.data import Catalog
-Catalog.load("datasets')
+Catalog.load("datasets")
 ```
 
 ## Sharing your Data as a `Dataset` object

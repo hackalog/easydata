@@ -16,10 +16,13 @@ from .data.fileset import process_fileset_files
 from .data.utils import serialize_partial
 
 __all__ = [
-    'notebook_as_transformer',
     'dataset_from_csv_manual_download',
+    'dataset_from_fsurl',
     'dataset_from_metadata',
     'dataset_from_single_function',
+    'derived_dataset',
+    'metadata_from_fsspec',
+    'notebook_as_transformer',
 ]
 
 
@@ -146,7 +149,7 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
     process_function_kwargs = {'do_copy':True,
                                'file_glob':str(csv_path.name),
                                'fileset_dir': raw_ds_name+'.fileset',
-                               'filesetct_dir': raw_ds_name}
+                               'extract_dir': raw_ds_name}
     dsrc.process_function = partial(process_function, **process_function_kwargs)
     datasource_catalog = Catalog.load('datasources')
     datasource_catalog[dsrc.name] = dsrc.to_dict()
