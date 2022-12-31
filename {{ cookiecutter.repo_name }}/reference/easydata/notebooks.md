@@ -79,8 +79,7 @@ output_notebook(resources=INLINE)
 
 # Source module imports
 from {{ cookiecutter.module_name }} import paths
-from {{ cookiecutter.module_name }}.data import DataSource, Dataset
-from {{ cookiecutter.module_name }} import workflow
+from {{ cookiecutter.module_name }}.data import DataSource, Dataset, Catalog
 ```
 You can also find most of these header cells in [00-xyz-sample-notebook.ipynb](../notebooks/00-xyz-sample-notebook.ipynb)
 
@@ -99,6 +98,7 @@ There is a whole world of cell magics. These are bits of code that you can put a
 * [README](../README.md)
 * [Setting up and Maintaining your Conda Environment Reproducibly](conda-environments.md)
 * [Getting and Using Datasets](datasets.md)
+* [Specifying Paths in Easydata](paths.md)
 * [Using Notebooks for Analysis](notebooks.md)
 * [Sharing your Work](sharing-your-work.md)
 * [Troubleshooting Guide](troubleshooting.md)
