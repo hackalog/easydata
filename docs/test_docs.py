@@ -37,7 +37,7 @@ class TestDocNotebooks(unittest.TestCase):
         csv_url = "https://storage.googleapis.com/covid19-open-data/v2/epidemiology.csv"
         csv_dest = paths['raw_data_path'] / "epidemiology.csv"
         if not csv_dest.exists():
-            logger.DEBUG("Downloading epidemiology.csv")
+            logger.debug("Downloading epidemiology.csv")
             csv_file = requests.get(csv_url)
             with open(csv_dest, 'wb') as f:
                 f.write(csv_file.content)
