@@ -39,8 +39,7 @@ jobs:
             cp circleci-cookiecutter-easydata.json /home/circleci/.cookiecutter_replay/cookiecutter-easydata.json
             pwd
             cookiecutter --config-file .cookiecutter-easydata-test-circleci.yml . -f --no-input
-            conda deactivate
-
+            
       - run:
           name: Create test-env environment and contrive to always use it
           command: |
