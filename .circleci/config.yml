@@ -25,6 +25,7 @@ jobs:
           command: |
             conda init bash
             conda update --yes --quiet conda;
+            which conda
             export CONDA_EXE=/home/circleci/miniconda/bin/conda
             sed -ne '/>>> conda initialize/,/<<< conda initialize/p' ~/.bashrc >> $BASH_ENV 
       
