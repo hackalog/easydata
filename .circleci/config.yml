@@ -21,6 +21,14 @@ jobs:
       - checkout
       
       - run:
+          name: Set up Conda
+          command: |
+            conda init bash
+            conda update --yes --quiet conda;
+            export CONDA_EXE=/home/circleci/miniconda/bin/conda
+            sed -ne '/>>> conda initialize/,/<<< conda initialize/p' ~/.bashrc >> $BASH_ENV 
+      
+      - run:
           name: Build cookiecutter environment and test-env project
           command: |
             conda create -n cookiecutter --yes python=3.8
