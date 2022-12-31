@@ -21,14 +21,6 @@ jobs:
     steps:
       - checkout
 
-      #- run:
-          #name: Set up Anaconda
-          #command: |
-          #  wget -q http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh;
-          #  chmod +x ~/miniconda.sh;
-          #  ~/miniconda.sh -b -p ~/miniconda;
-          #  echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
-
       - run:
           name: Create environment and contrive to always use it
           command: |
