@@ -1,10 +1,10 @@
 from sklearn.datasets import fetch_20newsgroups
 from functools import partial
 
-from src.data import DataSource, Dataset, DatasetGraph, Catalog
-from src.data.process_functions import process_20_newsgroups
-from src import paths
-from src.log import logger
+from {{ cookicutter.module_name }}.data import DataSource, Dataset, DatasetGraph, Catalog
+from {{ cookicutter.module_name }}.data.process_functions import process_20_newsgroups
+from {{ cookicutter.module_name }} import paths
+from {{ cookicutter.module_name }}.log import logger
 
 # Set up a 20 newsgroups dataset
 
