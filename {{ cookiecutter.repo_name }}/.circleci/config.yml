@@ -8,7 +8,8 @@ jobs:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: circleci/python:3.7.0
+      - image: continuumio/miniconda3
+
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -19,14 +20,6 @@ jobs:
 
     steps:
       - checkout
-
-      - run:
-          name: Set up Anaconda
-          command: |
-            wget -q http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh;
-            chmod +x ~/miniconda.sh;
-            ~/miniconda.sh -b -p ~/miniconda;
-            echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
 
       - run:
           name: Create environment and contrive to always use it

@@ -14,6 +14,7 @@ _path_defaults = {
     'project_path': '${catalog_path}/..',
     'raw_data_path': '${data_path}/raw',
     'template_path': '${project_path}/reference/templates',
+    'abfs_cache': '${interim_data_path}/abfs_cache',
 }
 _catalog_file = _module_dir.parent / "catalog" / "config.ini"
 

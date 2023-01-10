@@ -1,7 +1,9 @@
 ## Script common ways of adding a dataset to the workflow
 
 from functools import partial
+import fsspec
 import pathlib
+import os
 
 from .log import logger
 from . import paths
@@ -10,14 +12,17 @@ from .exceptions import EasydataError
 from .data import (DataSource, Dataset, hash_file, DatasetGraph, Catalog,
                serialize_transformer_pipeline)
 from .data.transformer_functions import csv_to_pandas, new_dataset, apply_single_function, run_notebook_transformer
-from .data.extra import process_extra_files
+from .data.fileset import process_fileset_files
 from .data.utils import serialize_partial
 
 __all__ = [
-    'notebook_as_transformer',
     'dataset_from_csv_manual_download',
+    'dataset_from_fsurl',
     'dataset_from_metadata',
     'dataset_from_single_function',
+    'derived_dataset',
+    'metadata_from_fsspec',
+    'notebook_as_transformer',
 ]
 
 
@@ -90,7 +95,7 @@ def notebook_as_transformer(notebook_name, *,
 
 # Create a Dataset from a single csv file
 def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
-                                     license_str, descr_str, *, hash_type='sha1',
+                                     license_str, readme_str, *, hash_type='sha1',
                                      hash_value=None,
                                      overwrite_catalog=False,):
     """
@@ -107,7 +112,7 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
         Hash, computed via the algorithm specified in `hash_type`
     license_str: str
         Contents of metadata license as text
-    descr_str:
+    readme_str:
         Contents of the metadata description as text
     overwrite_catalog: boolean
         If True, existing entries in datasets and transformers catalogs will be
@@ -136,14 +141,14 @@ def dataset_from_csv_manual_download(ds_name, csv_path, download_message,
                              hash_value=hash_value,
                              unpack_action='copy',
                              force=True)
-    dsrc.add_metadata(contents=descr_str, force=True)
+    dsrc.add_metadata(contents=readme_str, force=True)
     dsrc.add_metadata(contents=license_str, kind='LICENSE', force=True)
 
-    process_function = process_extra_files
-    process_function = process_extra_files
+    process_function = process_fileset_files
+    process_function = process_fileset_files
     process_function_kwargs = {'do_copy':True,
                                'file_glob':str(csv_path.name),
-                               'extra_dir': raw_ds_name+'.extra',
+                               'fileset_dir': raw_ds_name+'.fileset',
                                'extract_dir': raw_ds_name}
     dsrc.process_function = partial(process_function, **process_function_kwargs)
     datasource_catalog = Catalog.load('datasources')
@@ -202,7 +207,7 @@ def dataset_from_metadata(dataset_name, metadata=None, overwrite_catalog=False):
     return ds
 
 
-def dataset_from_single_function(*, source_dataset_name, dataset_name, data_function, added_descr_txt, drop_extra=True, overwrite_catalog=False):
+def dataset_from_single_function(*, source_dataset_name, dataset_name, data_function, added_readme_txt, drop_fileset=True, overwrite_catalog=False):
     """
     Create a derived dataset (dataset_name) via a single function call on .data from a
     previous dataset (source_dataset_name).
@@ -213,8 +218,8 @@ def dataset_from_single_function(*, source_dataset_name, dataset_name, data_func
         name of the dataset that the new dataset will be derived from
     dataset_name:
         name of the new dataset_catalog
-    added_descr_txt: Default None
-        new description text to be appended to the metadata descr
+    added_readme_txt: Default None
+        new description text to be appended to the metadata readme
     data_function:
         function (from src module) to run on .data to produce the new .data
     overwrite_catalog: boolean
@@ -223,7 +228,7 @@ def dataset_from_single_function(*, source_dataset_name, dataset_name, data_func
     dag = DatasetGraph(catalog_path=paths['catalog_path'])
     serialized_function = serialize_partial(data_function)
     transformers = [partial(apply_single_function, source_dataset_name=source_dataset_name, dataset_name=dataset_name,
-                            serialized_function=serialized_function, added_descr_txt=added_descr_txt, drop_extra=drop_extra)]
+                            serialized_function=serialized_function, added_readme_txt=added_readme_txt, drop_fileset=drop_fileset)]
     dag.add_edge(input_dataset=source_dataset_name,
                  output_dataset=dataset_name,
                  transformer_pipeline=serialize_transformer_pipeline(transformers),
@@ -231,3 +236,195 @@ def dataset_from_single_function(*, source_dataset_name, dataset_name, data_func
     ds = Dataset.from_catalog(dataset_name)
     logger.debug(f"{dataset_name} added to catalog")
     return ds
+
+def derived_dataset(*, dataset_name, source_dataset_name, added_readme_txt,
+                    drop_fileset=True, drop_data=True, drop_target=False,
+                    overwrite_catalog=False):
+    """
+    Create a derived dataset (dataset_name) via a single function call on .data from a
+    previous dataset (source_dataset_name).
+
+    Parameters
+    ----------
+    source_dataset_name:
+        name of the dataset that the new dataset will be derived from
+    dataset_name:
+        name of the new dataset_catalog
+    added_readme_txt: Default None
+        new description text to be appended to the metadata readme
+    drop_fileset: boolean
+        If True, don't copy fileset data to new dataset
+    drop_data: boolean
+        If True, don't copy data to new dataset
+    drop_target: boolean
+        If True, don't copy target to new dataset
+    overwrite_catalog: boolean
+        if True, existing entries in datasets and transformers catalogs will be overwritten
+    """
+    dag = DatasetGraph(catalog_path=paths['catalog_path'])
+    serialized_function = serialize_partial(data_function)
+    transformers = [partial(copy_dataset, source_dataset_name=source_dataset_name, dataset_name=dataset_name,
+                            added_readme_txt=added_readme_txt, drop_fileset=drop_fileset, drop_data=drop_data, drop_target=drop_target)]
+    dag.add_edge(input_dataset=source_dataset_name,
+                 output_dataset=dataset_name,
+                 transformer_pipeline=serialize_transformer_pipeline(transformers),
+                 overwrite_catalog=overwrite_catalog)
+    ds = Dataset.from_catalog(dataset_name)
+    logger.debug(f"{dataset_name} added to catalog")
+    return ds
+
+def metadata_from_fsspec(fs, path, metadata=None, fileset=None):
+    """Create metadata, FILESET file list from fsspec URL.
+
+    Creates a metadata dict representing a dataset
+
+    + filenames in all uppercase are assumed to be metadata fields
+    + remaining files are used to populate FILESET data and have their hashes computed.
+
+    Parameters
+    ----------
+    fs:
+        fsspec.filesystem instance (already connected)
+    path:
+        relative to fs
+    metadata:
+        current contents of metadata dict.
+        Metadata obtained from fsurl will overwrite any similarly named fields in this dict
+    fileset:
+        Current contents of FILESET. new data will be appended.
+        Similarly named entries will be overwritten.
+
+    returns metadata dict
+    """
+    # There's a chance this should get rewritten to use 'fsspec.walk'
+
+    if metadata is None:
+        metadata = {}
+    if fileset is None:
+        fileset = metadata.get('fileset', {})
+    protocol = fs.protocol
+    dirs_done = []
+    dirs = [path]
+
+    while dirs:
+        dirname = dirs.pop()
+        rel_dirname = os.path.relpath(dirname, start=path)
+        dirs_done.append(dirname)
+        for file_info in fs.ls(dirname, detail=True):
+            file_type = file_info.get('type', None)
+            file_name = file_info['name']
+            if file_type == 'directory':
+                dirs.append(file_name)
+            elif file_type == 'file':
+                basename = os.path.basename(os.path.normpath(file_name))
+                if str.isupper(basename):
+                    # Add to metadata
+                    with fs.open(file_name, 'r') as fr:
+                        contents = '\n'.join(fr.readlines())
+                    metadata[str.lower(basename)] = contents
+                else:
+                    # add file and hash to FILESET
+                    if protocol == "abfs":
+                        # Cheap way to get md5
+                        md5_arr = file_info['content_settings']['content_md5']
+                        hashval = f"md5:{''.join('{:02x}'.format(x) for x in md5_arr)}"
+                    else:
+                        logger.warning(f"Unsupported fsspec filesystem: {fs.protocol}. Using size as hash")
+                        hashval = f"size:{fs.size(file_name)}"
+                    rel_path = os.path.relpath(file_info['name'], start=dirname) or "."
+                    # fileset[rel_dirname][rel_path] = [hashval]
+                    entry = {rel_path:[hashval]}
+                    fileset.setdefault(rel_dirname,{}).update(entry)
+            else:
+                raise Exception(f"Unknown file type: {file_type}")
+    metadata["fileset"] = fileset
+    return metadata
+
+
+
+def dataset_from_fsurl(fsurl,
+                       dataset_name=None,
+                       fsspec_auth=None,
+                       metadata=None,
+                       fileset=None,
+                       overwrite_catalog=True):
+    """Create a dataset from the contents of an fsspec URL
+
+    'fsurl' is assumed to be a directory/container/bucket.
+
+    Files in this bucket with names entirely in UPPERCASE are assumed
+    to be textfiles and are used to populate metadata fields directly
+    as metadata fields (e.g. README, LICENSE)
+
+    Other files have their hashes added to FILESET, and are included in
+    the FileSet (FILESET data) associated with the dataset.
+
+    Parameters::
+
+    fsurl: fsspec URL
+        Should be a "directory", container, or "subdirectory" of said container.
+    dataset_name: string or None
+        Name to use for Dataset.
+        if None, name is the last component of the fsurl path
+    metadata:
+        current contents of metadata dict.
+        Metadata obtained from fsurl will overwrite any similarly named fields in this dict
+    fileset:
+        Current contents of FILESET. new data will be appended.
+        Similarly named entries will be overwritten.
+    overwrite_catalog: Boolean
+        if True, entry in Dataset catalog will be overwritten with the newly generated Dataset
+
+    Returns::
+    Dataset containing only metadata and FILESET info for all files in the specified fsspec URL.
+
+    """
+    if fsspec_auth is None:
+        fsspec_auth = {}
+
+    f = fsspec.open(fsurl, **fsspec_auth)
+    path = f.path
+    if dataset_name is None:
+        dataset_name = os.path.basename(os.path.normpath(path))
+        logger.debug(f"Inferring dataset_name from fsurl: {dataset_name}")
+    fs = f.fs
+    protocol = fs.protocol
+    meta = metadata_from_fsspec(fs, path, metadata=metadata, fileset=fileset)
+    meta['fileset_base'] = fsurl
+    ds = dataset_from_metadata(dataset_name,
+                               metadata=meta,
+                               overwrite_catalog=overwrite_catalog)
+    return ds
+
+def derived_dataset(*, dataset_name, source_dataset, added_readme_txt=None, drop_fileset=True, data=None, target=None):
+    """Create a dataset by copying its metadata from another dataset
+
+    Parameters
+    ----------
+    added_readme_txt: string
+        String to be appended to the end of the new dataset's README metadata
+    drop_fileset: boolean
+        if True, ignore fileset when copying metadata
+    data:
+        Will be used as contents of new dataset's `data`
+    target:
+        Will be used as contents of new dataset's `target`
+    dataset_name: String
+        new dataset name
+    source_dataset: Dataset
+        Metadata will be copied from this dataset
+
+    Returns
+    -------
+    new (derived) Dataset object
+    """
+    new_metadata = ds.metadata.copy()
+    if added_readme_txt:
+        new_metadata['readme'] += added_readme_txt
+    if drop_fileset:
+        if new_metadata.get('fileset', 0) != 0:
+            new_metadata.pop('fileset')
+    if new_metadata.get('hashes', 0) != 0:
+            new_metadata.pop('hashes')
+    ds_out = Dataset(dataset_name, metadata=new_metadata, data=data, target=target, **kwargs)
+    return ds_out

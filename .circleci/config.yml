@@ -8,7 +8,7 @@ jobs:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: cimg/python:3.8.0
+      - image: continuumio/miniconda3
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -19,39 +19,37 @@ jobs:
 
     steps:
       - checkout
-
+      
       - run:
-          name: Set up Anaconda
+          name: Set up Conda
           command: |
-            wget -q http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh;
-            chmod +x ~/miniconda.sh;
-            ~/miniconda.sh -b -p ~/miniconda;
-            export PATH=~/miniconda/bin:$PATH
-            echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
-            conda update --yes --quiet conda;
             conda init bash
-            sed -ne '/>>> conda initialize/,/<<< conda initialize/p' ~/.bashrc >> $BASH_ENV
-
+            conda update --yes --quiet conda;
+            export CONDA_EXE=/opt/conda/bin/conda
+            sed -ne '/>>> conda initialize/,/<<< conda initialize/p' ~/.bashrc >> $BASH_ENV 
+      
       - run:
           name: Build cookiecutter environment and test-env project
           command: |
-            conda create -n cookiecutter --yes python=3.8
+            conda create -n cookiecutter --yes python=3.8 make
             conda activate cookiecutter
             pip install cookiecutter
             pip install ruamel.yaml
-            mkdir /home/circleci/.cookiecutter_replay
-            cp circleci-cookiecutter-easydata.json /home/circleci/.cookiecutter_replay/cookiecutter-easydata.json
+            mkdir -p /root/repo/.cookiecutter_replay
+            cp circleci-cookiecutter-easydata.json /root/repo/.cookiecutter_replay/cookiecutter-easydata.json
             pwd
+            which make
             cookiecutter --config-file .cookiecutter-easydata-test-circleci.yml . -f --no-input
-            conda deactivate
-
+            
       - run:
           name: Create test-env environment and contrive to always use it
           command: |
+            conda activate cookiecutter
             cd test-env
-            export CONDA_EXE=/home/circleci/miniconda/bin/conda
+            export CONDA_EXE=/opt/conda/bin/conda
             make create_environment
             conda activate test-env
+            conda install -c anaconda make
             touch environment.yml
             make update_environment
             echo "conda activate test-env" >> $BASH_ENV;

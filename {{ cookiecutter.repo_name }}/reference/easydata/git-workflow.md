@@ -1,5 +1,5 @@
-# The Easydata Git Workflow
-Here's our suggestion for a reliable git workflow that works well in small team settings using [Easydata][cookiecutter-easydata].
+# The EasyData Git Workflow
+Here's our suggestion for a reliable git workflow that works well in **small team settings**; e.g. when using [Easydata][easydata] in a group setting.
 
 ## Git configuration
 
@@ -49,7 +49,7 @@ git merge {{cookiecutter.default_branch}}
 git push origin my_branch
 ```
 
-### Do I have any stale branches?
+### Clean up the junk
 With your local `{{cookiecutter.default_branch}}`, `origin/{{cookiecutter.default_branch}}` and `upstream/{{cookiecutter.default_branch}}` all in sync, we like to clean up any old branches that are fully merged (and hence, can be deleted without data loss.)
 ```bash
 git branch --merged {{cookiecutter.default_branch}}
@@ -58,15 +58,15 @@ git branch -d <name_of_merged_branch>
 A really great feature of `git branch -d` is that it will refuse to remove a branch that hasn't been fully merged into another. Thus it's safe to use without any fear of data loss.
 
 
-### Time to start the day
+### Start the day
 Once you've finished all your merge tasks, you can create a clean working branch from the latest `{{cookiecutter.default_branch}}` by doing a:
 ```bash
 git checkout {{cookiecutter.default_branch}}
 git checkout -b new_branch_name
 ```
 
+That's it! Do you have any suggestions for improvements to this workflow? Drop us a line or file an issue in our
+[easydata issue tracker].
 
-That's it!. Do you have any suggestions for improvements to this workflow? Drop us a line or file an issue at
-[cookiecutter-easydata].
-
-[cookiecutter-easydata]: https://github.com/hackalog/cookiecutter-easydata/
+[easydata issue tracker]: https://github.com/hackalog/easydata/issues
+[easydata]: https://github.com/hackalog/easydata
