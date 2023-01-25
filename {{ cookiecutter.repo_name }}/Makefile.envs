@@ -4,28 +4,22 @@
 
 include Makefile.include
 
-$(LOCKFILE): check_installation .make.bootstrap .make.pip-requirements.txt .make.environment-default.yml .make.conda-forge-requirements.txt
+$(LOCKFILE): check_installation .make.bootstrap split_environment_files
 ifeq (conda, $(VIRTUALENV))
-	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f .make.environment-default.yml --prune
-	$(CONDA_EXE) install -n $(PROJECT_NAME) --file .make.conda-forge-requirements.txt --channel defaults --channel conda-forge --strict-channel-priority --yes
+	for channel in $(shell $(CAT) .make.channel-order.include); do\
+	   $(ECHO) installing from .make.$$channel-environment.txt;\
+	   $(CONDA_EXE) install -n $(PROJECT_NAME) --file .make.$$channel-environment.txt --channel defaults --channel $$channel --strict-channel-priority --yes ;\
+	done
 	$(CONDA_EXE) run -n $(PROJECT_NAME) --no-capture pip install -r .make.pip-requirements.txt
 	$(CONDA_EXE) env export -n $(PROJECT_NAME) -f $(LOCKFILE)
 else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
 
-# extract multi-phase dependencies from environment.yml
-.make.environment-pip.yml: environment.yml .make.bootstrap
-	$(CONDA_EXE) run -n $(PROJECT_NAME) --no-capture $(PYTHON_INTERPRETER) scripts/split_pip.py pip-yaml $(PROJECT_DIR)environment.yml > $@
-
-.make.pip-requirements.txt: environment.yml .make.bootstrap
-	$(CONDA_EXE) run -n $(PROJECT_NAME) --no-capture $(PYTHON_INTERPRETER) scripts/split_pip.py pip $(PROJECT_DIR)environment.yml > $@
-
-.make.conda-forge-requirements.txt: environment.yml .make.bootstrap
-	$(CONDA_EXE) run -n $(PROJECT_NAME) --no-capture $(PYTHON_INTERPRETER) scripts/split_pip.py conda-forge $(PROJECT_DIR)environment.yml > $@
-
-.make.environment-default.yml: environment.yml .make.bootstrap
-	$(CONDA_EXE) run -n $(PROJECT_NAME) --no-capture $(PYTHON_INTERPRETER) scripts/split_pip.py default $(PROJECT_DIR)environment.yml > $@
+.PHONY: split_environment_files
+## extract multi-phase dependencies from environment.yml and create ordering file
+split_environment_files: environment.yml .make.bootstrap
+	$(CONDA_EXE) run -n $(PROJECT_NAME) --no-capture $(PYTHON_INTERPRETER) scripts/split_pip.py $(PROJECT_DIR)environment.yml
 
 .make.bootstrap: scripts/bootstrap.yml
 	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f scripts/bootstrap.yml
@@ -69,6 +63,7 @@ endif
 # Checks that the conda environment is active
 environment_enabled:
 ifeq (conda,$(VIRTUALENV))
+	$(CONDA_EXE) config --env --set channel_priority strict
 ifneq ($(notdir ${CONDA_DEFAULT_ENV}), $(PROJECT_NAME))
 	$(error Run "$(VIRTUALENV) activate $(PROJECT_NAME)" before proceeding...)
 endif
