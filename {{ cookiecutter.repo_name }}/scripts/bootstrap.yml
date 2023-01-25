@@ -1,6 +1,6 @@
 {% macro pyver() -%}
 {% if cookiecutter.python_version == 'latest' -%}
-  - python=3
+  - python
 {% else -%}
   - python={{ cookiecutter.python_version }}
 {% endif -%}
