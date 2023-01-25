@@ -46,9 +46,9 @@ jobs:
           command: |
             conda activate cookiecutter
             cd test-env
-            python scripts/tests/add-extra-channel-dependency.py
             export CONDA_EXE=/opt/conda/bin/conda
             make create_environment
+            python scripts/tests/add-extra-channel-dependency.py
             conda activate test-env
             conda install -c anaconda make
             touch environment.yml

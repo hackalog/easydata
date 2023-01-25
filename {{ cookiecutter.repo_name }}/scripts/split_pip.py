@@ -39,7 +39,7 @@ def env_split(conda_env, channel_order):
                 deplist.remove(dep)
 
     channel_dict['defaults'] = deplist
-    conda_env.pop('channel-order')
+    conda_env.pop('channel-order', None)
     return conda_env, channel_dict
 
 def get_channel_order(conda_env):
