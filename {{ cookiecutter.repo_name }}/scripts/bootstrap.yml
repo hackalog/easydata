@@ -7,7 +7,7 @@
 {% endmacro -%}
 name: {{ cookiecutter.repo_name }}
 channels:
-    - defaults
+   - defaults
 dependencies:
-    - pyyaml
-{{ pyver()|indent(2, true) }}
+   - pyyaml
+{{ pyver()|indent(3, true) }}

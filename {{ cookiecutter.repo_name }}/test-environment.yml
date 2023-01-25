@@ -1,0 +1,33 @@
+channel_order:
+- defaults
+- pytorch
+channels:
+- defaults
+dependencies:
+- pip
+- pip:
+  - -e .
+  - python-dotenv>=0.5.1
+  - nbval
+  - nbdime
+  - gdown
+- setuptools
+- wheel
+- git>=2.5
+- sphinx
+- bokeh
+- click
+- colorcet
+- coverage
+- coveralls
+- matplotlib
+- jupyter
+- scikit-learn
+- scipy
+- joblib
+- nb_conda_kernels
+- pandas
+- requests
+- pathlib
+- fsspec
+- pytorch::cpuonly
