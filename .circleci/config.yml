@@ -40,12 +40,13 @@ jobs:
             pwd
             which make
             cookiecutter --config-file .cookiecutter-easydata-test-circleci.yml . -f --no-input
-            
+
       - run:
           name: Create test-env environment and contrive to always use it
           command: |
             conda activate cookiecutter
             cd test-env
+            python scripts/tests/add-extra-channel-dependency.py
             export CONDA_EXE=/opt/conda/bin/conda
             make create_environment
             conda activate test-env
