@@ -6,10 +6,8 @@ include Makefile.include
 
 $(LOCKFILE): check_installation .make.bootstrap split_environment_files
 ifeq (conda, $(VIRTUALENV))
-	for channel in $(shell $(CAT) .make.channel-order.include); do\
-	   $(ECHO) installing from .make.$$channel-environment.txt;\
-	   $(CONDA_EXE) install -n $(PROJECT_NAME) --file .make.$$channel-environment.txt --channel defaults --channel $$channel --strict-channel-priority --yes ;\
-	done
+	$(foreach channel, $(shell $(CAT) .make.channel-order.include),\
+	   $(CONDA_EXE) install -n $(PROJECT_NAME) --file .make.$(channel)-environment.txt --channel defaults --channel $(channel) --strict-channel-priority --yes $(CMDSEP))
 	$(CONDA_EXE) run -n $(PROJECT_NAME) --no-capture pip install -r .make.pip-requirements.txt
 	$(CONDA_EXE) env export -n $(PROJECT_NAME) -f $(LOCKFILE)
 else
