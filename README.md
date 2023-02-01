@@ -51,6 +51,24 @@ python -m pip install -f requirements.txt
 
     cookiecutter https://github.com/hackalog/easydata
 
+### To find out more
+------------
+A good place to start is with reproducible environments. We have a tutorial here: [Getting Started with EasyData Environments](https://github.com/hackalog/easydata/wiki/Getting-Started-with-EasyData-Environments). 
+
+The next place to look is in the customized documentation that is in any EasyData created repo. It is customized to the settings that you put in your template. These are reference documents that can be found under `references/easydata` that are customized to your repo that cover:
+   * more on conda environments
+   * more on paths
+   * git configuration (including setting up ssh with GitHub)
+   * git workflows
+   * tricks for using Jupyter notebooks in an EasyData environment
+   * troubleshooting
+   * recommendations for how to share your work
+   
+Furthermore, see:
+* [The EasyData documentation on read the docs](https://cookiecutter-easydata.readthedocs.io/en/latest/?badge=latest): this contains up-to-date working exmaples of how to use EasyData for reproducible datasets and some ways to use notebooks reproducibly
+* [Talks and Tutorials based on EasyData](https://github.com/hackalog/easydata/wiki/EasyData-Talks-and-Tutorials)
+* [Catalog of EasyData Documentation](https://github.com/hackalog/easydata/wiki/Catalog-of-EasyData-Documentation)
+* [The EasyData wiki](https://github.com/hackalog/easydata/wiki) Check here for further troubleshooting and how-to guides for particular problems that aren't in the `references/easydata` docs (including a `git` tutorial)
 
 ### The resulting directory structure
 ------------

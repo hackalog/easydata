@@ -1,5 +1,13 @@
+{% macro pyver() -%}
+{% if cookiecutter.python_version == 'latest' -%}
+  - python
+{% else -%}
+  - python={{ cookiecutter.python_version }}
+{% endif -%}
+{% endmacro -%}
+name: {{ cookiecutter.repo_name }}
 channels:
-    - defaults
+   - defaults
 dependencies:
-    - python=3.7
-    - pyyaml
+   - pyyaml
+{{ pyver()|indent(3, true) }}

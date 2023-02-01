@@ -75,16 +75,11 @@ test: update_environment
 		$(if $(CI_RUNNING),--ignore=$(TESTS_NO_CI)) \
 		$(MODULE_NAME)
 
-## Run all Unit Tests with coverage
+## Run all Unit and code coverage tests
 test_with_coverage: update_environment
 	$(SET) LOGLEVEL=DEBUG; coverage run -m pytest --pyargs --doctest-modules --doctest-continue-on-failure --verbose \
 		$(if $(CI_RUNNING),--ignore=$(TESTS_NO_CI)) \
 		$(MODULE_NAME)
-
-.PHONY: lint
-## Lint using flake8
-lint:
-	flake8 $(MODULE_NAME)
 
 .phony: help_update_easydata
 help_update_easydata:
@@ -105,7 +100,7 @@ debug:
 # Self Documenting Commands                                                     #
 #################################################################################
 
-HELP_VARS := PROJECT_NAME DEBUG_FILE ARCH PLATFORM
+HELP_VARS := PROJECT_NAME DEBUG_FILE ARCH PLATFORM SHELL
 
 .DEFAULT_GOAL := show-help
 .PHONY: show-help

@@ -4,13 +4,19 @@ The `{{ cookiecutter.repo_name }}` repo is set up with template code to make man
 
 If you haven't yet, configure your conda environment.
 
+**WARNING**: If you have conda-forge listed as a channel in your `.condarc` (or any other channels other than defaults), you may experience great difficulty generating reproducible conda environments.
+
+We recommend you remove conda-forge (and all other non-default channels) from your `.condarc` file and [set your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html). You can still use conda-forge (or any other conda channel), just specify it explicitly in your `environment.yml` by prefixing your package name with `channel-name::`; e.g.
+```
+  - wheel                    # install from the default (anaconda) channel
+  - pytorch::pytorch         # install this from the `pytorch` channel
+  - conda-forge::tokenizers  # install this from conda-forge
+```
+
 ## Configuring your python environment
 Easydata uses conda to manage python packages installed by both conda **and pip**.
 
 ### Adjust your `.condarc`
-**WARNING FOR EXISTING CONDA USERS**: If you have `conda-forge` listed as a channel in your `.condarc` (or any other channels other than `default`), **remove them**. These channels should be specified in `environment.yml` instead.
-
-We also recommend [setting your channel priority to 'strict'](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) to reduce package incompatibility problems. This will be the default in conda 5.0, but in order to assure reproducibility, we need to use this behavior now.
 
 ```
 conda config --set channel_priority strict
@@ -26,18 +32,30 @@ conda config --prepend channels defaults
 conda config --prepend envs_dirs ~/.conda/envs   # Store environments in local dir for JupyterHub
 ```
 
-### Fix the CONDA_EXE path
-* Make note of the path to your conda binary:
+#### Locating the `conda` binary
+Ensure the Makefile can find your conda binary, either by setting the `CONDA_EXE` environment variable, or by modifying `Makefile.include` directly.
+
+First, check if `CONDA_EXE` is already set
 ```
-   $ which conda
+   >>> export | grep CONDA_EXE
+   CONDA_EXE=/Users/your_username/miniconda3/bin/conda
+```
+
+If `CONDA_EXE` is not set, you will need to set it manually in `Makefile.include`; i.e.
+
+* Make note of the path to your conda binary. It should be in the `bin` subdirectory of your Anaconda (or miniconda) installation directory:
+```
+   >>>  which conda         # this will only work if conda is in your PATH, otherwise, verify manually
    ~/miniconda3/bin/conda
 ```
-* ensure your `CONDA_EXE` environment variable is set correctly in `Makefile.include`
+* ensure your `CONDA_EXE` environment variable is set to this value; i.e.
 ```
-    export CONDA_EXE=~/miniconda3/bin/conda
+    >>> export CONDA_EXE=~/miniconda3/bin/conda
 ```
+or edit `Makefile.include` directly.
+
 ### Create the conda environment
-* Create and switch to the virtual environment:
+Create and switch to the virtual environment:
 ```
 cd {{ cookiecutter.repo_name }}
 make create_environment
@@ -63,6 +81,7 @@ When adding packages to your python environment, **do not `pip install` or `cond
 Your `environment.yml` file will look something like this:
 ```
 name: {{ cookiecutter.repo_name }}
+dependencies:
   - pip
   - pip:
     - -e .  # conda >= 4.4 only
@@ -88,7 +107,7 @@ name: {{ cookiecutter.repo_name }}
 ```
 To add any package available from conda, add it to the end of the list. If you have a PYPI dependency that's not avaible via conda, add it to the list of pip installable dependencies under `  - pip:`.
 
-You can include any {{ cookiecutter.upstream_location }} python-based project in the `pip` section via `git+https://{{ cookiecutter.upstream_location }}/<my_git_handle>/<package>`.
+You can include any `{{ cookiecutter.upstream_location }}` python-based project in the `pip` section via `git+https://{{ cookiecutter.upstream_location }}/<my_git_handle>/<package>`.
 
 In particular, if you're working off of a fork or a work in progress branch of a repo in {{ cookiecutter.upstream_location }} (say, your personal version of <package>), you can change `git+https://{{ cookiecutter.upstream_location }}/<my_git_handle>/<package>` to
 
@@ -98,6 +117,43 @@ In particular, if you're working off of a fork or a work in progress branch of a
 Once you're done your edits, run `make update_environment` and voila, you're updated.
 
 To share your updated environment, check in your `environment.yml` file. (More on this in [Sharing your Work](sharing-your-work.md))
+
+#### Adding packages from other conda channels
+Say we want to add a package only available from the `conda-forge` conda channel and not the default conda channel. (The conda channel is what follows `-c` when using `conda install -c my-channel my-package`. Suppose we want to use `make` on windows. Then we need to use `conda-forge` since the default conda channel only has linux and macOS installations of `make`. To normally conda install this, we would use `conda install -c conda-forge make`. **We won't do that here**.
+
+Instead, we add a `channel-order` section that starts with `defaults` and lists the other channels we want to use in the order we want to install from them (note that this is a custom EasyData section to the `environment.yml`). Then we add our package in the dependency list in the form `channel-name::package-name`, for example, `conda-forge::make`.
+
+In this case an updated `environment.yml` file looks like this:
+```
+name: {{ cookiecutter.repo_name }}
+channel-order:
+  - defaults
+  - conda-forge
+dependencies:
+  - pip
+  - pip:
+    - -e .  # conda >= 4.4 only
+    - python-dotenv>=0.5.1
+    - nbval
+    - nbdime
+    - umap-learn
+    - gdown
+  - setuptools
+  - wheel
+  - git>=2.5  # for git worktree template updating
+  - sphinx
+  - bokeh
+  - click
+  - colorcet
+  - coverage
+  - coveralls
+  - datashader
+  - holoviews
+  - matplotlib
+  - jupyter
+  - conda-forge::make
+...
+```
 
 
 #### Lock files

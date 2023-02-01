@@ -12,10 +12,11 @@ from .utils import deserialize_partial
 from ..utils import run_notebook
 
 __all__ = [
-    'run_notebook_transformer',
     'apply_single_function',
+    'copy_dataset',
     'csv_to_pandas',
     'new_dataset',
+    'run_notebook_transformer',
     'sklearn_train_test_split',
     'sklearn_transform',
 ]
@@ -163,23 +164,21 @@ def csv_to_pandas(ds_dict, *, output_map, **opts):
     new_ds = {}
     df = None
     for ds_name, dset in ds_dict.items():
-        extra = dset.metadata.get('extra', None)
-        if extra is not None:
-            logger.debug(f"Input dataset {ds_name} has extra data. Processing...")
-            for rel_dir, file_dict in extra.items():
+        fileset = dset.metadata.get('fileset', None)
+        if fileset is not None:
+            logger.debug(f"Input dataset {ds_name} has fileset data. Processing...")
+            for rel_dir, file_dict in fileset.items():
                 for new_dsname, csv_filename in output_map.items():
                     if csv_filename in file_dict:
                         logger.debug(f"Found {csv_filename}. Creating {new_dsname} dataset")
                         path = paths['processed_data_path'] / rel_dir / csv_filename
                         df = pd.read_csv(path)
                         new_metadata = dset.metadata
-                        new_metadata.pop('extra', None)
+                        new_metadata.pop('fileset', None)
                         new_ds[new_dsname] = Dataset(dataset_name=new_dsname, data=df, metadata=new_metadata)
     return new_ds
 
-
-
-def apply_single_function(ds_dict, *, source_dataset_name, dataset_name, serialized_function, added_descr_txt, drop_extra, **opts):
+def apply_single_function(ds_dict, *, source_dataset_name, dataset_name, serialized_function, added_readme_txt, drop_fileset, **opts):
     """
     Parameters
     ----------
@@ -189,12 +188,12 @@ def apply_single_function(ds_dict, *, source_dataset_name, dataset_name, seriali
         name of the dataset that the new dataset will be derived from
     dataset_name:
         name of the new dataset_catalog
-    added_descr_txt: Default None
-        new description text to be appended to the metadata descr
+    added_readme_txt: Default None
+        new description text to be appended to the metadata readme
     serialized_function:
         function (serialized by src.utils.serialize_partial) to run on .data to produce the new .data
-    drop_extra: boolean
-        drop the .extra part of the metadata
+    drop_fileset: boolean
+        drop the .fileset part of the metadata
     **opts:
         Remaining options will be ignored
     """
@@ -205,10 +204,10 @@ def apply_single_function(ds_dict, *, source_dataset_name, dataset_name, seriali
     ds = ds_dict.get(source_dataset_name)
 
     new_metadata = ds.metadata.copy()
-    new_metadata['descr'] += added_descr_txt
-    if drop_extra:
-        if new_metadata.get('extra', 0) != 0:
-            new_metadata.pop('extra')
+    new_metadata['readme'] += added_readme_txt
+    if drop_fileset:
+        if new_metadata.get('fileset', 0) != 0:
+            new_metadata.pop('fileset')
 
     logger.debug(f"Applying data function...")
     data_function=deserialize_partial(serialized_function)
@@ -222,8 +221,45 @@ def apply_single_function(ds_dict, *, source_dataset_name, dataset_name, seriali
     new_ds[dataset_name] = Dataset(dataset_name=dataset_name, data=new_data, target=new_target, metadata=new_metadata)
     return new_ds
 
+def copy_dataset(ds_dict, *, source_dataset_name, dataset_name, added_readme_txt, drop_fileset=True, **opts):
+    """
+    Create a new dataset by copying an existing one
+    Parameters
+    ----------
+    ds_dict:
+        input datasets.
+    source_dataset_name:
+        name of the dataset that the new dataset will be derived from
+    dataset_name:
+        name of the new dataset_catalog
+    added_readme_txt: Default None
+        new description text to be appended to the metadata readme
+    drop_fileset: boolean
+        drop the .fileset part of the metadata
+    **opts:
+        Remaining options will be ignored
+    """
+
+    new_ds = {}
+
+    logger.debug(f"Loading {source_dataset_name}...")
+    ds = ds_dict.get(source_dataset_name)
 
     new_metadata = ds.metadata.copy()
+    new_metadata['readme'] += added_readme_txt
+    if drop_fileset:
+        if new_metadata.get('fileset', 0) != 0:
+            new_metadata.pop('fileset')
 
-    new_ds[new_dsname] = Dataset(dataset_name=new_dsname, data=preprocessed_corpus, metadata=new_metadata)
+    if drop_data:
+        new_data = None
+    else:
+        new_data = ds.data.copy()
+
+    if drop_target:
+        new_target = None
+    else:
+        new_target = ds.target.copy()
+
+    new_ds[dataset_name] = Dataset(dataset_name=dataset_name, data=new_data, target=new_target, metadata=new_metadata)
     return new_ds

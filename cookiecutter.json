@@ -1,12 +1,12 @@
 {
     "project_name": "project_name",
     "repo_name": "{{ cookiecutter.project_name.lower().replace(' ', '_') }}",
-    "default_branch": ["master", "main"],
+    "default_branch": ["main", "master"],
     "module_name": "src",
-    "author_name": "Your name (or your organization/company/team)",
+    "author_name": "Your name (or the copyright holder)",
     "description": "A short description of this project.",
     "open_source_license": ["MIT", "BSD-2-Clause", "Proprietary"],
-    "python_version": ["3.7", "3.6", "latest", "3.8"],
+    "python_version": ["latest", "3.11", "3.10", "3.9", "3.8", "3.7"],
     "conda_path": "~/anaconda3/bin/conda",
     "upstream_location": ["github.com", "gitlab.com", "bitbucket.org", "your-custom-repo"]
 }

@@ -5,6 +5,7 @@ CAT = type
 SET = set
 WHICH = where
 DEVNULL = nul
+CMDSEP = &
 
 # Some UNIXish packages force the installation of a Bourne-compatible shell, and Make
 # prefers using this when it sees it. We thus force the usage of the good ole Batch

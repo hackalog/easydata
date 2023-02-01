@@ -3,8 +3,8 @@
 ## TL;DR
 To get started, all you really need to know is that you can query for available datasets via
 ```python
-from {{ cookiecutter.module_name }} import workflow
-workflow.dataset_catalog()
+from {{ cookiecutter.module_name }}.data import Catalog
+Catalog.load("datasets")
 ```
 
 and load these datasets via
@@ -15,14 +15,17 @@ ds = Dataset.load(dataset_name)
 
 If you've followed the instructions from building the repo contained in the [README](../README.md), this should just work (if it doesn't, please let us know)!
 
-You can start using the data via `ds.data`. To find out more about the dataset you've just loaded, take a look at `ds.DESCR` and `ds.LICENSE`.
+You can start using the data via `ds.data`. To find out more about the dataset you've just loaded, take a look at `ds.README` and `ds.LICENSE`.
 
-**Warning**: some of the datasets can be quite large. If you want to store your data externally, we recommend symlinking your data directory (that is the `{{ cookiecutter.repo_name }}/data` directory) to somewhere with more room before loading your first `Dataset`.
+**Disk Space Note**: sometimes datasets can be quite large. If you want to store your data externally, we recommend pointing your data directory to a new location; that is,
 
+```python
+from {{ cookiecutter.module_name }} import paths
+paths["data_path"] = "/path/to/big/data/directory"
+```
 
 ## Digging Deeper
 It is useful to know a little bit more about how Datasets work.
-
 
 ## What is a `Dataset` object?
 
@@ -36,7 +39,7 @@ A Dataset is the fundamental object we use for turning raw data into useful data
 
 The `data` attribute can really be any processed data form that you like: sometimes it's a pandas dataframe (like with `wine_reviews_130k`), a list of tuples containing other data, (`reddit_comment_tree_graphs`), or other formats including  `scipy.sparse` matrices or `igraph` graphs. The `target` (if you're using it), expects something that matches the `data` in terms of length.
 
-For a hint as to which data format to expect, you can look at the contents of the `DESCR` attribute, one of the many pieces of medata that are maintained as part of the `Dataset` object.
+For a hint as to which data format to expect, you can look at the contents of the `README` attribute, one of the many pieces of medata that are maintained as part of the `Dataset` object.
 
 This `metadata` is where things get interesting... which we'll cover on its own next.
 
@@ -44,9 +47,9 @@ This `metadata` is where things get interesting... which we'll cover on its own 
 The `metadata` is where the magic lives. It serves several purposes in terms of bookkeeping:
 
 * it includes `HASHES`, which **improve data reproducibility**, since what you download and process gets checked each step along the way to ensure the raw data matches what is stored in the `dataset_catalog`,
-* it provides easy access to **what the data is** via the `DESCR` attribute,
+* it provides easy access to **what the data is** via the `README` attribute,
 * it provides easy (and continual) **access to the license / usage restrictions** for the data (the `LICENSE` attribute), which helps with knowing what you can do when [Sharing your Work](sharing-your-work.md).
-* it provides the **extra data manifest**, `EXTRA`, if your dataset includes around additional raw data (extra) files.
+* it provides the **fileset data manifest**, `FILESET`, if your dataset includes around additional raw data (fileset) files.
 
 In short, it helps you to know what data you're working with, what you can do with it, and whether something has gone wrong.
 
@@ -73,21 +76,19 @@ ds.metadata
 
 To access the most common metadata fields:
 ```python
-ds.DESCR          # or ds.metadata['descr']
+ds.README          # or ds.metadata['readme']
 ds.LICENSE        # or ds.metadata['license']
 ds.HASHES         # or ds.metadata['hashes']
 ```
 ## The catalog
-While we do our best to keep the documentation in [Available Datasets](docs/available-datasets.md) up-to-date with what's in the code, you can explore all of the currently available `Datasets` via the `dataset_catalog`. The catalog keeps a record of the recipes used to generate a `Dataset` along with relevant hashes that are used to ensure the integrity of data when it's loaded.
+You can explore all of the currently available `Datasets` via the Dataset `Catalog`. The catalog keeps a record of the recipes used to generate a `Dataset` along with relevant hashes that are used to ensure the integrity of data when it's loaded.
 
 To access the catalog:
 
 ```python
-from {{ cookiecutter.module_name }} import workflow
-workflow.dataset_catalog(keys_only=True)
+from {{ cookiecutter.module_name }}.data import Catalog
+Catalog.load("datasets")
 ```
-If you're interested, set `keys_only=False` to see the complete contents of the metadata that is saved in the catalog.
-
 
 ## Sharing your Data as a `Dataset` object
 In order to convert your data to a `Dataset` object, you will need to generate a catalog *recipe*, that uses a custom *function for processing your raw data*. Doing so allows us to document all the munging, pre-processing, and data verification necessary to reproducibly build the dataset.
