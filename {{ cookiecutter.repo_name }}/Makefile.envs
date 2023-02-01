@@ -15,7 +15,7 @@ else
 endif
 
 .PHONY: split_environment_files
-## extract multi-phase dependencies from environment.yml and create ordering file
+# extract multi-phase dependencies from environment.yml and create ordering file
 split_environment_files: environment.yml .make.bootstrap
 	$(CONDA_EXE) run -n $(PROJECT_NAME) --no-capture $(PYTHON_INTERPRETER) scripts/split_pip.py $(PROJECT_DIR)environment.yml
 

@@ -75,7 +75,7 @@ test: update_environment
 		$(if $(CI_RUNNING),--ignore=$(TESTS_NO_CI)) \
 		$(MODULE_NAME)
 
-## Run all Unit Tests with coverage
+## Run all Unit and code coverage tests
 test_with_coverage: update_environment
 	$(SET) LOGLEVEL=DEBUG; coverage run -m pytest --pyargs --doctest-modules --doctest-continue-on-failure --verbose \
 		$(if $(CI_RUNNING),--ignore=$(TESTS_NO_CI)) \
