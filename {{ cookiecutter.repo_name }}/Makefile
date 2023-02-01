@@ -100,7 +100,7 @@ debug:
 # Self Documenting Commands                                                     #
 #################################################################################
 
-HELP_VARS := PROJECT_NAME DEBUG_FILE ARCH PLATFORM
+HELP_VARS := PROJECT_NAME DEBUG_FILE ARCH PLATFORM SHELL
 
 .DEFAULT_GOAL := show-help
 .PHONY: show-help
