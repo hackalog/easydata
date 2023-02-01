@@ -81,11 +81,6 @@ test_with_coverage: update_environment
 		$(if $(CI_RUNNING),--ignore=$(TESTS_NO_CI)) \
 		$(MODULE_NAME)
 
-.PHONY: lint
-## Lint using flake8
-lint:
-	flake8 $(MODULE_NAME)
-
 .phony: help_update_easydata
 help_update_easydata:
 	@$(PYTHON_INTERPRETER) scripts/help-update.py
