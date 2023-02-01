@@ -40,7 +40,7 @@ jobs:
             pwd
             which make
             cookiecutter --config-file .cookiecutter-easydata-test-circleci.yml . -f --no-input
-            
+
       - run:
           name: Create test-env environment and contrive to always use it
           command: |
@@ -48,6 +48,7 @@ jobs:
             cd test-env
             export CONDA_EXE=/opt/conda/bin/conda
             make create_environment
+            python scripts/tests/add-extra-channel-dependency.py
             conda activate test-env
             conda install -c anaconda make
             touch environment.yml

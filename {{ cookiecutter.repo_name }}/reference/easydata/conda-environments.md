@@ -81,6 +81,7 @@ When adding packages to your python environment, **do not `pip install` or `cond
 Your `environment.yml` file will look something like this:
 ```
 name: {{ cookiecutter.repo_name }}
+dependencies:
   - pip
   - pip:
     - -e .  # conda >= 4.4 only
@@ -106,7 +107,7 @@ name: {{ cookiecutter.repo_name }}
 ```
 To add any package available from conda, add it to the end of the list. If you have a PYPI dependency that's not avaible via conda, add it to the list of pip installable dependencies under `  - pip:`.
 
-You can include any {{ cookiecutter.upstream_location }} python-based project in the `pip` section via `git+https://{{ cookiecutter.upstream_location }}/<my_git_handle>/<package>`.
+You can include any `{{ cookiecutter.upstream_location }}` python-based project in the `pip` section via `git+https://{{ cookiecutter.upstream_location }}/<my_git_handle>/<package>`.
 
 In particular, if you're working off of a fork or a work in progress branch of a repo in {{ cookiecutter.upstream_location }} (say, your personal version of <package>), you can change `git+https://{{ cookiecutter.upstream_location }}/<my_git_handle>/<package>` to
 
@@ -116,6 +117,43 @@ In particular, if you're working off of a fork or a work in progress branch of a
 Once you're done your edits, run `make update_environment` and voila, you're updated.
 
 To share your updated environment, check in your `environment.yml` file. (More on this in [Sharing your Work](sharing-your-work.md))
+
+#### Adding packages from other conda channels
+Say we want to add a package only available from the `conda-forge` conda channel and not the default conda channel. (The conda channel is what follows `-c` when using `conda install -c my-channel my-package`. Suppose we want to use `make` on windows. Then we need to use `conda-forge` since the default conda channel only has linux and macOS installations of `make`. To normally conda install this, we would use `conda install -c conda-forge make`. **We won't do that here**.
+
+Instead, we add a `channel-order` section that starts with `defaults` and lists the other channels we want to use in the order we want to install from them (note that this is a custom EasyData section to the `environment.yml`). Then we add our package in the dependency list in the form `channel-name::package-name`, for example, `conda-forge::make`.
+
+In this case an updated `environment.yml` file looks like this:
+```
+name: {{ cookiecutter.repo_name }}
+channel-order:
+  - defaults
+  - conda-forge
+dependencies:
+  - pip
+  - pip:
+    - -e .  # conda >= 4.4 only
+    - python-dotenv>=0.5.1
+    - nbval
+    - nbdime
+    - umap-learn
+    - gdown
+  - setuptools
+  - wheel
+  - git>=2.5  # for git worktree template updating
+  - sphinx
+  - bokeh
+  - click
+  - colorcet
+  - coverage
+  - coveralls
+  - datashader
+  - holoviews
+  - matplotlib
+  - jupyter
+  - conda-forge::make
+...
+```
 
 
 #### Lock files

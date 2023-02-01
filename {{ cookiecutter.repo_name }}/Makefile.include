@@ -19,5 +19,4 @@ CAT ?= cat
 SET ?= export
 WHICH ?= which
 DEVNULL ?= /dev/null
-
-$(warning From here on, using SHELL = $(SHELL))
+CMDSEP ?= ;
