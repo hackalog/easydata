@@ -25,7 +25,7 @@ _MODULE = sys.modules[__name__]
 _MODULE_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
 
 def read_space_delimited(filename, skiprows=None, class_labels=True, metadata=None):
-    """Read an space-delimited file
+    """Read a space-delimited file
 
     Data is space-delimited. Last column is the (string) label for the data
 
