@@ -61,7 +61,6 @@ endif
 # Checks that the conda environment is active
 environment_enabled:
 ifeq (conda,$(VIRTUALENV))
-	$(CONDA_EXE) config --env --set channel_priority strict
 ifneq ($(notdir ${CONDA_DEFAULT_ENV}), $(PROJECT_NAME))
 	$(error Run "$(VIRTUALENV) activate $(PROJECT_NAME)" before proceeding...)
 endif

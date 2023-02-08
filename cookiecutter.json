@@ -6,7 +6,7 @@
     "author_name": "Your name (or the copyright holder)",
     "description": "A short description of this project.",
     "open_source_license": ["MIT", "BSD-2-Clause", "Proprietary"],
-    "python_version": ["latest", "3.11", "3.10", "3.9", "3.8", "3.7"],
+    "python_version": ["latest", "3.10", "3.9", "3.8", "3.7"],
     "conda_path": "~/anaconda3/bin/conda",
     "upstream_location": ["github.com", "gitlab.com", "bitbucket.org", "your-custom-repo"]
 }
