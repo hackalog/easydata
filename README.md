@@ -40,7 +40,7 @@ Easydata is **not**
 once you've installed anaconda, you can install the remaining requirements (including cookiecutter) by doing:
 
 ```bash
-conda create -n easydata python=3
+conda create --name easydata python=3
 conda activate easydata
 python -m pip install -f requirements.txt
 ```

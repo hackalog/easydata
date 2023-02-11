@@ -7,9 +7,9 @@ include Makefile.include
 $(LOCKFILE): check_installation .make.bootstrap split_environment_files
 ifeq (conda, $(VIRTUALENV))
 	$(foreach channel, $(shell $(CAT) .make.channel-order.include),\
-	   $(CONDA_EXE) install -n $(PROJECT_NAME) --file .make.$(channel)-environment.txt --channel defaults --channel $(channel) --strict-channel-priority --yes $(CMDSEP))
-	$(CONDA_EXE) run -n $(PROJECT_NAME) --no-capture pip install -r .make.pip-requirements.txt
-	$(CONDA_EXE) env export -n $(PROJECT_NAME) -f $(LOCKFILE)
+	   $(CONDA_EXE) install --name $(PROJECT_NAME) --file .make.$(channel)-environment.txt --channel defaults --channel $(channel) --strict-channel-priority --yes $(CMDSEP))
+	$(CONDA_EXE) run --name $(PROJECT_NAME) --no-capture pip install --requirement .make.pip-requirements.txt
+	$(CONDA_EXE) env export --name $(PROJECT_NAME) --file $(LOCKFILE)
 else
 	$(error Unsupported Environment `$(VIRTUALENV)`. Use conda)
 endif
@@ -17,10 +17,10 @@ endif
 .PHONY: split_environment_files
 # extract multi-phase dependencies from environment.yml and create ordering file
 split_environment_files: environment.yml .make.bootstrap
-	$(CONDA_EXE) run -n $(PROJECT_NAME) --no-capture $(PYTHON_INTERPRETER) scripts/split_pip.py $(PROJECT_DIR)environment.yml
+	$(CONDA_EXE) run --name $(PROJECT_NAME) --no-capture $(PYTHON_INTERPRETER) scripts/split_pip.py $(PROJECT_DIR)environment.yml
 
 .make.bootstrap: scripts/bootstrap.yml
-	$(CONDA_EXE) env update -n $(PROJECT_NAME) -f scripts/bootstrap.yml
+	$(CONDA_EXE) env update --name $(PROJECT_NAME) --file scripts/bootstrap.yml
 	$(ECHO) "" > $@
 
 .PHONY: create_environment
@@ -41,7 +41,7 @@ endif
 delete_environment: clean
 ifeq (conda,$(VIRTUALENV))
 	@$(PYTHON_INTERPRETER) -c "print('Deleting conda environment.')"
-	$(CONDA_EXE) env remove -n $(PROJECT_NAME)
+	$(CONDA_EXE) env remove --name $(PROJECT_NAME)
 	$(RM) $(LOCKFILE)
 ifneq ("X$(wildcard .post-delete-environment.txt)","X")
 	@$(CAT) .post-delete-environment.txt
