@@ -49,7 +49,7 @@ First up, if you're in a notebook, keyboard shortcuts can be found using the `Es
 #### Better display
 This cell makes your jupyter notebook use the full screen width. Put this as your first executable cell. You'll thank us.
 ```python
-from IPython.core.display import display, HTML
+from IPython.display import display, HTML
 display(HTML("<style>.container { width:100% !important; }</style>"))
 ```
 #### Autoreloading
